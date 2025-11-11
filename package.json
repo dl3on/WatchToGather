@@ -28,6 +28,7 @@
     "@types/node": "^24.10.0",
     "express": "^5.1.0",
     "firebase": "^12.5.0",
+    "socket.io": "^4.8.1",
     "typescript": "^5.9.3"
   }
 }
