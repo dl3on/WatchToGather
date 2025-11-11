@@ -1,4 +1,4 @@
-import { httpServer, app } from "./socket";
+import { httpServer, app, connections } from "./socket";
 
 const port = 6767;
 
@@ -7,12 +7,6 @@ type Connection = {
   ip: string;
   action: "host" | "joining";
 };
-
-const connections: { [roomId: string]: Connection[] } = {};
-
-connections["329rfh398"] = [
-  { hostname: "test.io", ip: "0.0.0.0", action: "host" },
-];
 
 app.get("/connections", (req, res) => {
   res.send(connections);
