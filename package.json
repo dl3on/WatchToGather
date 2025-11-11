@@ -1,0 +1,28 @@
+{
+  "name": "watchtogather",
+  "version": "1.0.0",
+  "description": "This is a browser extension that enables friends to sync their videos together when watching any video on a website, using peer-to-peer (P2P). The host has to create a room providing the initial URL to the video website and share it to their friends. Everyone in the room can pause, play, seek, or go to the next episode/video: it's like controlling the TV in a room with your friends. This extension works for any video website.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npx tsc && cp -r src/popup/*.html src/popup/*.css dist/popup/"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dl3on/WatchToGather.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/dl3on/WatchToGather/issues"
+  },
+  "homepage": "https://github.com/dl3on/WatchToGather#readme",
+  "devDependencies": {
+    "chrome-types": "^0.1.388"
+  },
+  "dependencies": {
+    "typescript": "^5.9.3"
+  }
+}

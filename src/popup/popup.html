@@ -1,0 +1,27 @@
+<html lang="en">
+<head>
+    <title>WatchToGather</title>
+    <link rel="stylesheet" type="text/css" href="popup.css">
+</head>
+<body>
+    <h3>WatchToGather</h3>
+    <button id="createRoomBtn">Create Room</button>
+  
+    <!-- Hidden modal for room details -->
+    <div id="modal" class="hidden">
+      <div class="modal-content">
+        <h3>Create Room</h3>
+        <div>
+            <input id="roomTitle" type="text" placeholder="Room title" />
+            <input id="webpageLink" type="text" placeholder="Enter website link" />
+        </div>
+        <div>
+            <button id="confirmCreate">Create</button>
+            <button id="cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="popup.js"></script>
+</body>
+</html>

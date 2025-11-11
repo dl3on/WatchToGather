@@ -1,0 +1,13 @@
+# Node
+node_modules/
+npm-debug.log*
+
+# Build output
+dist/
+
+# System files
+.DS_Store
+Thumbs.db
+
+# TypeScript cache
+*.tsbuildinfo
