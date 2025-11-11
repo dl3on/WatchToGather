@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npx tsc && cp -r src/popup/*.html src/popup/*.css dist/popup/"
+    "build": "npx tsc && copyfiles -u 2 src/popup/*.html src/popup/*.css dist/popup"
   },
   "repository": {
     "type": "git",
@@ -20,7 +20,8 @@
   },
   "homepage": "https://github.com/dl3on/WatchToGather#readme",
   "devDependencies": {
-    "chrome-types": "^0.1.388"
+    "chrome-types": "^0.1.388",
+    "copyfiles": "^2.4.1"
   },
   "dependencies": {
     "typescript": "^5.9.3"
