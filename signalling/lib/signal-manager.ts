@@ -6,17 +6,21 @@ import {
   Response,
   ServerToClientEvents,
   ResponseType,
+  EClientToServerEvents,
 } from "../types";
+
+type SignalManagerOptions = {
+  peerId: string;
+  serverUrl: string;
+  socketOptions?: Omit<Partial<ManagerOptions & SocketOptions>, "autoConnect">;
+  verbose?: boolean;
+};
 export class SignalManager {
   _peerId: string;
   _socket: Socket<ServerToClientEvents, ClientToServerEvents>;
   _verbose: boolean;
-  constructor(
-    peerId: string,
-    serverUrl: string,
-    socketOptions: Omit<Partial<ManagerOptions & SocketOptions>, "autoConnect">,
-    verbose = false
-  ) {
+  constructor(opts: SignalManagerOptions) {
+    const { peerId, serverUrl, socketOptions, verbose = false } = opts;
     this._peerId = peerId;
     this._socket = io(serverUrl, { ...socketOptions, autoConnect: false });
     this._verbose = verbose;
