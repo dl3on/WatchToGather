@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { createServer } from "node:http";
-import express from "express";
+import * as express from "express";
 import {
   ClientToServerEvents,
   Connection,
