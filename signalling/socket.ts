@@ -4,14 +4,11 @@ import express from "express";
 import {
   ClientToServerEvents,
   Connection,
-  JoinMessage,
   ServerToClientEvents,
 } from "./types";
 const app = express();
 const httpServer = createServer(app);
-
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer);
-
 const connections: { [roomId: string]: Connection[] } = {};
 
 connections["329rfh398"] = [
@@ -38,6 +35,11 @@ io.on("connection", (socket) => {
         errMsg: "Room does not exist.",
       });
     }
+  });
+
+  socket.on("host", (msg) => {
+    const { peerId } = msg;
+    console.log(`Peer with id ${peerId} hosting new room.`);
   });
 });
 
