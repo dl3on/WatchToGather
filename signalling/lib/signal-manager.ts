@@ -27,12 +27,25 @@ export class SignalManager {
   }
 
   public connect() {
-    try {
-      this._socket.connect();
-      this.updateListeners();
-    } catch (e) {
-      console.error("Error connecting to socket:", e);
-    }
+    this._socket.connect();
+    this.updateListeners();
+  }
+
+  public join(roomId: string) {
+    this._socket.emit(EClientToServerEvents.Join, {
+      peerId: this._peerId,
+      roomId,
+    });
+  }
+
+  public host() {
+    this._socket.emit(EClientToServerEvents.Host, {
+      peerId: this._peerId,
+    });
+  }
+
+  public disconnect() {
+    this._socket.disconnect();
   }
 
   private onConnect() {
@@ -70,5 +83,11 @@ export class SignalManager {
     }
   }
 
-  resetListeners() {}
+  resetListeners() {
+    if (this._socket) {
+      this._socket.off("connect");
+      this._socket.off(EServerToClientEvents.JoinResponse);
+      this._socket.off(EServerToClientEvents.HostResponse);
+    }
+  }
 }
