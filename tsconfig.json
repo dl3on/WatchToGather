@@ -9,6 +9,7 @@
     "lib": ["DOM", "ES2020"],
     "types": [],
     "allowSyntheticDefaultImports": true,
+    "sourceMap": true,
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -40,5 +41,5 @@
     // "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "exclude": ["node_modules", "src/signalling/_test"]
+  "exclude": ["node_modules", "src/popup/_test"]
 }

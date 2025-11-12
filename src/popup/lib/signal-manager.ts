@@ -1,5 +1,4 @@
-import { SocketOptions } from "dgram";
-import { io, ManagerOptions, Socket } from "socket.io-client";
+import { io, SocketOptions, ManagerOptions, Socket } from "socket.io-client";
 import {
   ClientToServerEvents,
   EServerToClientEvents,
@@ -7,7 +6,7 @@ import {
   ServerToClientEvents,
   ResponseType,
   EClientToServerEvents,
-} from "../types";
+} from "../../common/types";
 
 type SignalManagerOptions = {
   peerId: string;

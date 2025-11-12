@@ -2,8 +2,10 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./",
-    "outDir": "../../dist/signalling"
+    "outDir": "../../dist/signalling",
+    "composite": true
   },
+  "references": [{ "path": "../common/tsconfig.build.json" }],
   "include": ["./**/*.ts"],
   "exclude": ["./_test"]
 }

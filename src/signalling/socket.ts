@@ -7,7 +7,7 @@ import {
   EClientToServerEvents,
   EServerToClientEvents,
   ServerToClientEvents,
-} from "./types";
+} from "../common/types";
 const app = express();
 const httpServer = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer);

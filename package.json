@@ -5,9 +5,10 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "build:common": "tsc -p src/common/tsconfig.build.json",
     "build:popup": "tsc -p src/popup/tsconfig.build.json && copyfiles -u 2 src/popup/*.html src/popup/*.css dist/popup",
     "build:signalling": "tsc -p src/signalling/tsconfig.build.json",
-    "build": "npm run build:popup && npm run build:signalling"
+    "build": "npm run build:common && npm run build:popup && npm run build:signalling"
   },
   "repository": {
     "type": "git",

@@ -2,9 +2,8 @@
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "rootDir": "./",
-    "outDir": "../../dist/popup",
+    "outDir": "../../dist/common",
     "composite": true
   },
-  "references": [{ "path": "../common/tsconfig.build.json" }],
   "include": ["./**/*.ts"]
 }
