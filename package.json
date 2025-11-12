@@ -5,8 +5,8 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:popup": "tsc -p src/tsconfig.build.json && copyfiles -u 2 src/popup/*.html src/popup/*.css dist/popup",
-    "build:signalling": "tsc -p signalling/tsconfig.build.json",
+    "build:popup": "tsc -p src/popup/tsconfig.build.json && copyfiles -u 2 src/popup/*.html src/popup/*.css dist/popup",
+    "build:signalling": "tsc -p src/signalling/tsconfig.build.json",
     "build": "npm run build:popup && npm run build:signalling"
   },
   "repository": {
