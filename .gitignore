@@ -15,4 +15,4 @@ Thumbs.db
 # Secrets
 *.env
 
-signalling/_test/*
+src/signalling/_test/*
