@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import { createServer } from "node:http";
-import * as express from "express";
+import express from "express";
 import {
   ClientToServerEvents,
   Connection,
@@ -19,6 +19,10 @@ connections["329rfh398"] = [
 
 io.on("connection", (socket) => {
   console.log(`User connected with socket id ${socket.id}`);
+
+  socket.on("disconnect", () =>
+    console.log(`Socket with id ${socket.id} has disconnected from the server.`)
+  );
 
   socket.on(EClientToServerEvents.Join, (msg) => {
     const { peerId, roomId } = msg;
