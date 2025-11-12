@@ -41,5 +41,10 @@
     // "moduleDetection": "force",
     "skipLibCheck": true
   },
+  "references": [
+    { "path": "src/common/tsconfig.build.json" },
+    { "path": "src/popup/tsconfig.build.json" },
+    { "path": "src/signalling/tsconfig.build.json" }
+  ],
   "exclude": ["node_modules", "src/popup/_test"]
 }
