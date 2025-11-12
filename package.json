@@ -25,7 +25,8 @@
   "devDependencies": {
     "@types/chrome": "^0.1.28",
     "chrome-types": "^0.1.388",
-    "copyfiles": "^2.4.1"
+    "copyfiles": "^2.4.1",
+    "node-pre-gyp": "^0.13.0"
   },
   "dependencies": {
     "@types/express": "^5.0.5",
@@ -34,6 +35,7 @@
     "firebase": "^12.5.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "wrtc": "^0.4.7"
   }
 }
