@@ -4,12 +4,21 @@ export type Connection = {
   action: "host" | "joining";
 };
 
-export type JoinMessage = {
-  peerId: string;
-  roomId: string;
-};
+export enum MessageType {
+  Join,
+  Host,
+}
 
-export type JoinResponse =
+export enum ResponseType {
+  Join,
+  Host,
+}
+
+export type Message<T extends MessageType> = T extends MessageType.Join
+  ? { peerId: string; roomId: string }
+  : { peerId: string };
+
+export type Response<T extends ResponseType> =
   | {
       success: true;
       roomId: string;
@@ -17,10 +26,22 @@ export type JoinResponse =
     }
   | { success: false; roomId: string; errMsg: string };
 
+export enum EClientToServerEvents {
+  Join = "join",
+  Host = "host",
+}
+
+export enum EServerToClientEvents {
+  JoinResponse = "joinResponse",
+  HostResponse = "hostResponse",
+}
+
 export interface ClientToServerEvents {
-  join: (msg: JoinMessage) => void;
+  join: (msg: Message<MessageType.Join>) => void;
+  host: (msg: Message<MessageType.Host>) => void;
 }
 
 export interface ServerToClientEvents {
-  response: (msg: JoinResponse) => void;
+  joinResponse: (msg: Response<ResponseType.Join>) => void;
+  hostResponse: (msg: Response<ResponseType.Host>) => void;
 }
