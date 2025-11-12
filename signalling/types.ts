@@ -21,11 +21,20 @@ export type JoinResponse =
     }
   | { success: false; roomId: string; errMsg: string };
 
+export enum EClientToServerEvents {
+  Join = "join",
+  Host = "host",
+}
+
+export enum EServerToClientEvents {
+  JoinResponse = "joinResponse",
+}
+
 export interface ClientToServerEvents {
   join: (msg: Message<MessageType.Join>) => void;
   host: (msg: Message<MessageType.Host>) => void;
 }
 
 export interface ServerToClientEvents {
-  response: (msg: JoinResponse) => void;
+  joinResponse: (msg: JoinResponse) => void;
 }

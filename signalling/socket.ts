@@ -4,6 +4,8 @@ import * as express from "express";
 import {
   ClientToServerEvents,
   Connection,
+  EClientToServerEvents,
+  EServerToClientEvents,
   ServerToClientEvents,
 } from "./types";
 const app = express();
@@ -18,18 +20,18 @@ connections["329rfh398"] = [
 io.on("connection", (socket) => {
   console.log(`User connected with socket id ${socket.id}`);
 
-  socket.on("join", (msg) => {
+  socket.on(EClientToServerEvents.Join, (msg) => {
     const { peerId, roomId } = msg;
     console.log(`Peer with id ${peerId} requested to joined Room ${roomId}`);
 
     if (roomId in connections) {
-      socket.emit("response", {
+      socket.emit(EServerToClientEvents.JoinResponse, {
         success: true,
         roomId: roomId,
         body: `Successfully joined Room ${roomId}`,
       });
     } else {
-      socket.emit("response", {
+      socket.emit(EServerToClientEvents.JoinResponse, {
         success: false,
         roomId: roomId,
         errMsg: "Room does not exist.",
@@ -37,7 +39,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("host", (msg) => {
+  socket.on(EClientToServerEvents.Host, (msg) => {
     const { peerId } = msg;
     console.log(`Peer with id ${peerId} hosting new room.`);
   });
