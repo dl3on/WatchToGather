@@ -4,7 +4,6 @@ import {
   EServerToClientEvents,
   ServerToClientEvents,
   EClientToServerEvents,
-  Response,
 } from "../../common/types";
 import {
   onJoinResponse,
