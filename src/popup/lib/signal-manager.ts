@@ -2,11 +2,15 @@ import { io, SocketOptions, ManagerOptions, Socket } from "socket.io-client";
 import {
   ClientToServerEvents,
   EServerToClientEvents,
-  Response,
   ServerToClientEvents,
-  ResponseType,
   EClientToServerEvents,
+  Response,
 } from "../../common/types";
+import {
+  onJoinResponse,
+  onHostResponse,
+  onConnect,
+} from "./handlers/signal-handlers";
 
 type SignalManagerOptions = {
   peerId: string;
@@ -47,38 +51,17 @@ export class SignalManager {
     this._socket.disconnect();
   }
 
-  private onConnect() {
-    if (this._verbose)
-      console.log(
-        `Connected to signalling server.\nSocket ID: ${this._socket.id}`
-      );
-  }
-
-  private onJoinResponse(res: Response<ResponseType.Join>) {
-    if (this._verbose) {
-      if (res.success) {
-        console.log(`Received response from server: ${res.body}`);
-      } else {
-        console.log(`Failed to join room ${res.roomId}:`, res.errMsg);
-      }
-    }
-  }
-
-  private onHostResponse(res: Response<ResponseType.Host>) {
-    if (this._verbose) {
-      if (res.success) {
-        console.log(`Successfully created Room ${res.roomId}`);
-      } else {
-        console.log(`Failed to create room:`, res.errMsg);
-      }
-    }
-  }
-
   private updateListeners() {
     if (this._socket) {
-      this._socket.on("connect", this.onConnect);
-      this._socket.on(EServerToClientEvents.JoinResponse, this.onJoinResponse);
-      this._socket.on(EServerToClientEvents.HostResponse, this.onHostResponse);
+      this._socket.on("connect", () =>
+        onConnect(this._socket.id, this._verbose)
+      );
+      this._socket.on(EServerToClientEvents.JoinResponse, (res) =>
+        onJoinResponse(res, this._verbose)
+      );
+      this._socket.on(EServerToClientEvents.HostResponse, (res) =>
+        onHostResponse(res, this._verbose)
+      );
     }
   }
 
