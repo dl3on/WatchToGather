@@ -17,15 +17,26 @@ type SignalManagerOptions = {
   serverUrl: string;
   socketOptions?: Omit<Partial<ManagerOptions & SocketOptions>, "autoConnect">;
   verbose?: boolean;
+  query?: Record<string, string>;
 };
 export class SignalManager {
   _peerId: string;
   _socket: Socket<ServerToClientEvents, ClientToServerEvents>;
   _verbose: boolean;
   constructor(opts: SignalManagerOptions) {
-    const { peerId, serverUrl, socketOptions, verbose = false } = opts;
+    const {
+      peerId,
+      serverUrl,
+      socketOptions,
+      verbose = false,
+      query = {},
+    } = opts;
     this._peerId = peerId;
-    this._socket = io(serverUrl, { ...socketOptions, autoConnect: false });
+    this._socket = io(serverUrl, {
+      ...socketOptions,
+      autoConnect: false,
+      query: { peerId: this._peerId, ...query },
+    });
     this._verbose = verbose;
   }
 
@@ -36,7 +47,6 @@ export class SignalManager {
 
   public join(roomId: string) {
     this._socket.emit(EClientToServerEvents.Join, {
-      peerId: this._peerId,
       roomId,
     });
   }

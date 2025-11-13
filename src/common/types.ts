@@ -1,12 +1,13 @@
 export type PeerData = {
   peerId: string;
-  socketId: string;
   host: boolean;
 };
 
 export enum MessageType {
   Join,
   Host,
+  Offer,
+  OfferRelay,
 }
 
 export enum ResponseType {
@@ -15,7 +16,11 @@ export enum ResponseType {
 }
 
 export type Message<T extends MessageType> = T extends MessageType.Join
-  ? { peerId: string; roomId: string }
+  ? { roomId: string }
+  : T extends MessageType.Offer
+  ? { targetPeerId: string; offer: RTCSessionDescription }
+  : T extends MessageType.OfferRelay
+  ? {}
   : { peerId: string };
 
 export type Response<T extends ResponseType> =
@@ -30,16 +35,19 @@ export type Response<T extends ResponseType> =
 export enum EClientToServerEvents {
   Join = "join",
   Host = "host",
+  Offer = "offer",
 }
 
 export enum EServerToClientEvents {
   JoinResponse = "joinResponse",
   HostResponse = "hostResponse",
+  OfferRelay = "offerRelay",
 }
 
 export interface ClientToServerEvents {
   join: (msg: Message<MessageType.Join>) => void;
   host: (msg: Message<MessageType.Host>) => void;
+  offer: (msg: Message<MessageType.Offer>) => void;
 }
 
 export interface ServerToClientEvents {

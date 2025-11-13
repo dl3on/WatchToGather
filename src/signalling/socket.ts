@@ -17,23 +17,31 @@ const httpServer = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer);
 
 const connections: { [roomId: string]: PeerData[] } = {};
-const socketMap: { [socketId: string]: string } = {};
+const socketMap: { [peerId: string]: string } = {};
+
+io.use((socket, next) => {
+  const { peerId } = socket.handshake.query;
+  if (!peerId) next(new Error("Missing peerId."));
+  socket.data = { peerId };
+  next();
+});
 
 io.on("connection", (socket) => {
-  console.log(`User connected with socket id ${socket.id}`);
+  const { peerId } = socket.data;
+  console.log(
+    `User with peer id ${peerId} connected with socket id ${socket.id}`
+  );
 
   socket.on("disconnect", () => {
-    console.log(
-      `Socket with id ${socket.id} has disconnected from the server.`
-    );
+    console.log(`Peer ${peerId} has disconnected from the server.`);
 
-    const presentRoomId = socketMap[socket.id];
+    const presentRoomId = socketMap[peerId];
     if (!presentRoomId) return;
 
     const presentRoom = connections[presentRoomId];
     if (!presentRoom) return;
 
-    const peer = presentRoom.find((p) => p.socketId === socket.id);
+    const peer = presentRoom.find((p) => p.peerId === peerId);
     if (!peer) return;
 
     const idx = presentRoom.indexOf(peer);
@@ -43,7 +51,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on(EClientToServerEvents.Join, (msg) => {
-    const { peerId, roomId } = msg;
+    const { roomId } = msg;
     console.log(`Peer with id ${peerId} requested to joined Room ${roomId}`);
 
     if (roomId in connections) {
@@ -52,10 +60,7 @@ io.on("connection", (socket) => {
         type: ResponseType.Join,
         success: true,
         roomId: roomId,
-        body: peers.map((p) => {
-          const { socketId, ...peer } = p;
-          return peer;
-        }),
+        body: peers,
       });
     } else {
       socket.emit(EServerToClientEvents.JoinResponse, {
@@ -66,12 +71,11 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on(EClientToServerEvents.Host, (msg) => {
-    const { peerId } = msg;
+  socket.on(EClientToServerEvents.Host, () => {
     const roomId = randomUUID();
     console.log(`Peer with id ${peerId} hosting new room: ${roomId}`);
-    connections[roomId] = [{ peerId, host: true, socketId: socket.id }];
-    socketMap[socket.id] = roomId;
+    connections[roomId] = [{ peerId, host: true }];
+    socketMap[peerId] = roomId;
 
     socket.emit(EServerToClientEvents.HostResponse, {
       type: ResponseType.Host,
