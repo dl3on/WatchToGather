@@ -34,11 +34,10 @@ export class SignalManager {
     this._socket.connect();
   }
 
-  public join(roomId: string, sDesc: RTCSessionDescription) {
+  public join(roomId: string) {
     this._socket.emit(EClientToServerEvents.Join, {
       peerId: this._peerId,
       roomId,
-      offer: sDesc,
     });
   }
 
