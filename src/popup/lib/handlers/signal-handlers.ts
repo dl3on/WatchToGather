@@ -7,7 +7,9 @@ export function onJoinResponse(
 ) {
   if (verbose) {
     if (res.success) {
-      console.log(`Received response from server: ${res.body}`);
+      console.log(
+        `Received response from server: ${JSON.stringify(res.body, null, 2)}`
+      );
     } else {
       console.log(`Failed to join room ${res.roomId}:`, res.errMsg);
     }
