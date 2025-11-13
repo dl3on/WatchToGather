@@ -3,20 +3,20 @@ import { createServer } from "node:http";
 import express from "express";
 import {
   ClientToServerEvents,
-  Connection,
+  PeerData,
   EClientToServerEvents,
   EServerToClientEvents,
   ServerToClientEvents,
+  ResponseType,
 } from "../common/types";
+
+import { randomUUID } from "node:crypto";
+
 const app = express();
 const httpServer = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer);
-const connections: { [roomId: string]: Connection[] } = {};
 
-connections["329rfh398"] = [
-  { hostname: "test.io", ip: "0.0.0.0", action: "host" },
-];
-
+const connections: { [roomId: string]: PeerData[] } = {};
 io.on("connection", (socket) => {
   console.log(`User connected with socket id ${socket.id}`);
 
@@ -29,10 +29,15 @@ io.on("connection", (socket) => {
     console.log(`Peer with id ${peerId} requested to joined Room ${roomId}`);
 
     if (roomId in connections) {
+      const peers = connections[roomId];
       socket.emit(EServerToClientEvents.JoinResponse, {
+        type: ResponseType.Join,
         success: true,
         roomId: roomId,
-        body: `Successfully joined Room ${roomId}`,
+        body: peers.map((p) => {
+          const { socketId, ...peer } = p;
+          return peer;
+        }),
       });
     } else {
       socket.emit(EServerToClientEvents.JoinResponse, {
@@ -45,7 +50,16 @@ io.on("connection", (socket) => {
 
   socket.on(EClientToServerEvents.Host, (msg) => {
     const { peerId } = msg;
-    console.log(`Peer with id ${peerId} hosting new room.`);
+    const roomId = randomUUID();
+    console.log(`Peer with id ${peerId} hosting new room: ${roomId}`);
+    connections[roomId] = [{ peerId, host: true, socketId: socket.id }];
+
+    socket.emit(EServerToClientEvents.HostResponse, {
+      type: ResponseType.Host,
+      success: true,
+      roomId,
+      body: roomId,
+    });
   });
 });
 

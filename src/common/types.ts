@@ -1,7 +1,7 @@
-export type Connection = {
-  hostname: string;
-  ip: string;
-  action: "host" | "joining";
+export type PeerData = {
+  peerId: string;
+  socketId: string;
+  host: boolean;
 };
 
 export enum MessageType {
@@ -15,14 +15,15 @@ export enum ResponseType {
 }
 
 export type Message<T extends MessageType> = T extends MessageType.Join
-  ? { peerId: string; roomId: string }
+  ? { peerId: string; roomId: string; offer: RTCSessionDescription }
   : { peerId: string };
 
 export type Response<T extends ResponseType> =
   | {
       success: true;
       roomId: string;
-      body: string;
+      body: T extends ResponseType.Join ? Omit<PeerData, "socketId">[] : string;
+      type: T;
     }
   | { success: false; roomId: string; errMsg: string };
 
