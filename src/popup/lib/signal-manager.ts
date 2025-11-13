@@ -30,14 +30,15 @@ export class SignalManager {
   }
 
   public connect() {
-    this._socket.connect();
     this.updateListeners();
+    this._socket.connect();
   }
 
-  public join(roomId: string) {
+  public join(roomId: string, sDesc: RTCSessionDescription) {
     this._socket.emit(EClientToServerEvents.Join, {
       peerId: this._peerId,
       roomId,
+      offer: sDesc,
     });
   }
 

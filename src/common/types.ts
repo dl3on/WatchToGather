@@ -15,7 +15,7 @@ export enum ResponseType {
 }
 
 export type Message<T extends MessageType> = T extends MessageType.Join
-  ? { peerId: string; roomId: string; offer: RTCSessionDescription }
+  ? { peerId: string; roomId: string }
   : { peerId: string };
 
 export type Response<T extends ResponseType> =
