@@ -29,9 +29,15 @@ export function onHostResponse(
   }
 }
 
-export function onConnect(socketId: string | undefined, verbose: boolean) {
+export function onConnect(
+  peerId: string,
+  socketId: string | undefined,
+  verbose: boolean
+) {
   if (verbose && socketId) {
-    console.log(`Connected to signalling server.\nSocket ID: ${socketId}`);
+    console.log(
+      `Connected to signalling server.\nPeer ID: ${peerId}\nSocket ID: ${socketId}`
+    );
   } else if (!socketId) {
     throw new Error("Socket not defined.");
   }

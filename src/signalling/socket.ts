@@ -8,6 +8,7 @@ import {
   EServerToClientEvents,
   ServerToClientEvents,
   ResponseType,
+  MessageType,
 } from "../common/types";
 
 import { randomUUID } from "node:crypto";
@@ -17,7 +18,7 @@ const httpServer = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer);
 
 const connections: { [roomId: string]: PeerData[] } = {};
-const socketMap: { [peerId: string]: string } = {};
+const peerMap: { [peerId: string]: { roomId?: string; socketId: string } } = {};
 
 io.use((socket, next) => {
   const { peerId } = socket.handshake.query;
@@ -28,14 +29,15 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   const { peerId } = socket.data;
+  const socketId = socket.id;
   console.log(
-    `User with peer id ${peerId} connected with socket id ${socket.id}`
+    `User with peer id ${peerId} connected with socket id ${socketId}`
   );
 
   socket.on("disconnect", () => {
     console.log(`Peer ${peerId} has disconnected from the server.`);
 
-    const presentRoomId = socketMap[peerId];
+    const presentRoomId = peerMap[peerId]?.roomId;
     if (!presentRoomId) return;
 
     const presentRoom = connections[presentRoomId];
@@ -75,13 +77,29 @@ io.on("connection", (socket) => {
     const roomId = randomUUID();
     console.log(`Peer with id ${peerId} hosting new room: ${roomId}`);
     connections[roomId] = [{ peerId, host: true }];
-    socketMap[peerId] = roomId;
+    peerMap[peerId] = { socketId, roomId };
 
     socket.emit(EServerToClientEvents.HostResponse, {
       type: ResponseType.Host,
       success: true,
       roomId,
       body: roomId,
+    });
+  });
+
+  socket.on(EClientToServerEvents.Offer, (msg) => {
+    const { targetPeerId, offer } = msg;
+    const targetSocketId = peerMap[targetPeerId]?.socketId;
+    if (!targetSocketId) {
+      socket.emit(EServerToClientEvents.Error, {
+        msg: "Target socket id not found. Target may have disconnected.",
+      });
+      return;
+    }
+
+    io.to(targetSocketId).emit(EServerToClientEvents.OfferRelay, {
+      fromPeerId: peerId,
+      offer,
     });
   });
 });

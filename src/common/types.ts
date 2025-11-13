@@ -8,6 +8,7 @@ export enum MessageType {
   Host,
   Offer,
   OfferRelay,
+  Error,
 }
 
 export enum ResponseType {
@@ -20,8 +21,10 @@ export type Message<T extends MessageType> = T extends MessageType.Join
   : T extends MessageType.Offer
   ? { targetPeerId: string; offer: RTCSessionDescription }
   : T extends MessageType.OfferRelay
-  ? {}
-  : { peerId: string };
+  ? { fromPeerId: string; offer: RTCSessionDescription }
+  : T extends MessageType.Host
+  ? { peerId: string }
+  : { msg: string };
 
 export type Response<T extends ResponseType> =
   | {
@@ -42,6 +45,7 @@ export enum EServerToClientEvents {
   JoinResponse = "joinResponse",
   HostResponse = "hostResponse",
   OfferRelay = "offerRelay",
+  Error = "error",
 }
 
 export interface ClientToServerEvents {
@@ -53,4 +57,6 @@ export interface ClientToServerEvents {
 export interface ServerToClientEvents {
   joinResponse: (msg: Response<ResponseType.Join>) => void;
   hostResponse: (msg: Response<ResponseType.Host>) => void;
+  offerRelay: (msg: Message<MessageType.OfferRelay>) => void;
+  error: (msg: Message<MessageType.Error>) => void;
 }
