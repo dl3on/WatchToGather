@@ -35,7 +35,7 @@ export class SignalManager {
     this._socket = io(serverUrl, {
       ...socketOptions,
       autoConnect: false,
-      query: { peerId: this._peerId, ...query },
+      query: { ...query, peerId },
     });
     this._verbose = verbose;
   }
@@ -66,6 +66,9 @@ export class SignalManager {
       this._socket.on("connect", () =>
         onConnect(this._socket.id, this._verbose)
       );
+      this._socket.on("connect_error", (msg) => {
+        if (this._verbose) console.log(`[ERROR] ${msg}`);
+      });
       this._socket.on(EServerToClientEvents.JoinResponse, (res) =>
         onJoinResponse(res, this._verbose)
       );
