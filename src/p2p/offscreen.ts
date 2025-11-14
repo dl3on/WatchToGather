@@ -16,4 +16,4 @@ const webrtc = new WebRTCManager(signalManager, {
 });
 
 signalManager.connect();
-webrtc.join("a74fd242-489d-497e-9c3d-ba23fdbb9ba6");
+webrtc.join("c794412a-879c-4aea-b89e-7087600e8380");
