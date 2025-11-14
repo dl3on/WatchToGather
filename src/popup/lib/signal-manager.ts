@@ -78,7 +78,7 @@ export class SignalManager {
         onConnect(this._peerId, this._socket.id, this._verbose)
       );
       this._socket.on("connect_error", (msg) => {
-        if (this._verbose) console.log(`[ERROR] ${msg}`);
+        if (this._verbose) console.log(`[SignalManager] [ERROR] ${msg}`);
       });
       this._socket.on(EServerToClientEvents.JoinResponse, (res) =>
         onJoinResponse(res, this._verbose)
@@ -87,7 +87,7 @@ export class SignalManager {
         onHostResponse(res, this._verbose)
       );
       this._socket.on(EServerToClientEvents.Error, (err) => {
-        if (this._verbose) console.log(`[ERROR] ${err.msg}`);
+        if (this._verbose) console.log(`[SignalManager] [ERROR] ${err.msg}`);
       });
     }
   }

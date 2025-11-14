@@ -5,10 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:common": "tsc -p src/common/tsconfig.build.json",
-    "build:popup": "tsc -p src/popup/tsconfig.build.json && copyfiles -u 2 src/popup/*.html src/popup/*.css dist/popup",
-    "build:signalling": "tsc -p src/signalling/tsconfig.build.json",
-    "build": "npm run build:common && npm run build:popup && npm run build:signalling"
+    "build": "npx vite build"
   },
   "repository": {
     "type": "git",
@@ -25,7 +22,8 @@
   "devDependencies": {
     "@types/chrome": "^0.1.28",
     "chrome-types": "^0.1.388",
-    "copyfiles": "^2.4.1"
+    "copyfiles": "^2.4.1",
+    "vite": "^7.2.2"
   },
   "dependencies": {
     "@types/express": "^5.0.5",

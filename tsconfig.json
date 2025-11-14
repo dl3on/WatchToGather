@@ -10,6 +10,8 @@
     "types": [],
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
+    "rootDir": "./src",
+    "outDir": "./dist",
     // For nodejs:
     // "lib": ["esnext"],
     // "types": ["node"],
@@ -41,10 +43,6 @@
     // "moduleDetection": "force",
     "skipLibCheck": true
   },
-  "references": [
-    { "path": "src/common/tsconfig.build.json" },
-    { "path": "src/popup/tsconfig.build.json" },
-    { "path": "src/signalling/tsconfig.build.json" }
-  ],
+  "include": ["src/**/*.ts"],
   "exclude": ["node_modules", "src/popup/_test"]
 }
