@@ -70,6 +70,7 @@ confirmCreateBtn.addEventListener("click", () => {
 
     createRoomModal.classList.add("hidden");
 
+    // TODO: Get roomId
     // Save room details
     localStorage.setItem(
       "roomDetails",
@@ -96,11 +97,15 @@ confirmJoinBtn.addEventListener("click", () => {
 
   if (roomId !== "") {
     console.log("Joining room:", roomId);
+    chrome.runtime.sendMessage({
+      type: "ROOM_ID",
+      roomId: roomId,
+    });
     // TODO: trigger background script or signaling setup here
 
     joinRoomModal.classList.add("hidden");
 
-    // TODO: obtain room name and number of participants
+    // TODO: obtain room name, roomId, and number of participants
     const roomName = "roomTitle";
     const participants = 2;
     const isHost = false;

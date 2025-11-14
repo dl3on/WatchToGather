@@ -15,5 +15,10 @@ const webrtc = new WebRTCManager(signalManager, {
   verbose: true,
 });
 
-signalManager.connect();
-webrtc.join("1933272a-0cfe-4be1-9b21-b5e5fa574469");
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "ROOM_ID") {
+    const roomId = msg.roomId;
+    signalManager.connect();
+    webrtc.join(roomId);
+  }
+});
