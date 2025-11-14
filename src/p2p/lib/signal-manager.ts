@@ -56,6 +56,10 @@ export class SignalManager {
     });
   }
 
+  public sendOffers(offerMap: { [peerId: string]: RTCSessionDescription }) {
+    this._socket.emit(EClientToServerEvents.Offer, offerMap);
+  }
+
   public disconnect() {
     this._socket.disconnect();
   }
@@ -86,6 +90,9 @@ export class SignalManager {
       this._socket.on(EServerToClientEvents.HostResponse, (res) =>
         onHostResponse(res, this._verbose)
       );
+      this._socket.on(EServerToClientEvents.OfferRelay, (res) => {
+        console.log(`[SignalManager] ${JSON.stringify(res, null, 2)}`);
+      });
       this._socket.on(EServerToClientEvents.Error, (err) => {
         if (this._verbose) console.log(`[SignalManager] [ERROR] ${err.msg}`);
       });

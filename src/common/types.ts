@@ -19,7 +19,7 @@ export enum ResponseType {
 export type Message<T extends MessageType> = T extends MessageType.Join
   ? { roomId: string }
   : T extends MessageType.Offer
-  ? { targetPeerId: string; offer: RTCSessionDescription }
+  ? { [targetPeerId: string]: RTCSessionDescription }
   : T extends MessageType.OfferRelay
   ? { fromPeerId: string; offer: RTCSessionDescription }
   : T extends MessageType.Host

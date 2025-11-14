@@ -1,4 +1,7 @@
-import { EServerToClientEvents } from "../../common/types.js";
+import {
+  EClientToServerEvents,
+  EServerToClientEvents,
+} from "../../common/types.js";
 import { SignalManager } from "./signal-manager.js";
 
 type WebRTCManagerOptions = {
@@ -7,18 +10,11 @@ type WebRTCManagerOptions = {
   verbose?: boolean;
 };
 
-type PeerConnectionData = {
-  [peerId: string]: {
-    offer: RTCSessionDescription;
-    rtcConnection: RTCPeerConnection;
-  };
-};
-
 export class WebRTCManager {
   _peerId: string;
   _verbose: boolean;
   _stunServerUrl: string;
-  _connections: PeerConnectionData = {};
+  _connections: { [peerId: string]: RTCPeerConnection } = {};
   _signalManager: SignalManager;
   constructor(signalManager: SignalManager, opts: WebRTCManagerOptions) {
     const {
@@ -32,8 +28,10 @@ export class WebRTCManager {
     this._signalManager = signalManager;
   }
 
-  async _createOffers(peers: string[]) {
-    const offerEntries = await Promise.all(
+  async _createOffers(peers: string[]): Promise<{
+    [targetPeerId: string]: RTCSessionDescription;
+  }> {
+    const offerDetails = await Promise.all(
       peers.map(async (p) => {
         const rtc = new RTCPeerConnection({
           iceServers: [{ urls: this._stunServerUrl }],
@@ -42,15 +40,19 @@ export class WebRTCManager {
         const offer = await rtc.createOffer();
         await rtc.setLocalDescription(offer);
 
-        return [p, { offer: offer, rtcConnection: rtc }] as [
+        return [p, offer, rtc] as [
           string,
-          { offer: RTCSessionDescription; rtcConnection: RTCPeerConnection }
+          RTCSessionDescription,
+          RTCPeerConnection
         ];
       })
     );
 
+    const offerEntries = offerDetails.map((d) => [d[0], d[1]]);
+    const connectionEntries = offerDetails.map((d) => [d[0], d[2]]);
     const peerMap = Object.fromEntries(offerEntries);
-    this._connections = peerMap;
+    const connectionMap = Object.fromEntries(connectionEntries);
+    this._connections = connectionMap;
     return peerMap;
   }
 
@@ -63,8 +65,10 @@ export class WebRTCManager {
             res.body.map((pd) => pd.peerId)
           );
 
-          console.log(offers);
-          // send back to server
+          if (this._verbose)
+            console.log(`[WebRTC Manager] Created offers: ${offers}`);
+
+          this._signalManager.sendOffers(offers);
         } else {
           throw new Error(
             `Failed to receive peer information from server:\n${res.errMsg}`

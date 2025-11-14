@@ -87,18 +87,23 @@ io.on("connection", (socket) => {
   });
 
   socket.on(EClientToServerEvents.Offer, (msg) => {
-    const { targetPeerId, offer } = msg;
-    const targetSocketId = peerMap[targetPeerId]?.socketId;
-    if (!targetSocketId) {
-      socket.emit(EServerToClientEvents.Error, {
-        msg: "Target socket id not found. Target may have disconnected.",
-      });
-      return;
-    }
+    const entries = Object.entries(msg);
+    entries.forEach((e) => {
+      const targetPeerId = e[0];
+      const offer = e[1];
 
-    io.to(targetSocketId).emit(EServerToClientEvents.OfferRelay, {
-      fromPeerId: peerId,
-      offer,
+      const targetSocketId = peerMap[targetPeerId]?.socketId;
+      if (!targetSocketId) {
+        socket.emit(EServerToClientEvents.Error, {
+          msg: "Target socket id not found. Target may have disconnected.",
+        });
+        return;
+      }
+
+      io.to(targetSocketId).emit(EServerToClientEvents.OfferRelay, {
+        fromPeerId: peerId,
+        offer,
+      });
     });
   });
 });
