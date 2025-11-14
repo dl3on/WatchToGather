@@ -10,11 +10,17 @@ type WebRTCManagerOptions = {
   verbose?: boolean;
 };
 
+type PeerConnectionData = {
+  [peerId: string]: {
+    peerConnection: RTCPeerConnection;
+  };
+};
+
 export class WebRTCManager {
   _peerId: string;
   _verbose: boolean;
   _stunServerUrl: string;
-  _connections: { [peerId: string]: RTCPeerConnection } = {};
+  _connections: PeerConnectionData = {};
   _signalManager: SignalManager;
   constructor(signalManager: SignalManager, opts: WebRTCManagerOptions) {
     const {
@@ -26,6 +32,7 @@ export class WebRTCManager {
     this._verbose = verbose;
     this._stunServerUrl = stunServerUrl;
     this._signalManager = signalManager;
+    this._signalManager.connect();
   }
 
   async _createOffers(peers: string[]): Promise<{
@@ -33,14 +40,17 @@ export class WebRTCManager {
   }> {
     const offerDetails = await Promise.all(
       peers.map(async (p) => {
-        const rtc = new RTCPeerConnection({
+        const pc = new RTCPeerConnection({
           iceServers: [{ urls: this._stunServerUrl }],
         });
 
-        const offer = await rtc.createOffer();
-        await rtc.setLocalDescription(offer);
+        const dc = pc.createDataChannel(`data-${p}`);
+        // attach listeners to DC here
 
-        return [p, offer, rtc] as [
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+
+        return [p, offer, pc] as [
           string,
           RTCSessionDescription,
           RTCPeerConnection
@@ -49,10 +59,17 @@ export class WebRTCManager {
     );
 
     const offerEntries = offerDetails.map((d) => [d[0], d[1]]);
-    const connectionEntries = offerDetails.map((d) => [d[0], d[2]]);
-    const peerMap = Object.fromEntries(offerEntries);
-    const connectionMap = Object.fromEntries(connectionEntries);
+    const connectionEntries = offerDetails.map((d) => [
+      d[0],
+      { peerConnection: d[2] },
+    ]);
+
+    const connectionMap: PeerConnectionData =
+      Object.fromEntries(connectionEntries);
     this._connections = connectionMap;
+
+    const peerMap: { [peerId: string]: RTCSessionDescription } =
+      Object.fromEntries(offerEntries);
     return peerMap;
   }
 
@@ -79,5 +96,34 @@ export class WebRTCManager {
     );
 
     this._signalManager.join(roomId);
+  }
+
+  public async host() {
+    this._signalManager.setListener(
+      EServerToClientEvents.OfferRelay,
+      async (res) => {
+        if (this._verbose)
+          console.log(`[WebRTC Manager] Received offer: ${res}`);
+        const pc = new RTCPeerConnection({
+          iceServers: [{ urls: this._stunServerUrl }],
+        });
+
+        await pc.setRemoteDescription(new RTCSessionDescription(res.offer));
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+
+        if (this._verbose)
+          console.log(
+            `[WebRTC Manager] Sent answer to offerer ${
+              res.fromPeerId
+            }: ${JSON.stringify(res.offer, null, 2)}`
+          );
+
+        this._connections[res.fromPeerId] = { peerConnection: pc };
+        // send answer here
+      }
+    );
+
+    this._signalManager.host();
   }
 }

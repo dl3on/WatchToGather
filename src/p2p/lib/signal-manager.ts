@@ -67,7 +67,7 @@ export class SignalManager {
   public setListener<T extends EServerToClientEvents>(
     event: T,
     listener: ServerToClientEvents[T],
-    once: boolean
+    once: boolean = false
   ) {
     if (once) {
       this._socket.once(event, listener as any);
