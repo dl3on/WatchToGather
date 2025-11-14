@@ -1,3 +1,5 @@
+import { sendHostMsg, sendJoinMsg } from "./lib/chrome";
+
 const mainView = document.getElementById("mainView") as HTMLDivElement;
 const createRoomModal = document.getElementById(
   "createRoomModal"
@@ -66,7 +68,7 @@ confirmCreateBtn.addEventListener("click", () => {
 
   if (roomTitle !== "" && webpageLink !== "") {
     console.log("Room created:", roomTitle);
-    // TODO: trigger background script or signaling setup here
+    sendHostMsg();
 
     createRoomModal.classList.add("hidden");
 
@@ -97,14 +99,9 @@ confirmJoinBtn.addEventListener("click", () => {
 
   if (roomId !== "") {
     console.log("Joining room:", roomId);
-    chrome.runtime.sendMessage({
-      type: "ROOM_ID",
-      roomId: roomId,
-    });
-    // TODO: trigger background script or signaling setup here
+    sendJoinMsg(roomId);
 
     joinRoomModal.classList.add("hidden");
-
     // TODO: obtain room name, roomId, and number of participants
     const roomName = "roomTitle";
     const participants = 2;
