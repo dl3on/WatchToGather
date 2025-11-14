@@ -6,7 +6,7 @@ export default defineConfig({
     outDir: "dist",
     rollupOptions: {
       input: {
-        background: resolve(__dirname, "src/popup/background.ts"),
+        offscreen: resolve(__dirname, "src/p2p/offscreen.ts"),
         popup: resolve(__dirname, "src/popup/popup.html"),
       },
       output: {

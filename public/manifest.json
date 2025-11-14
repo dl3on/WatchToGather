@@ -10,6 +10,6 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage"],
+  "permissions": ["storage", "offscreen"],
   "host_permissions": ["http://localhost:6767/*", "ws://localhost:6767/*"]
 }
