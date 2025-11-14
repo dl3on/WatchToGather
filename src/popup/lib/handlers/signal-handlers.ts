@@ -1,5 +1,5 @@
-import { Response } from "../../../common/types";
-import { ResponseType } from "../../../common/types";
+import { Response } from "../../../common/types.js";
+import { ResponseType } from "../../../common/types.js";
 
 export function onJoinResponse(
   res: Response<ResponseType.Join>,

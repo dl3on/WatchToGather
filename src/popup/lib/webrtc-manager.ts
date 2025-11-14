@@ -1,5 +1,5 @@
-import { EServerToClientEvents } from "../../common/types";
-import { SignalManager } from "./signal-manager";
+import { EServerToClientEvents } from "../../common/types.js";
+import { SignalManager } from "./signal-manager.js";
 
 type WebRTCManagerOptions = {
   peerId: string;

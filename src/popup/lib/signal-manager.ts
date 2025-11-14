@@ -4,12 +4,12 @@ import {
   EServerToClientEvents,
   ServerToClientEvents,
   EClientToServerEvents,
-} from "../../common/types";
+} from "../../common/types.js";
 import {
   onJoinResponse,
   onHostResponse,
   onConnect,
-} from "./handlers/signal-handlers";
+} from "./handlers/signal-handlers.js";
 
 type SignalManagerOptions = {
   peerId: string;

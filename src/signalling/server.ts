@@ -1,4 +1,4 @@
-import { httpServer, app, connections } from "./socket";
+import { httpServer, app, connections } from "./socket.js";
 
 const port = 6767;
 app.get("/connections", (req, res) => {

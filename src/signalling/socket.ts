@@ -8,7 +8,7 @@ import {
   EServerToClientEvents,
   ServerToClientEvents,
   ResponseType,
-} from "../common/types";
+} from "../common/types.js";
 
 import { randomUUID } from "node:crypto";
 
