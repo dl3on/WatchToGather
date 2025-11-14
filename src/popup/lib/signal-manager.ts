@@ -40,7 +40,7 @@ export class SignalManager {
   }
 
   public connect() {
-    this.updateListeners();
+    this.initalizeListeners();
     this._socket.connect();
   }
 
@@ -60,7 +60,19 @@ export class SignalManager {
     this._socket.disconnect();
   }
 
-  private updateListeners() {
+  public setListener<T extends EServerToClientEvents>(
+    event: T,
+    listener: ServerToClientEvents[T],
+    once: boolean
+  ) {
+    if (once) {
+      this._socket.once(event, listener as any);
+    } else {
+      this._socket.on(event, listener as any);
+    }
+  }
+
+  private initalizeListeners() {
     if (this._socket) {
       this._socket.on("connect", () =>
         onConnect(this._peerId, this._socket.id, this._verbose)
