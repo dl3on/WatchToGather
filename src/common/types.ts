@@ -69,3 +69,10 @@ export type ChromeMsg =
       roomId: string;
     } & ChromeMsgBase)
   | ({ type: "HOST" } & ChromeMsgBase);
+
+export interface RoomDetails {
+  roomId: string;
+  roomTitle: string;
+  participantsCount: number;
+  host: boolean;
+}

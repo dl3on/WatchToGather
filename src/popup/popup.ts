@@ -1,7 +1,12 @@
-import { sendHostMsg, sendJoinMsg } from "./lib/chrome";
+import {
+  loadRoomDetails,
+  saveRoomDetails,
+  sendHostMsg,
+  sendJoinMsg,
+  waitForHostSuccess,
+} from "./lib/chrome";
+import { renderInitialView, updateUIForRoom } from "./lib/ui";
 
-const roomIdElement = document.getElementById("roomId") as HTMLParagraphElement;
-const mainView = document.getElementById("mainView") as HTMLDivElement;
 const createRoomModal = document.getElementById(
   "createRoomModal"
 ) as HTMLDivElement;
@@ -26,46 +31,16 @@ const webpageLinkInput = document.getElementById(
 ) as HTMLInputElement;
 const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
-// Check for existing room
-chrome.storage.local.get("roomDetails", (res) => {
-  const roomData = res.roomDetails;
-  if (roomData) {
-    const { roomId, roomTitle, participantsCount, host } = roomData;
-    updateUIForRoom(roomId, roomTitle, participantsCount, host);
-  } else {
-    renderInitialView();
-  }
-});
-
-function renderInitialView() {
-  chrome.storage.local.remove("roomDetails");
-  console.log("Cleared room details");
-
-  roomIdElement.textContent = "";
-  roomIdElement.classList.add("hidden");
-  mainView.innerHTML = `
-    <button id="createRoomBtn">Create Room</button>
-    <button id="joinRoomBtn">Join Room</button>
-  `;
-
-  const createRoomBtn = document.getElementById(
-    "createRoomBtn"
-  ) as HTMLButtonElement;
-  const joinRoomBtn = document.getElementById(
-    "joinRoomBtn"
-  ) as HTMLButtonElement;
-
-  createRoomBtn.addEventListener("click", () => {
-    createRoomModal.classList.remove("hidden");
-  });
-
-  joinRoomBtn.addEventListener("click", () => {
-    joinRoomModal.classList.remove("hidden");
-  });
+const roomData = await loadRoomDetails();
+if (roomData) {
+  const { roomId, roomTitle, participantsCount, host } = roomData;
+  updateUIForRoom(roomId, roomTitle, participantsCount, host);
+} else {
+  renderInitialView();
 }
 
 // Create Room
-confirmCreateBtn.addEventListener("click", () => {
+confirmCreateBtn.addEventListener("click", async () => {
   const roomTitle = roomTitleInput.value.trim();
   const webpageLink = webpageLinkInput.value.trim();
 
@@ -73,28 +48,20 @@ confirmCreateBtn.addEventListener("click", () => {
     console.log("Creating room:", roomTitle);
     sendHostMsg();
 
-    chrome.runtime.onMessage.addListener((msg) => {
-      if (msg.type === "HOST_SUCCESS") {
-        const roomId = msg.roomId;
+    try {
+      const { roomId } = await waitForHostSuccess();
 
-        if (!roomId) {
-          console.error("[ERROR] Unable to create room.");
-          return;
-        }
-
-        chrome.storage.local.set({
-          roomDetails: {
-            roomId,
-            roomTitle,
-            participantsCount: 1,
-            host: true,
-          },
-        });
-        updateUIForRoom(roomId, roomTitle, 1, true);
-        console.log("Saved room details");
-        createRoomModal.classList.add("hidden");
-      }
-    });
+      saveRoomDetails({
+        roomId,
+        roomTitle,
+        participantsCount: 1,
+        host: true,
+      });
+      updateUIForRoom(roomId, roomTitle, 1, true);
+      createRoomModal.classList.add("hidden");
+    } catch (e) {
+      console.error("[ERROR] Unable to host:", e);
+    }
   } else {
     console.log("Fill in all the fields.");
   }
@@ -114,20 +81,16 @@ confirmJoinBtn.addEventListener("click", () => {
 
     joinRoomModal.classList.add("hidden");
     // TODO: obtain room name, roomId, and number of participants
-    const roomName = "roomTitle";
+    const roomTitle = "roomTitle";
     const participants = 2;
 
-    // Save room details
-    chrome.storage.local.set({
-      roomDetails: {
-        roomId,
-        roomName,
-        participantsCount: participants,
-        host: false,
-      },
+    saveRoomDetails({
+      roomId,
+      roomTitle,
+      participantsCount: participants,
+      host: false,
     });
-    console.log("Saved room details");
-    updateUIForRoom(roomId, roomName, participants, false);
+    updateUIForRoom(roomId, roomTitle, participants, false);
   } else {
     console.log("Room ID required!");
   }
@@ -136,59 +99,3 @@ confirmJoinBtn.addEventListener("click", () => {
 cancelJoinBtn.addEventListener("click", () => {
   joinRoomModal.classList.add("hidden");
 });
-
-function updateUIForRoom(
-  roomId: string,
-  roomName: string,
-  participants: number,
-  isHost: boolean
-) {
-  roomIdElement.textContent = `Room ID: ${roomId}`;
-  roomIdElement.classList.remove("hidden");
-  mainView.innerHTML = `
-    <div class="room-header">
-      <p><strong>${roomName}</strong></p>
-      <span class="room-participants">${participants} (i)</span>
-    </div>
-    <div id="room-actions">
-      ${
-        isHost
-          ? `
-        <button id="disbandRoomBtn">Disband Room</button>
-        <button id="leaveRoomBtn">Leave Room</button>
-        `
-          : `
-        <button id="leaveRoomBtn">Leave Room</button>
-      `
-      }
-    </div>
-  `;
-
-  // Add event listeners
-  const disbandRoomBtn = document.getElementById(
-    "disbandRoomBtn"
-  ) as HTMLButtonElement;
-  const leaveRoomBtn = document.getElementById(
-    "leaveRoomBtn"
-  ) as HTMLButtonElement;
-
-  if (disbandRoomBtn) {
-    disbandRoomBtn.addEventListener("click", () => {
-      console.log("Disbanding room...");
-      // TODO: handle disband room logic
-
-      renderInitialView();
-    });
-  }
-
-  if (leaveRoomBtn) {
-    leaveRoomBtn.addEventListener("click", () => {
-      console.log("Leaving room...");
-      // TODO: handle leaving room + change host logic
-
-      renderInitialView();
-    });
-  }
-}
-
-// TODO: function to dynamically update participants count
