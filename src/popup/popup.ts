@@ -1,5 +1,6 @@
 import { sendHostMsg, sendJoinMsg } from "./lib/chrome";
 
+const roomIdElement = document.getElementById("roomId") as HTMLParagraphElement;
 const mainView = document.getElementById("mainView") as HTMLDivElement;
 const createRoomModal = document.getElementById(
   "createRoomModal"
@@ -26,20 +27,22 @@ const webpageLinkInput = document.getElementById(
 const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
 // Check for existing room
-const roomData = localStorage.getItem("roomDetails");
-
-if (roomData) {
-  const { roomTitle, participantsCount, host } = JSON.parse(roomData);
-  updateUIForRoom(roomTitle, participantsCount, host);
-} else {
-  renderInitialView();
-}
+chrome.storage.local.get("roomDetails", (res) => {
+  const roomData = res.roomDetails;
+  if (roomData) {
+    const { roomId, roomTitle, participantsCount, host } = roomData;
+    updateUIForRoom(roomId, roomTitle, participantsCount, host);
+  } else {
+    renderInitialView();
+  }
+});
 
 function renderInitialView() {
-  // Clear local save
-  localStorage.clear();
+  chrome.storage.local.remove("roomDetails");
   console.log("Cleared room details");
 
+  roomIdElement.textContent = "";
+  roomIdElement.classList.add("hidden");
   mainView.innerHTML = `
     <button id="createRoomBtn">Create Room</button>
     <button id="joinRoomBtn">Join Room</button>
@@ -67,23 +70,31 @@ confirmCreateBtn.addEventListener("click", () => {
   const webpageLink = webpageLinkInput.value.trim();
 
   if (roomTitle !== "" && webpageLink !== "") {
-    console.log("Room created:", roomTitle);
+    console.log("Creating room:", roomTitle);
     sendHostMsg();
 
-    createRoomModal.classList.add("hidden");
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (msg.type === "HOST_SUCCESS") {
+        const roomId = msg.roomId;
 
-    // TODO: Get roomId
-    // Save room details
-    localStorage.setItem(
-      "roomDetails",
-      JSON.stringify({
-        roomTitle: roomTitle,
-        participantsCount: 1,
-        host: true,
-      })
-    );
-    console.log("Saved room details");
-    updateUIForRoom(roomTitle, 1, true);
+        if (!roomId) {
+          console.error("[ERROR] Unable to create room.");
+          return;
+        }
+
+        chrome.storage.local.set({
+          roomDetails: {
+            roomId,
+            roomTitle,
+            participantsCount: 1,
+            host: true,
+          },
+        });
+        updateUIForRoom(roomId, roomTitle, 1, true);
+        console.log("Saved room details");
+        createRoomModal.classList.add("hidden");
+      }
+    });
   } else {
     console.log("Fill in all the fields.");
   }
@@ -105,19 +116,18 @@ confirmJoinBtn.addEventListener("click", () => {
     // TODO: obtain room name, roomId, and number of participants
     const roomName = "roomTitle";
     const participants = 2;
-    const isHost = false;
 
     // Save room details
-    localStorage.setItem(
-      "roomDetails",
-      JSON.stringify({
-        roomTitle: roomName,
+    chrome.storage.local.set({
+      roomDetails: {
+        roomId,
+        roomName,
         participantsCount: participants,
-        host: isHost,
-      })
-    );
+        host: false,
+      },
+    });
     console.log("Saved room details");
-    updateUIForRoom(roomName, participants, isHost);
+    updateUIForRoom(roomId, roomName, participants, false);
   } else {
     console.log("Room ID required!");
   }
@@ -128,10 +138,13 @@ cancelJoinBtn.addEventListener("click", () => {
 });
 
 function updateUIForRoom(
+  roomId: string,
   roomName: string,
   participants: number,
   isHost: boolean
 ) {
+  roomIdElement.textContent = `Room ID: ${roomId}`;
+  roomIdElement.classList.remove("hidden");
   mainView.innerHTML = `
     <div class="room-header">
       <p><strong>${roomName}</strong></p>

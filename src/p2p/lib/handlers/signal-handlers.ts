@@ -27,6 +27,13 @@ export function onHostResponse(
       console.log(`Failed to create room:`, res.errMsg);
     }
   }
+
+  if (!res.success) return;
+
+  chrome.runtime.sendMessage({
+    type: "HOST_SUCCESS",
+    roomId: res.roomId,
+  });
 }
 
 export function onConnect(
