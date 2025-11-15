@@ -1,0 +1,8 @@
+services:
+  signal:
+    build:
+      dockerfile: ./src/signalling/Dockerfile
+    container_name: signalling-server
+    restart: unless-stopped
+    ports:
+      - "6767:80"
