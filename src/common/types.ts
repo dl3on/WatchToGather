@@ -60,3 +60,12 @@ export interface ServerToClientEvents {
   offerRelay: (msg: Message<MessageType.OfferRelay>) => void;
   error: (msg: Message<MessageType.Error>) => void;
 }
+
+type ChromeMsgBase = { id: string; email: string };
+
+export type ChromeMsg =
+  | ({
+      type: "JOIN";
+      roomId: string;
+    } & ChromeMsgBase)
+  | ({ type: "HOST" } & ChromeMsgBase);

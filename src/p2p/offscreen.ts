@@ -1,6 +1,7 @@
+import { ChromeMsg } from "../common/types";
 import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener((msg: ChromeMsg) => {
   const { type, id, email } = msg;
 
   const signalManager = new SignalManager({
@@ -17,14 +18,11 @@ chrome.runtime.onMessage.addListener((msg) => {
     verbose: true,
   });
 
-  switch (type) {
-    case "JOIN":
-      const roomId = msg.roomId;
-      signalManager.connect();
-      webrtc.join(roomId);
-      break;
-    case "HOST":
-      webrtc.host();
-    default:
+  if (msg.type === "JOIN") {
+    const roomId = msg.roomId;
+    signalManager.connect();
+    webrtc.join(roomId);
+  } else if (msg.type === "HOST") {
+    webrtc.host();
   }
 });
