@@ -76,6 +76,7 @@ export function updateUIForRoom(
     disbandRoomBtn.addEventListener("click", () => {
       console.log("Disbanding room...");
       // TODO: handle disband room logic
+      // emit disband event and disconnects everyone (optionally show disbanded message)
 
       renderInitialView();
     });
@@ -85,6 +86,10 @@ export function updateUIForRoom(
     leaveRoomBtn.addEventListener("click", () => {
       console.log("Leaving room...");
       // TODO: handle leaving room + change host logic
+      if (isHost) {
+        // reassign host: emit event to socket.ts and update new host's UI
+      }
+      // emit disconnect event
 
       renderInitialView();
     });

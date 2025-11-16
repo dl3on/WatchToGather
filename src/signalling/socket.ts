@@ -59,12 +59,12 @@ io.on("connection", (socket) => {
     console.log(`Peer with id ${peerId} requested to joined Room ${roomId}`);
 
     if (roomId in connections) {
-      const peers = connections[roomId];
+      const roomInfo = connections[roomId];
       socket.emit(EServerToClientEvents.JoinResponse, {
         type: ResponseType.Join,
         success: true,
         roomId: roomId,
-        body: peers,
+        body: roomInfo,
       });
     } else {
       socket.emit(EServerToClientEvents.JoinResponse, {

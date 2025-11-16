@@ -17,7 +17,6 @@ export function waitForJoinSuccess(): Promise<{
 }> {
   return new Promise((resolve) => {
     function handler(msg: any) {
-      console.log("incmoning msg: ", msg);
       if (msg.type === "JOIN_SUCCESS") {
         // Only listens to one JOIN_SUCCESS
         chrome.runtime.onMessage.removeListener(handler);
