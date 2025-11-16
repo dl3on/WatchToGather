@@ -50,9 +50,9 @@ export class SignalManager {
     });
   }
 
-  public host() {
+  public host(roomName: string) {
     this._socket.emit(EClientToServerEvents.Host, {
-      peerId: this._peerId,
+      roomName,
     });
   }
 

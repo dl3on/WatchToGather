@@ -11,8 +11,28 @@ export function sendJoinMsg(roomId: string) {
   sendChromeMsg({ type: "JOIN", roomId });
 }
 
-export function sendHostMsg() {
-  sendChromeMsg({ type: "HOST" });
+export function waitForJoinSuccess(): Promise<{
+  roomName: string;
+  participantsCount: number;
+}> {
+  return new Promise((resolve) => {
+    function handler(msg: any) {
+      console.log("incmoning msg: ", msg);
+      if (msg.type === "JOIN_SUCCESS") {
+        // Only listens to one JOIN_SUCCESS
+        chrome.runtime.onMessage.removeListener(handler);
+        resolve({
+          roomName: msg.roomName,
+          participantsCount: msg.participantsCount,
+        });
+      }
+    }
+    chrome.runtime.onMessage.addListener(handler);
+  });
+}
+
+export function sendHostMsg(roomName: string) {
+  sendChromeMsg({ type: "HOST", roomName });
 }
 
 export function waitForHostSuccess(): Promise<{ roomId: string }> {

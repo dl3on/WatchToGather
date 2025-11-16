@@ -1,3 +1,8 @@
+export type RoomInfo = {
+  roomName: string;
+  peers: PeerData[];
+};
+
 export type PeerData = {
   peerId: string;
   host: boolean;
@@ -23,14 +28,14 @@ export type Message<T extends MessageType> = T extends MessageType.Join
   : T extends MessageType.OfferRelay
   ? { fromPeerId: string; offer: RTCSessionDescription }
   : T extends MessageType.Host
-  ? { peerId: string }
+  ? { roomName: string }
   : { msg: string };
 
 export type Response<T extends ResponseType> =
   | {
       success: true;
       roomId: string;
-      body: T extends ResponseType.Join ? Omit<PeerData, "socketId">[] : string;
+      body: T extends ResponseType.Join ? RoomInfo : string;
       type: T;
     }
   | { success: false; roomId: string; errMsg: string };
@@ -68,7 +73,10 @@ export type ChromeMsg =
       type: "JOIN";
       roomId: string;
     } & ChromeMsgBase)
-  | ({ type: "HOST" } & ChromeMsgBase);
+  | ({
+      type: "HOST";
+      roomName: string;
+    } & ChromeMsgBase);
 
 export interface RoomDetails {
   roomId: string;

@@ -79,7 +79,7 @@ export class WebRTCManager {
       async (res) => {
         if (res.success) {
           const offers = await this._createOffers(
-            res.body.map((pd) => pd.peerId)
+            res.body.peers.map((pd) => pd.peerId)
           );
 
           if (this._verbose)
@@ -98,7 +98,7 @@ export class WebRTCManager {
     this._signalManager.join(roomId);
   }
 
-  public async host() {
+  public async host(roomName: string) {
     this._signalManager.setListener(
       EServerToClientEvents.OfferRelay,
       async (res) => {
@@ -124,6 +124,6 @@ export class WebRTCManager {
       }
     );
 
-    this._signalManager.host();
+    this._signalManager.host(roomName);
   }
 }

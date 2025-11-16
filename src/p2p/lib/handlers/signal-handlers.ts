@@ -14,6 +14,14 @@ export function onJoinResponse(
       console.log(`Failed to join room ${res.roomId}:`, res.errMsg);
     }
   }
+
+  if (!res.success) return;
+
+  chrome.runtime.sendMessage({
+    type: "JOIN_SUCCESS",
+    roomName: res.body.roomName,
+    participantsCount: res.body.peers.length,
+  });
 }
 
 export function onHostResponse(

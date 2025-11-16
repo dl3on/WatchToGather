@@ -4,6 +4,7 @@ import {
   sendHostMsg,
   sendJoinMsg,
   waitForHostSuccess,
+  waitForJoinSuccess,
 } from "./lib/chrome";
 import { renderInitialView, updateUIForRoom } from "./lib/ui";
 
@@ -46,7 +47,7 @@ confirmCreateBtn.addEventListener("click", async () => {
 
   if (roomName !== "" && webpageLink !== "") {
     console.log("Creating room:", roomName);
-    sendHostMsg();
+    sendHostMsg(roomName);
 
     try {
       const { roomId } = await waitForHostSuccess();
@@ -72,7 +73,7 @@ cancelCreateBtn.addEventListener("click", () => {
 });
 
 // Join Room
-confirmJoinBtn.addEventListener("click", () => {
+confirmJoinBtn.addEventListener("click", async () => {
   const roomId = roomIdInput.value.trim();
 
   if (roomId !== "") {
@@ -80,17 +81,20 @@ confirmJoinBtn.addEventListener("click", () => {
     sendJoinMsg(roomId);
 
     joinRoomModal.classList.add("hidden");
-    // TODO: obtain room name, roomId, and number of participants
-    const roomName = "roomName";
-    const participants = 2;
 
-    saveRoomDetails({
-      roomId,
-      roomName,
-      participantsCount: participants,
-      host: false,
-    });
-    updateUIForRoom(roomId, roomName, participants, false);
+    try {
+      const { roomName, participantsCount } = await waitForJoinSuccess();
+
+      saveRoomDetails({
+        roomId,
+        roomName,
+        participantsCount: participantsCount + 1,
+        host: false,
+      });
+      updateUIForRoom(roomId, roomName, participantsCount + 1, false);
+    } catch (e) {
+      console.error(`[ERROR] Unable to join Room ${roomId}:`, e);
+    }
   } else {
     console.log("Room ID required!");
   }

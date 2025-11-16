@@ -23,6 +23,7 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg) => {
     signalManager.connect();
     webrtc.join(roomId);
   } else if (msg.type === "HOST") {
-    webrtc.host();
+    const roomName = msg.roomName;
+    webrtc.host(roomName);
   }
 });

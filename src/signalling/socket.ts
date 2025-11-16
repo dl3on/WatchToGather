@@ -8,6 +8,7 @@ import {
   EServerToClientEvents,
   ServerToClientEvents,
   ResponseType,
+  RoomInfo,
 } from "../common/types.js";
 
 import { randomUUID } from "node:crypto";
@@ -16,7 +17,7 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server<ClientToServerEvents, ServerToClientEvents>(httpServer);
 
-const connections: { [roomId: string]: PeerData[] } = {};
+const connections: { [roomId: string]: RoomInfo } = {};
 const peerMap: { [peerId: string]: { roomId?: string; socketId: string } } = {};
 
 io.use((socket, next) => {
@@ -42,14 +43,15 @@ io.on("connection", (socket) => {
     const presentRoom = connections[presentRoomId];
     if (!presentRoom) return;
 
-    const peer = presentRoom.find((p) => p.peerId === peerId);
+    const peerList = presentRoom.peers;
+    const peer = peerList.find((p) => p.peerId === peerId);
     if (!peer) return;
 
-    const idx = presentRoom.indexOf(peer);
-    presentRoom.splice(idx, 1);
+    const idx = peerList.indexOf(peer);
+    peerList.splice(idx, 1);
 
     // TODO: If is host, assign new host
-    if (presentRoom.length == 0) delete connections[presentRoomId];
+    if (peerList.length == 0) delete connections[presentRoomId];
   });
 
   socket.on(EClientToServerEvents.Join, (msg) => {
@@ -73,10 +75,11 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on(EClientToServerEvents.Host, () => {
+  socket.on(EClientToServerEvents.Host, (msg) => {
     const roomId = randomUUID();
+    const { roomName } = msg;
     console.log(`Peer with id ${peerId} hosting new room: ${roomId}`);
-    connections[roomId] = [{ peerId, host: true }];
+    connections[roomId] = { roomName, peers: [{ peerId, host: true }] };
     peerMap[peerId] = { socketId, roomId };
 
     socket.emit(EServerToClientEvents.HostResponse, {

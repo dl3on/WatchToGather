@@ -1,6 +1,8 @@
 import { clearRoomDetails } from "./chrome";
 
-const roomIdElement = document.getElementById("roomId") as HTMLParagraphElement;
+const roomIdElement = document.getElementById(
+  "roomIdText"
+) as HTMLParagraphElement;
 const mainView = document.getElementById("mainView") as HTMLDivElement;
 const createRoomModal = document.getElementById(
   "createRoomModal"
@@ -39,7 +41,7 @@ export function renderInitialView() {
 export function updateUIForRoom(
   roomId: string,
   roomName: string,
-  participants: number,
+  participantsCount: number,
   isHost: boolean
 ) {
   roomIdElement.textContent = `Room ID: ${roomId}`;
@@ -47,7 +49,7 @@ export function updateUIForRoom(
   mainView.innerHTML = `
     <div class="room-header">
       <p><strong>${roomName}</strong></p>
-      <span class="room-participants">${participants} (i)</span>
+      <span class="room-participants">${participantsCount} (i)</span>
     </div>
     <div id="room-actions">
       ${
