@@ -18,11 +18,11 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg) => {
     verbose: true,
   });
 
-  if (msg.type === "JOIN") {
+  if (type === "JOIN") {
     const roomId = msg.roomId;
     signalManager.connect();
     webrtc.join(roomId);
-  } else if (msg.type === "HOST") {
+  } else if (type === "HOST") {
     const roomName = msg.roomName;
     webrtc.host(roomName);
   }
