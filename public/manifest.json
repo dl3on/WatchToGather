@@ -11,5 +11,10 @@
     "type": "module"
   },
   "permissions": ["storage", "offscreen", "identity", "identity.email"],
-  "host_permissions": ["http://localhost:6767/*", "ws://localhost:6767/*"]
+  "host_permissions": [
+    "http://localhost:6767/*",
+    "ws://localhost:6767/*",
+    "https://signal.coronne.io/*",
+    "ws://signal.coronne.io/*"
+  ]
 }

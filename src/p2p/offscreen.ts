@@ -6,7 +6,7 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg) => {
 
   const signalManager = new SignalManager({
     peerId: email,
-    serverUrl: "ws://localhost:80/",
+    serverUrl: "ws://signal.coronne.io/",
     verbose: true,
     socketOptions: {
       transports: ["websocket"],
