@@ -72,7 +72,7 @@ export type ChromeMsg =
 
 export interface RoomDetails {
   roomId: string;
-  roomTitle: string;
+  roomName: string;
   participantsCount: number;
   host: boolean;
 }

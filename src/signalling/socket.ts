@@ -48,6 +48,7 @@ io.on("connection", (socket) => {
     const idx = presentRoom.indexOf(peer);
     presentRoom.splice(idx, 1);
 
+    // TODO: If is host, assign new host
     if (presentRoom.length == 0) delete connections[presentRoomId];
   });
 

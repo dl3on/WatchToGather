@@ -25,7 +25,7 @@ const confirmJoinBtn = document.getElementById(
 const cancelJoinBtn = document.getElementById(
   "cancelJoinBtn"
 ) as HTMLButtonElement;
-const roomTitleInput = document.getElementById("roomTitle") as HTMLInputElement;
+const roomNameInput = document.getElementById("roomName") as HTMLInputElement;
 const webpageLinkInput = document.getElementById(
   "webpageLink"
 ) as HTMLInputElement;
@@ -33,19 +33,19 @@ const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
 const roomData = await loadRoomDetails();
 if (roomData) {
-  const { roomId, roomTitle, participantsCount, host } = roomData;
-  updateUIForRoom(roomId, roomTitle, participantsCount, host);
+  const { roomId, roomName, participantsCount, host } = roomData;
+  updateUIForRoom(roomId, roomName, participantsCount, host);
 } else {
   renderInitialView();
 }
 
 // Create Room
 confirmCreateBtn.addEventListener("click", async () => {
-  const roomTitle = roomTitleInput.value.trim();
+  const roomName = roomNameInput.value.trim();
   const webpageLink = webpageLinkInput.value.trim();
 
-  if (roomTitle !== "" && webpageLink !== "") {
-    console.log("Creating room:", roomTitle);
+  if (roomName !== "" && webpageLink !== "") {
+    console.log("Creating room:", roomName);
     sendHostMsg();
 
     try {
@@ -53,11 +53,11 @@ confirmCreateBtn.addEventListener("click", async () => {
 
       saveRoomDetails({
         roomId,
-        roomTitle,
+        roomName,
         participantsCount: 1,
         host: true,
       });
-      updateUIForRoom(roomId, roomTitle, 1, true);
+      updateUIForRoom(roomId, roomName, 1, true);
       createRoomModal.classList.add("hidden");
     } catch (e) {
       console.error("[ERROR] Unable to host:", e);
@@ -81,16 +81,16 @@ confirmJoinBtn.addEventListener("click", () => {
 
     joinRoomModal.classList.add("hidden");
     // TODO: obtain room name, roomId, and number of participants
-    const roomTitle = "roomTitle";
+    const roomName = "roomName";
     const participants = 2;
 
     saveRoomDetails({
       roomId,
-      roomTitle,
+      roomName,
       participantsCount: participants,
       host: false,
     });
-    updateUIForRoom(roomId, roomTitle, participants, false);
+    updateUIForRoom(roomId, roomName, participants, false);
   } else {
     console.log("Room ID required!");
   }
