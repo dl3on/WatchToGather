@@ -1,5 +1,6 @@
 import { Response } from "../../../common/types.js";
 import { ResponseType } from "../../../common/types.js";
+import { sendJoinSuccessMsg, sendHostSuccessMsg } from "../chrome.js";
 
 export function onJoinResponse(
   res: Response<ResponseType.Join>,
@@ -17,11 +18,8 @@ export function onJoinResponse(
 
   if (!res.success) return;
 
-  chrome.runtime.sendMessage({
-    type: "JOIN_SUCCESS",
-    roomName: res.body.roomName,
-    participantsCount: res.body.peers.length,
-  });
+  // TODO: wait until P2P established
+  sendJoinSuccessMsg(res.body.roomName, res.body.peers.length);
 }
 
 export function onHostResponse(
@@ -38,10 +36,7 @@ export function onHostResponse(
 
   if (!res.success) return;
 
-  chrome.runtime.sendMessage({
-    type: "HOST_SUCCESS",
-    roomId: res.roomId,
-  });
+  sendHostSuccessMsg(res.roomId);
 }
 
 export function onConnect(
