@@ -52,6 +52,8 @@ io.on("connection", (socket) => {
 
     // TODO: If is host, assign new host
     if (peerList.length == 0) delete connections[presentRoomId];
+
+    if (peerId in peerMap) delete peerMap[peerId];
   });
 
   socket.on(EClientToServerEvents.Join, (msg) => {
@@ -66,6 +68,8 @@ io.on("connection", (socket) => {
         roomId: roomId,
         body: roomInfo,
       });
+
+      peerMap[peerId] = { roomId, socketId };
     } else {
       socket.emit(EServerToClientEvents.JoinResponse, {
         success: false,
