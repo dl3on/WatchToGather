@@ -4,6 +4,47 @@
   margin-bottom: 10px;
 }
 
+#roomIdContainer {
+  position: relative;
+  display: flex;
+  gap: 10px;
+}
+
+#roomIdText {
+  margin-top: 5px;
+  margin-bottom: 0;
+  font-size: 10px;
+  color: rgb(51, 50, 50);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+#copyRoomIdArea {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+}
+
+.copy-btn {
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.copy-feedback {
+  position: absolute;
+  margin-left: 6px;
+  font-size: 10px;
+  color: rgb(105, 105, 105);
+  background: rgba(255, 255, 255, 0.8);
+  padding: 3px 5px;
+  border-radius: 6px;
+  pointer-events: auto;
+  transition: opacity 0.3s ease;
+}
+
 h3 {
   margin: 0;
   line-height: 1.2;
@@ -51,15 +92,6 @@ body {
   border-radius: 10px;
   width: 80%;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
-}
-
-#roomId {
-  margin-top: 5px;
-  margin-bottom: 0;
-  font-size: 10px;
-  color: rgb(51, 50, 50);
-  word-break: break-word;
-  overflow-wrap: break-word;
 }
 
 .room-header {

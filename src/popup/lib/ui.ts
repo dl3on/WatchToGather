@@ -1,6 +1,9 @@
 import { clearRoomDetails } from "./chrome";
 
-const roomIdElement = document.getElementById(
+const roomIdContainer = document.getElementById(
+  "roomIdContainer"
+) as HTMLDivElement;
+const roomIdTextElement = document.getElementById(
   "roomIdText"
 ) as HTMLParagraphElement;
 const mainView = document.getElementById("mainView") as HTMLDivElement;
@@ -15,8 +18,8 @@ export function renderInitialView() {
   clearRoomDetails();
   console.log("Cleared room details");
 
-  roomIdElement.textContent = "";
-  roomIdElement.classList.add("hidden");
+  roomIdTextElement.textContent = "";
+  roomIdContainer.classList.add("hidden");
   mainView.innerHTML = `
     <button id="createRoomBtn">Create Room</button>
     <button id="joinRoomBtn">Join Room</button>
@@ -44,8 +47,8 @@ export function updateUIForRoom(
   participantsCount: number,
   isHost: boolean
 ) {
-  roomIdElement.textContent = `Room ID: ${roomId}`;
-  roomIdElement.classList.remove("hidden");
+  roomIdTextElement.textContent = `Room ID: ${roomId}`;
+  roomIdContainer.classList.remove("hidden");
   mainView.innerHTML = `
     <div class="room-header">
       <p><strong>${roomName}</strong></p>
@@ -65,12 +68,30 @@ export function updateUIForRoom(
     </div>
   `;
 
+  const copyRoomIdBtn = document.getElementById(
+    "copyRoomIdBtn"
+  ) as HTMLButtonElement;
+  const copyFeedback = document.getElementById(
+    "copyFeedback"
+  ) as HTMLSpanElement;
   const disbandRoomBtn = document.getElementById(
     "disbandRoomBtn"
   ) as HTMLButtonElement;
   const leaveRoomBtn = document.getElementById(
     "leaveRoomBtn"
   ) as HTMLButtonElement;
+
+  if (copyRoomIdBtn) {
+    copyRoomIdBtn.addEventListener("click", () => {
+      navigator.clipboard.writeText(roomId).then(() => {
+        copyFeedback.classList.remove("hidden");
+
+        setTimeout(() => {
+          copyFeedback.classList.add("hidden");
+        }, 1000);
+      });
+    });
+  }
 
   if (disbandRoomBtn) {
     disbandRoomBtn.addEventListener("click", () => {
