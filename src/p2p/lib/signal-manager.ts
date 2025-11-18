@@ -60,6 +60,14 @@ export class SignalManager {
     this._socket.emit(EClientToServerEvents.Offer, offerMap);
   }
 
+  public sendAnswer(msg: {
+    fromPeerId: string;
+    toPeerId: string;
+    answer: RTCSessionDescription;
+  }) {
+    this._socket.emit(EClientToServerEvents.Answer, msg);
+  }
+
   public disconnect() {
     this._socket.disconnect();
   }

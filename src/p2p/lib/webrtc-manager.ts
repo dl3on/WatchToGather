@@ -1,6 +1,9 @@
 import {
-  EClientToServerEvents,
   EServerToClientEvents,
+  Message,
+  MessageType,
+  Response,
+  ResponseType,
 } from "../../common/types.js";
 import { SignalManager } from "./signal-manager.js";
 
@@ -35,7 +38,54 @@ export class WebRTCManager {
     this._signalManager.connect();
   }
 
-  async _createOffers(peers: string[]): Promise<{
+  private async _handleAnswer(msg: Message<MessageType.Answer>) {
+    const { fromPeerId, answer } = msg;
+    if (this._verbose)
+      console.log(
+        `[WebRTC Manager] Received answer from: ${fromPeerId}: ${answer}`
+      );
+
+    if (!(fromPeerId in this._connections)) {
+      if (this._verbose)
+        console.log(
+          `[WebRTC Manager] Dropping answer from ${fromPeerId} as it is no longer connected to the client.`
+        );
+
+      return;
+    }
+
+    await this._connections[fromPeerId].peerConnection.setRemoteDescription(
+      answer
+    );
+  }
+
+  private async _handleJoinResponse(
+    this: WebRTCManager,
+    msg: Response<ResponseType.Join>
+  ) {
+    if (msg.success) {
+      const offers = await this._createOffers(
+        msg.body.peers.map((pd) => pd.peerId)
+      );
+
+      if (this._verbose)
+        console.log(
+          `[WebRTC Manager] Created offers: ${JSON.stringify(offers, null, 2)}`
+        );
+
+      this._signalManager.sendOffers(offers);
+      this._signalManager.setListener(
+        EServerToClientEvents.AnswerRelay,
+        this._handleAnswer
+      );
+    } else {
+      throw new Error(
+        `[WebRTC Manager] Failed to receive peer information from server:\n${msg.errMsg}`
+      );
+    }
+  }
+
+  private async _createOffers(peers: string[]): Promise<{
     [targetPeerId: string]: RTCSessionDescription;
   }> {
     const offerDetails = await Promise.all(
@@ -45,7 +95,6 @@ export class WebRTCManager {
         });
 
         const dc = pc.createDataChannel(`data-${p}`);
-        // attach listeners to DC here
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -76,22 +125,7 @@ export class WebRTCManager {
   public async join(roomId: string) {
     this._signalManager.setListener(
       EServerToClientEvents.JoinResponse,
-      async (res) => {
-        if (res.success) {
-          const offers = await this._createOffers(
-            res.body.peers.map((pd) => pd.peerId)
-          );
-
-          if (this._verbose)
-            console.log(`[WebRTC Manager] Created offers: ${offers}`);
-
-          this._signalManager.sendOffers(offers);
-        } else {
-          throw new Error(
-            `Failed to receive peer information from server:\n${res.errMsg}`
-          );
-        }
-      },
+      (msg) => this._handleJoinResponse(msg),
       true
     );
 
@@ -111,16 +145,24 @@ export class WebRTCManager {
         await pc.setRemoteDescription(new RTCSessionDescription(res.offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
+        if (!pc.localDescription)
+          throw new Error(
+            "[WebRTC Manager] Error setting answer as local description."
+          );
 
         if (this._verbose)
           console.log(
             `[WebRTC Manager] Sent answer to offerer ${
               res.fromPeerId
-            }: ${JSON.stringify(res.offer, null, 2)}`
+            }: ${JSON.stringify(pc.localDescription, null, 2)}`
           );
 
         this._connections[res.fromPeerId] = { peerConnection: pc };
-        // send answer here
+        this._signalManager.sendAnswer({
+          fromPeerId: this._peerId,
+          toPeerId: res.fromPeerId,
+          answer: pc.localDescription,
+        });
       }
     );
 
