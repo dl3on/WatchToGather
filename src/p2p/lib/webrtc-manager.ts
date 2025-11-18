@@ -38,7 +38,10 @@ export class WebRTCManager {
     this._signalManager.connect();
   }
 
-  private async _handleAnswer(msg: Message<MessageType.Answer>) {
+  private async _handleAnswer(
+    this: WebRTCManager,
+    msg: Message<MessageType.Answer>
+  ) {
     const { fromPeerId, answer } = msg;
     if (this._verbose)
       console.log(
@@ -76,7 +79,7 @@ export class WebRTCManager {
       this._signalManager.sendOffers(offers);
       this._signalManager.setListener(
         EServerToClientEvents.AnswerRelay,
-        this._handleAnswer
+        (msg) => this._handleAnswer(msg)
       );
     } else {
       throw new Error(
