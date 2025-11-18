@@ -9,10 +9,17 @@ export function onJoinResponse(
   if (verbose) {
     if (res.success) {
       console.log(
-        `Received response from server: ${JSON.stringify(res.body, null, 2)}`
+        `[SignalManager] Received join response from server: ${JSON.stringify(
+          res.body,
+          null,
+          2
+        )}`
       );
     } else {
-      console.log(`Failed to join room ${res.roomId}:`, res.errMsg);
+      console.log(
+        `[SignalManager] Failed to join room ${res.roomId}:`,
+        res.errMsg
+      );
     }
   }
 
@@ -28,9 +35,9 @@ export function onHostResponse(
 ) {
   if (verbose) {
     if (res.success) {
-      console.log(`Successfully created Room ${res.roomId}`);
+      console.log(`[SignalManager] Successfully created Room ${res.roomId}`);
     } else {
-      console.log(`Failed to create room:`, res.errMsg);
+      console.log(`[SignalManager] Failed to create room:`, res.errMsg);
     }
   }
 
@@ -46,9 +53,9 @@ export function onConnect(
 ) {
   if (verbose && socketId) {
     console.log(
-      `Connected to signalling server.\nPeer ID: ${peerId}\nSocket ID: ${socketId}`
+      `[SignalManager] Connected to signalling server.\nPeer ID: ${peerId}\nSocket ID: ${socketId}`
     );
   } else if (!socketId) {
-    throw new Error("Socket not defined.");
+    throw new Error("[SignalManager] Socket not defined.");
   }
 }
