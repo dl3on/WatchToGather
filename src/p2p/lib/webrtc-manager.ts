@@ -93,6 +93,55 @@ export class WebRTCManager {
     }
   }
 
+  private async _handleOutgoingIce(
+    e: RTCPeerConnectionIceEvent,
+    offererPeerId: string
+  ) {
+    if (this._verbose) {
+      if (e.candidate) {
+        console.log(
+          `[WebRTC Manager] Found ICE candidate: ${JSON.stringify(
+            e.candidate,
+            null,
+            2
+          )}`
+        );
+      } else {
+        console.log("[WebRTC Manager] Null ICE candidate.");
+      }
+    }
+
+    if (e.candidate)
+      this._signalManager.emit(EClientToServerEvents.ICECandidate, {
+        fromPeerId: this._peerId,
+        toPeerId: offererPeerId,
+        candidate: e.candidate,
+      });
+  }
+
+  private async _handleIncomingIce(msg: Message<MessageType.ICE>) {
+    const { fromPeerId, candidate } = msg;
+    if (this._verbose)
+      console.log(
+        `[WebRTC Manager] Received ICE candidate from ${fromPeerId}: ${JSON.stringify(
+          candidate,
+          null,
+          2
+        )}`
+      );
+
+    const connection = this._connections[fromPeerId]?.peerConnection;
+    if (!connection) {
+      if (this._verbose)
+        console.log(
+          `[WebRTC Manager] Connectiont to ${fromPeerId} no longer exists. Dropping ICE candidate.`
+        );
+      return;
+    }
+
+    await connection.addIceCandidate(candidate);
+  }
+
   private async _createOffers(peers: string[]): Promise<{
     [targetPeerId: string]: RTCSessionDescription;
   }> {
@@ -152,6 +201,16 @@ export class WebRTCManager {
           iceServers: [{ urls: this._stunServerUrl }],
         });
 
+        // Attach ICE listeners
+        pc.addEventListener("icecandidate", (e) =>
+          this._handleOutgoingIce(e, res.fromPeerId)
+        );
+
+        this._signalManager.setListener(EServerToClientEvents.ICERelay, (msg) =>
+          this._handleIncomingIce(msg)
+        );
+
+        // Set SDPs and reply
         await pc.setRemoteDescription(new RTCSessionDescription(res.offer));
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
