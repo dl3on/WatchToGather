@@ -214,33 +214,27 @@ export class WebRTCManager {
   private async _createOffers(peers: string[]): Promise<{
     [targetPeerId: string]: RTCSessionDescription;
   }> {
-    const offerDetails = await Promise.all(
-      peers.map(async (p) => {
-        const [pc, dc] = this._createPeerConnection(p, "JOIN");
+    const peerMap: Record<string, RTCSessionDescription> = {};
+
+    await Promise.all(
+      peers.map(async (peer) => {
+        const [pc, dc] = this._createPeerConnection(peer, "JOIN");
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
+        if (!pc.localDescription) {
+          if (this._verbose)
+            console.log(
+              `[WebRTC Manager] Failed to create SDP offer for peer ${peer}.`
+            );
+          return;
+        }
 
-        return [p, offer, pc] as [
-          string,
-          RTCSessionDescription,
-          RTCPeerConnection
-        ];
+        peerMap[peer] = pc.localDescription;
+        this._connections[peer] = { peerConnection: pc };
       })
     );
 
-    const offerEntries = offerDetails.map((d) => [d[0], d[1]]);
-    const connectionEntries = offerDetails.map((d) => [
-      d[0],
-      { peerConnection: d[2] },
-    ]);
-
-    const connectionMap: PeerConnectionData =
-      Object.fromEntries(connectionEntries);
-    this._connections = connectionMap;
-
-    const peerMap: { [peerId: string]: RTCSessionDescription } =
-      Object.fromEntries(offerEntries);
     return peerMap;
   }
 
