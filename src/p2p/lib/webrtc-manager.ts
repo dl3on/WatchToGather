@@ -254,7 +254,7 @@ export class WebRTCManager {
     return peerMap;
   }
 
-  public async join(roomId: string) {
+  public join(roomId: string) {
     this._signalManager.setListener(
       EServerToClientEvents.JoinResponse,
       (msg) => this._handleJoinResponse(msg),
@@ -264,11 +264,7 @@ export class WebRTCManager {
     this._signalManager.emit(EClientToServerEvents.Join, { roomId });
   }
 
-  public async host(roomName: string) {
-    this._signalManager.setListener(EServerToClientEvents.OfferRelay, (msg) =>
-      this._handleOfferRelay(msg)
-    );
-
+  public host(roomName: string) {
     this._signalManager.emit(EClientToServerEvents.Host, { roomName });
   }
 }
