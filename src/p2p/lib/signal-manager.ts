@@ -68,6 +68,15 @@ export class SignalManager {
     this._socket.emit(EClientToServerEvents.Answer, msg);
   }
 
+  public sendICECandidate(msg: {
+    fromPeerId: string;
+    toPeerId: string;
+    candidate: RTCIceCandidate;
+  }) {
+    console.log(`${msg.fromPeerId} sent an ICE candidate to ${msg.toPeerId}`);
+    this._socket.emit(EClientToServerEvents.IceCandidate, msg);
+  }
+
   public disconnect() {
     this._socket.disconnect();
   }
