@@ -114,12 +114,17 @@ export class WebRTCManager {
       }
     }
 
-    if (e.candidate)
+    if (e.candidate) {
+      if (this._verbose)
+        console.log(
+          `[WebRTC Manager] Sending ICE candidate to peer ${targetPeerId}`
+        );
       this._signalManager.emit(EClientToServerEvents.ICECandidate, {
         fromPeerId: this._peerId,
         toPeerId: targetPeerId,
         candidate: e.candidate,
       });
+    }
   }
 
   private async _handleIncomingIce(msg: Message<MessageType.ICE>) {
@@ -145,16 +150,73 @@ export class WebRTCManager {
     await connection.addIceCandidate(candidate);
   }
 
+  private async _handleOfferRelay(msg: Message<MessageType.OfferRelay>) {
+    if (this._verbose)
+      console.log(
+        `[WebRTC Manager] Received offer: ${JSON.stringify(msg, null, 2)}`
+      );
+
+    const pc = this._createPeerConnection(msg.fromPeerId, "HOST");
+
+    await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    if (!pc.localDescription)
+      throw new Error(
+        "[WebRTC Manager] Error setting answer as local description."
+      );
+
+    if (this._verbose)
+      console.log(
+        `[WebRTC Manager] Sent answer to offerer ${
+          msg.fromPeerId
+        }: ${JSON.stringify(pc.localDescription, null, 2)}`
+      );
+
+    this._connections[msg.fromPeerId] = { peerConnection: pc };
+    this._signalManager.emit(EClientToServerEvents.Answer, {
+      fromPeerId: this._peerId,
+      toPeerId: msg.fromPeerId,
+      answer: pc.localDescription,
+    });
+  }
+
+  private _createPeerConnection(
+    targetPeerId: string,
+    mode: "JOIN"
+  ): [RTCPeerConnection, RTCDataChannel];
+
+  private _createPeerConnection(
+    targetPeerId: string,
+    mode: "HOST"
+  ): RTCPeerConnection;
+
+  private _createPeerConnection(
+    targetPeerId: string,
+    mode: "JOIN" | "HOST"
+  ): [RTCPeerConnection, RTCDataChannel] | RTCPeerConnection {
+    const pc = new RTCPeerConnection({
+      iceServers: [{ urls: this._stunServerUrl }],
+    });
+
+    pc.addEventListener("icecandidate", (e) =>
+      this._handleOutgoingIce(e, targetPeerId)
+    );
+
+    if (mode === "JOIN") {
+      const dc = pc.createDataChannel(`data-${targetPeerId}`);
+      return [pc, dc];
+    } else {
+      return pc;
+    }
+  }
+
   private async _createOffers(peers: string[]): Promise<{
     [targetPeerId: string]: RTCSessionDescription;
   }> {
     const offerDetails = await Promise.all(
       peers.map(async (p) => {
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: this._stunServerUrl }],
-        });
-
-        const dc = pc.createDataChannel(`data-${p}`);
+        const [pc, dc] = this._createPeerConnection(p, "JOIN");
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
@@ -193,49 +255,8 @@ export class WebRTCManager {
   }
 
   public async host(roomName: string) {
-    this._signalManager.setListener(
-      EServerToClientEvents.OfferRelay,
-      async (res) => {
-        if (this._verbose)
-          console.log(
-            `[WebRTC Manager] Received offer: ${JSON.stringify(res, null, 2)}`
-          );
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: this._stunServerUrl }],
-        });
-
-        // Attach ICE listeners
-        pc.addEventListener("icecandidate", (e) =>
-          this._handleOutgoingIce(e, res.fromPeerId)
-        );
-
-        this._signalManager.setListener(EServerToClientEvents.ICERelay, (msg) =>
-          this._handleIncomingIce(msg)
-        );
-
-        // Set SDPs and reply
-        await pc.setRemoteDescription(new RTCSessionDescription(res.offer));
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-        if (!pc.localDescription)
-          throw new Error(
-            "[WebRTC Manager] Error setting answer as local description."
-          );
-
-        if (this._verbose)
-          console.log(
-            `[WebRTC Manager] Sent answer to offerer ${
-              res.fromPeerId
-            }: ${JSON.stringify(pc.localDescription, null, 2)}`
-          );
-
-        this._connections[res.fromPeerId] = { peerConnection: pc };
-        this._signalManager.emit(EClientToServerEvents.Answer, {
-          fromPeerId: this._peerId,
-          toPeerId: res.fromPeerId,
-          answer: pc.localDescription,
-        });
-      }
+    this._signalManager.setListener(EServerToClientEvents.OfferRelay, (msg) =>
+      this._handleOfferRelay(msg)
     );
 
     this._signalManager.emit(EClientToServerEvents.Host, { roomName });
