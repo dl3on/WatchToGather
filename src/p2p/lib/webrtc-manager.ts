@@ -203,6 +203,13 @@ export class WebRTCManager {
       this._handleOutgoingIce(e, targetPeerId)
     );
 
+    pc.addEventListener("connectionstatechange", () => {
+      if (pc.connectionState === "connected" && this._verbose)
+        console.log(
+          `[WebRTC Manager] Successfully established connection to peer ${targetPeerId}`
+        );
+    });
+
     if (mode === "JOIN") {
       const dc = pc.createDataChannel(`data-${targetPeerId}`);
       return [pc, dc];
