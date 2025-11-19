@@ -17,6 +17,7 @@ type WebRTCManagerOptions = {
 type PeerConnectionData = {
   [peerId: string]: {
     peerConnection: RTCPeerConnection;
+    dataChannel?: RTCDataChannel;
   };
 };
 
@@ -128,10 +129,13 @@ export class WebRTCManager {
   }
 
   private async _handleOfferRelay(msg: Message<MessageType.OfferRelay>) {
-    if (this._verbose)
-      console.log(
-        `[WebRTC Manager] Received offer: ${JSON.stringify(msg, null, 2)}`
-      );
+    this._log(
+      `Received offer from peer ${msg.fromPeerId}: ${JSON.stringify(
+        msg,
+        null,
+        2
+      )}`
+    );
 
     const pc = this._createPeerConnection(msg.fromPeerId, "HOST");
 
@@ -224,7 +228,7 @@ export class WebRTCManager {
         }
 
         peerMap[peer] = pc.localDescription;
-        this._connections[peer] = { peerConnection: pc };
+        this._connections[peer] = { peerConnection: pc, dataChannel: dc };
       })
     );
 
