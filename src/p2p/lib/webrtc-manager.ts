@@ -37,6 +37,9 @@ export class WebRTCManager {
     this._stunServerUrl = stunServerUrl;
     this._signalManager = signalManager;
     this._signalManager.connect();
+    this._signalManager.setListener(EServerToClientEvents.ICERelay, (msg) =>
+      this._handleIncomingIce(msg)
+    );
   }
 
   private async _handleAnswer(
@@ -95,7 +98,7 @@ export class WebRTCManager {
 
   private async _handleOutgoingIce(
     e: RTCPeerConnectionIceEvent,
-    offererPeerId: string
+    targetPeerId: string
   ) {
     if (this._verbose) {
       if (e.candidate) {
@@ -114,7 +117,7 @@ export class WebRTCManager {
     if (e.candidate)
       this._signalManager.emit(EClientToServerEvents.ICECandidate, {
         fromPeerId: this._peerId,
-        toPeerId: offererPeerId,
+        toPeerId: targetPeerId,
         candidate: e.candidate,
       });
   }
