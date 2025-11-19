@@ -126,6 +126,20 @@ io.on("connection", (socket) => {
 
     io.to(targetSocketId).emit(EServerToClientEvents.AnswerRelay, msg);
   });
+
+  socket.on(EClientToServerEvents.ICECandidate, (msg) => {
+    const { toPeerId } = msg;
+
+    const targetSocketId = peerMap[toPeerId]?.socketId;
+    if (!targetSocketId) {
+      socket.emit(EServerToClientEvents.Error, {
+        msg: "Target socket id not found. Target may have disconnected.",
+      });
+      return;
+    }
+
+    io.to(targetSocketId).emit(EServerToClientEvents.ICERelay, msg);
+  });
 });
 
 export { httpServer, app, connections };
