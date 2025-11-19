@@ -3,7 +3,6 @@ import { createServer } from "node:http";
 import express from "express";
 import {
   ClientToServerEvents,
-  PeerData,
   EClientToServerEvents,
   EServerToClientEvents,
   ServerToClientEvents,

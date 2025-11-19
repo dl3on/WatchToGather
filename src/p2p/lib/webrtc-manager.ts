@@ -45,7 +45,11 @@ export class WebRTCManager {
     const { fromPeerId, answer } = msg;
     if (this._verbose)
       console.log(
-        `[WebRTC Manager] Received answer from: ${fromPeerId}: ${answer}`
+        `[WebRTC Manager] Received answer from: ${fromPeerId}: ${JSON.stringify(
+          answer,
+          null,
+          2
+        )}`
       );
 
     if (!(fromPeerId in this._connections)) {
@@ -140,7 +144,9 @@ export class WebRTCManager {
       EServerToClientEvents.OfferRelay,
       async (res) => {
         if (this._verbose)
-          console.log(`[WebRTC Manager] Received offer: ${res}`);
+          console.log(
+            `[WebRTC Manager] Received offer: ${JSON.stringify(res, null, 2)}`
+          );
         const pc = new RTCPeerConnection({
           iceServers: [{ urls: this._stunServerUrl }],
         });
