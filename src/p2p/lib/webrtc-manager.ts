@@ -42,32 +42,26 @@ export class WebRTCManager {
     );
   }
 
-  private async _handleAnswer(
-    this: WebRTCManager,
-    msg: Message<MessageType.Answer>
-  ) {
+  private async _handleAnswer(msg: Message<MessageType.Answer>) {
     const { fromPeerId, answer } = msg;
-    if (this._verbose)
-      console.log(
-        `[WebRTC Manager] Received answer from: ${fromPeerId}: ${JSON.stringify(
-          answer,
-          null,
-          2
-        )}`
-      );
+    this._log(
+      `Received answer from: ${fromPeerId}: ${JSON.stringify(answer, null, 2)}`
+    );
 
     if (!(fromPeerId in this._connections)) {
-      if (this._verbose)
-        console.log(
-          `[WebRTC Manager] Dropping answer from ${fromPeerId} as it is no longer connected to the client.`
-        );
-
+      this._log(
+        `Dropping answer from ${fromPeerId} as it is no longer connected to the client.`
+      );
       return;
     }
 
     await this._connections[fromPeerId].peerConnection.setRemoteDescription(
       answer
     );
+  }
+
+  private _log(msg: string) {
+    if (this._verbose) console.log(`[WebRTC Manager] ${msg}`);
   }
 
   private async _handleJoinResponse(
@@ -79,11 +73,7 @@ export class WebRTCManager {
         msg.body.peers.map((pd) => pd.peerId)
       );
 
-      if (this._verbose)
-        console.log(
-          `[WebRTC Manager] Created offers: ${JSON.stringify(offers, null, 2)}`
-        );
-
+      this._log(`Created offers: ${JSON.stringify(offers, null, 2)}`);
       this._signalManager.sendOffers(offers);
       this._signalManager.setListener(
         EServerToClientEvents.AnswerRelay,
@@ -100,25 +90,14 @@ export class WebRTCManager {
     e: RTCPeerConnectionIceEvent,
     targetPeerId: string
   ) {
-    if (this._verbose) {
-      if (e.candidate) {
-        console.log(
-          `[WebRTC Manager] Found ICE candidate: ${JSON.stringify(
-            e.candidate,
-            null,
-            2
-          )}`
-        );
-      } else {
-        console.log("[WebRTC Manager] Null ICE candidate.");
-      }
+    if (e.candidate) {
+      this._log(`Found ICE candidate: ${JSON.stringify(e.candidate, null, 2)}`);
+    } else {
+      this._log("Null ICE candidate.");
     }
 
     if (e.candidate) {
-      if (this._verbose)
-        console.log(
-          `[WebRTC Manager] Sending ICE candidate to peer ${targetPeerId}`
-        );
+      this._log(`Sending ICE candidate to peer ${targetPeerId}`);
       this._signalManager.emit(EClientToServerEvents.ICECandidate, {
         fromPeerId: this._peerId,
         toPeerId: targetPeerId,
@@ -129,21 +108,19 @@ export class WebRTCManager {
 
   private async _handleIncomingIce(msg: Message<MessageType.ICE>) {
     const { fromPeerId, candidate } = msg;
-    if (this._verbose)
-      console.log(
-        `[WebRTC Manager] Received ICE candidate from ${fromPeerId}: ${JSON.stringify(
-          candidate,
-          null,
-          2
-        )}`
-      );
+    this._log(
+      `Received ICE candidate from ${fromPeerId}: ${JSON.stringify(
+        candidate,
+        null,
+        2
+      )}`
+    );
 
     const connection = this._connections[fromPeerId]?.peerConnection;
     if (!connection) {
-      if (this._verbose)
-        console.log(
-          `[WebRTC Manager] Connectiont to ${fromPeerId} no longer exists. Dropping ICE candidate.`
-        );
+      this._log(
+        `Connection to ${fromPeerId} no longer exists. Dropping ICE candidate.`
+      );
       return;
     }
 
@@ -166,12 +143,13 @@ export class WebRTCManager {
         "[WebRTC Manager] Error setting answer as local description."
       );
 
-    if (this._verbose)
-      console.log(
-        `[WebRTC Manager] Sent answer to offerer ${
-          msg.fromPeerId
-        }: ${JSON.stringify(pc.localDescription, null, 2)}`
-      );
+    this._log(
+      `Sent answer to offerer ${msg.fromPeerId}: ${JSON.stringify(
+        pc.localDescription,
+        null,
+        2
+      )}`
+    );
 
     this._connections[msg.fromPeerId] = { peerConnection: pc };
     this._signalManager.emit(EClientToServerEvents.Answer, {
@@ -204,10 +182,19 @@ export class WebRTCManager {
     );
 
     pc.addEventListener("connectionstatechange", () => {
-      if (pc.connectionState === "connected" && this._verbose)
-        console.log(
-          `[WebRTC Manager] Successfully established connection to peer ${targetPeerId}`
+      if (pc.connectionState === "connected") {
+        this._log(
+          `Successfully established connection to peer ${targetPeerId}`
         );
+      } else if (pc.connectionState === "connecting") {
+        this._log(`Attempting to establish connection to peer ${targetPeerId}`);
+      } else if (pc.connectionState === "failed") {
+        this._log(`ICE exchange with peer ${targetPeerId} failed.`);
+      } else if (pc.connectionState === "disconnected") {
+        this._log(`Failed to establish connection to peer ${targetPeerId}`);
+      } else if (pc.connectionState === "closed") {
+        this._log(`Disconnected form peer ${targetPeerId}`);
+      }
     });
 
     if (mode === "JOIN") {
@@ -230,11 +217,10 @@ export class WebRTCManager {
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
         if (!pc.localDescription) {
-          if (this._verbose)
-            console.log(
-              `[WebRTC Manager] Failed to create SDP offer for peer ${peer}.`
-            );
+          this._log(`Failed to create SDP offer for peer ${peer}`);
           return;
+        } else {
+          this._log(`Successfully created SDP offer for peer ${peer}`);
         }
 
         peerMap[peer] = pc.localDescription;
