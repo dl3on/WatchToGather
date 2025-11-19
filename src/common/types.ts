@@ -14,6 +14,7 @@ export enum MessageType {
   Offer,
   Answer,
   OfferRelay,
+  ICE,
   Error,
 }
 
@@ -34,6 +35,8 @@ export type Message<T extends MessageType> = T extends MessageType.Join
       toPeerId: string;
       answer: RTCSessionDescription;
     }
+  : T extends MessageType.ICE
+  ? { fromPeerId: string; toPeerId: string; candidate: RTCIceCandidate }
   : T extends MessageType.Host
   ? { roomName: string }
   : { msg: string };
@@ -52,6 +55,7 @@ export enum EClientToServerEvents {
   Host = "host",
   Offer = "offer",
   Answer = "answer",
+  ICECandidate = "iceCandidate",
 }
 
 export enum EServerToClientEvents {
@@ -59,6 +63,7 @@ export enum EServerToClientEvents {
   HostResponse = "hostResponse",
   OfferRelay = "offerRelay",
   AnswerRelay = "answerRelay",
+  ICERelay = "iceRelay",
   Error = "error",
 }
 
@@ -67,6 +72,7 @@ export interface ClientToServerEvents {
   host: (msg: Message<MessageType.Host>) => void;
   offer: (msg: Message<MessageType.Offer>) => void;
   answer: (msg: Message<MessageType.Answer>) => void;
+  iceCandidate: (msg: Message<MessageType.ICE>) => void;
 }
 
 export interface ServerToClientEvents {
@@ -74,6 +80,7 @@ export interface ServerToClientEvents {
   hostResponse: (msg: Response<ResponseType.Host>) => void;
   offerRelay: (msg: Message<MessageType.OfferRelay>) => void;
   answerRelay: (msg: Message<MessageType.Answer>) => void;
+  iceRelay: (msg: Message<MessageType.ICE>) => void;
   error: (msg: Message<MessageType.Error>) => void;
 }
 
