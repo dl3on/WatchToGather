@@ -43,8 +43,16 @@ export class WebRTCManager {
     this._stunServerUrl = stunServerUrl;
     this._signalManager = signalManager;
     this._signalManager.connect();
+    this._configureSignalManager();
+  }
+
+  private _configureSignalManager() {
     this._signalManager.setListener(EServerToClientEvents.ICERelay, (msg) =>
       this._handleIncomingIce(msg)
+    );
+
+    this._signalManager.setListener(EServerToClientEvents.OfferRelay, (msg) =>
+      this._handleOfferRelay(msg)
     );
   }
 
