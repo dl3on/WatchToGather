@@ -21,6 +21,11 @@ type PeerConnectionData = {
   };
 };
 
+enum EConnectionType {
+  Offerer,
+  Acceptor,
+}
+
 export class WebRTCManager {
   _peerId: string;
   _verbose: boolean;
@@ -137,7 +142,10 @@ export class WebRTCManager {
       )}`
     );
 
-    const pc = this._createPeerConnection(msg.fromPeerId, "HOST");
+    const pc = this._createPeerConnection(
+      msg.fromPeerId,
+      EConnectionType.Acceptor
+    );
 
     await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
     const answer = await pc.createAnswer();
@@ -165,17 +173,17 @@ export class WebRTCManager {
 
   private _createPeerConnection(
     targetPeerId: string,
-    mode: "JOIN"
+    mode: EConnectionType.Offerer
   ): [RTCPeerConnection, RTCDataChannel];
 
   private _createPeerConnection(
     targetPeerId: string,
-    mode: "HOST"
+    mode: EConnectionType.Acceptor
   ): RTCPeerConnection;
 
   private _createPeerConnection(
     targetPeerId: string,
-    mode: "JOIN" | "HOST"
+    mode: EConnectionType
   ): [RTCPeerConnection, RTCDataChannel] | RTCPeerConnection {
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: this._stunServerUrl }],
@@ -201,7 +209,7 @@ export class WebRTCManager {
       }
     });
 
-    if (mode === "JOIN") {
+    if (mode === EConnectionType.Offerer) {
       const dc = pc.createDataChannel(`data-${targetPeerId}`);
       return [pc, dc];
     } else {
@@ -216,7 +224,10 @@ export class WebRTCManager {
 
     await Promise.all(
       peers.map(async (peer) => {
-        const [pc, dc] = this._createPeerConnection(peer, "JOIN");
+        const [pc, dc] = this._createPeerConnection(
+          peer,
+          EConnectionType.Offerer
+        );
 
         const offer = await pc.createOffer();
         await pc.setLocalDescription(offer);
