@@ -44,28 +44,15 @@ export class SignalManager {
     this._socket.connect();
   }
 
-  public join(roomId: string) {
-    this._socket.emit(EClientToServerEvents.Join, {
-      roomId,
-    });
-  }
-
-  public host(roomName: string) {
-    this._socket.emit(EClientToServerEvents.Host, {
-      roomName,
-    });
-  }
-
   public sendOffers(offerMap: { [peerId: string]: RTCSessionDescription }) {
     this._socket.emit(EClientToServerEvents.Offer, offerMap);
   }
 
-  public sendAnswer(msg: {
-    fromPeerId: string;
-    toPeerId: string;
-    answer: RTCSessionDescription;
-  }) {
-    this._socket.emit(EClientToServerEvents.Answer, msg);
+  public emit<T extends keyof ClientToServerEvents>(
+    event: T,
+    ...args: Parameters<ClientToServerEvents[T]>
+  ) {
+    this._socket.emit(event, ...args);
   }
 
   public disconnect() {

@@ -1,4 +1,5 @@
 import {
+  EClientToServerEvents,
   EServerToClientEvents,
   Message,
   MessageType,
@@ -136,7 +137,7 @@ export class WebRTCManager {
       true
     );
 
-    this._signalManager.join(roomId);
+    this._signalManager.emit(EClientToServerEvents.Join, { roomId });
   }
 
   public async host(roomName: string) {
@@ -167,7 +168,7 @@ export class WebRTCManager {
           );
 
         this._connections[res.fromPeerId] = { peerConnection: pc };
-        this._signalManager.sendAnswer({
+        this._signalManager.emit(EClientToServerEvents.Answer, {
           fromPeerId: this._peerId,
           toPeerId: res.fromPeerId,
           answer: pc.localDescription,
@@ -175,6 +176,6 @@ export class WebRTCManager {
       }
     );
 
-    this._signalManager.host(roomName);
+    this._signalManager.emit(EClientToServerEvents.Host, { roomName });
   }
 }
