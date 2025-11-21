@@ -56,6 +56,7 @@ export enum EClientToServerEvents {
   Offer = "offer",
   Answer = "answer",
   ICECandidate = "iceCandidate",
+  JoinSuccess = "joinSuccess",
 }
 
 export enum EServerToClientEvents {
@@ -73,6 +74,7 @@ export interface ClientToServerEvents {
   offer: (msg: Message<MessageType.Offer>) => void;
   answer: (msg: Message<MessageType.Answer>) => void;
   iceCandidate: (msg: Message<MessageType.ICE>) => void;
+  joinSuccess: (msg: Message<MessageType.Join>) => void;
 }
 
 export interface ServerToClientEvents {

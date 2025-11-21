@@ -51,7 +51,7 @@ io.on("connection", (socket) => {
 
     // TODO: If is host, assign new host
     if (peerList.length == 0) delete connections[presentRoomId];
-
+    if (peer.host) peerList[0].host = true;
     if (peerId in peerMap) delete peerMap[peerId];
   });
 
@@ -139,6 +139,13 @@ io.on("connection", (socket) => {
     }
 
     io.to(targetSocketId).emit(EServerToClientEvents.ICERelay, msg);
+  });
+
+  socket.on(EClientToServerEvents.JoinSuccess, (msg) => {
+    const { roomId } = msg;
+    const c = connections[roomId];
+    if (!c) return;
+    c.peers.push({ peerId, host: false });
   });
 });
 
