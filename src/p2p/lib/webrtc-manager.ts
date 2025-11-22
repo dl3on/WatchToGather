@@ -28,10 +28,13 @@ enum EConnectionType {
 
 export class WebRTCManager {
   _peerId: string;
+  _roomId: string | null = null;
+  _host: boolean = false;
   _verbose: boolean;
   _stunServerUrl: string;
   _connections: PeerConnectionData = {};
   _signalManager: SignalManager;
+  _connectionCount = 0;
   constructor(signalManager: SignalManager, opts: WebRTCManagerOptions) {
     const {
       peerId,
@@ -44,6 +47,10 @@ export class WebRTCManager {
     this._signalManager = signalManager;
     this._signalManager.connect();
     this._configureSignalManager();
+  }
+
+  private _checkJoinStatus(): boolean {
+    return this._connectionCount === Object.keys(this._connections).length;
   }
 
   private _configureSignalManager() {
@@ -206,14 +213,24 @@ export class WebRTCManager {
         this._log(
           `Successfully established connection to peer ${targetPeerId}`
         );
+        this._connectionCount += 1;
+        
+        if (!this._host) {
+          if (this._checkJoinStatus() && this._roomId)
+            this._signalManager.emit(EClientToServerEvents.JoinSuccess, {
+              roomId: this._roomId,
+            });
+        }
       } else if (pc.connectionState === "connecting") {
         this._log(`Attempting to establish connection to peer ${targetPeerId}`);
       } else if (pc.connectionState === "failed") {
         this._log(`ICE exchange with peer ${targetPeerId} failed.`);
       } else if (pc.connectionState === "disconnected") {
         this._log(`Failed to establish connection to peer ${targetPeerId}`);
+        this._connectionCount -= 1;
       } else if (pc.connectionState === "closed") {
         this._log(`Disconnected form peer ${targetPeerId}`);
+        this._connectionCount -= 1;
       }
     });
 
@@ -265,6 +282,17 @@ export class WebRTCManager {
   }
 
   public host(roomName: string) {
+    this._signalManager.setListener(
+      EServerToClientEvents.HostResponse,
+      (msg) => {
+        if (msg.success) {
+          this._roomId = msg.roomId;
+        }
+      },
+      true
+    );
+
+    this._host = true;
     this._signalManager.emit(EClientToServerEvents.Host, { roomName });
   }
 }
