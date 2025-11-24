@@ -27,6 +27,7 @@ enum EConnectionType {
 }
 
 export class WebRTCManager {
+  private static _instance: WebRTCManager | null;
   _peerId: string;
   _roomId: string | null = null;
   _host: boolean = false;
@@ -35,7 +36,10 @@ export class WebRTCManager {
   _connections: PeerConnectionData = {};
   _signalManager: SignalManager;
   _connectionCount = 0;
-  constructor(signalManager: SignalManager, opts: WebRTCManagerOptions) {
+  private constructor(
+    signalManager: SignalManager,
+    opts: WebRTCManagerOptions
+  ) {
     const {
       peerId,
       verbose = false,
@@ -47,6 +51,19 @@ export class WebRTCManager {
     this._signalManager = signalManager;
     this._signalManager.connect();
     this._configureSignalManager();
+  }
+
+  public static getInstance(
+    signalManager: SignalManager,
+    opts: WebRTCManagerOptions
+  ) {
+    if (WebRTCManager._instance) {
+      return WebRTCManager._instance;
+    } else {
+      const newInstance = new WebRTCManager(signalManager, opts);
+      WebRTCManager._instance = newInstance;
+      return newInstance;
+    }
   }
 
   private _checkJoinStatus(): boolean {
@@ -214,7 +231,7 @@ export class WebRTCManager {
           `Successfully established connection to peer ${targetPeerId}`
         );
         this._connectionCount += 1;
-        
+
         if (!this._host) {
           if (this._checkJoinStatus() && this._roomId)
             this._signalManager.emit(EClientToServerEvents.JoinSuccess, {

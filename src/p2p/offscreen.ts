@@ -13,7 +13,7 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg) => {
     },
   });
 
-  const webrtc = new WebRTCManager(signalManager, {
+  const webrtc = WebRTCManager.getInstance(signalManager, {
     peerId: email,
     verbose: true,
   });
