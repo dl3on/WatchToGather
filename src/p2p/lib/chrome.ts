@@ -16,3 +16,12 @@ export function sendJoinSuccessMsg(
 export function sendHostSuccessMsg(roomId: string) {
   sendChromeMsg({ type: "HOST_SUCCESS", roomId });
 }
+
+// TODO:
+export function sendPauseMsg() {}
+
+export function sendPlayMsg() {}
+
+export function sendSeekMsg() {}
+
+export function sendNextVideoMsg() {}

@@ -21,6 +21,6 @@ export class MessageManager {
   }
 
   handleMessage(msg: PeerMessage) {
-    // send message to video controller
+    // send pause/play/seek/nextVideo message to video controller
   }
 }

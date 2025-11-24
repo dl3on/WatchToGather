@@ -12,6 +12,7 @@ export class VideoController {
   }
 
   onPause() {
+    // TODO:
     chrome.runtime.sendMessage({
       type: PeerMessageType.Pause,
       time: this._video.currentTime,
