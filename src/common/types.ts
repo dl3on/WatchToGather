@@ -16,6 +16,8 @@ export enum MessageType {
   OfferRelay,
   ICE,
   Error,
+  Leave,
+  Disband,
 }
 
 export enum ResponseType {
@@ -23,23 +25,30 @@ export enum ResponseType {
   Host,
 }
 
-export type Message<T extends MessageType> = T extends MessageType.Join
-  ? { roomId: string }
-  : T extends MessageType.Offer
-  ? { [targetPeerId: string]: RTCSessionDescription }
-  : T extends MessageType.OfferRelay
-  ? { fromPeerId: string; offer: RTCSessionDescription }
-  : T extends MessageType.Answer
-  ? {
-      fromPeerId: string;
-      toPeerId: string;
-      answer: RTCSessionDescription;
-    }
-  : T extends MessageType.ICE
-  ? { fromPeerId: string; toPeerId: string; candidate: RTCIceCandidate }
-  : T extends MessageType.Host
-  ? { roomName: string }
-  : { msg: string };
+type MessagePayloads = {
+  [MessageType.Join]: { roomId: string };
+  [MessageType.Offer]: { [targetPeerId: string]: RTCSessionDescription };
+  [MessageType.Answer]: {
+    fromPeerId: string;
+    toPeerId: string;
+    answer: RTCSessionDescription;
+  };
+  [MessageType.OfferRelay]: {
+    fromPeerId: string;
+    offer: RTCSessionDescription;
+  };
+  [MessageType.ICE]: {
+    fromPeerId: string;
+    toPeerId: string;
+    candidate: RTCIceCandidate;
+  };
+  [MessageType.Host]: { roomName: string };
+  [MessageType.Error]: { msg: string };
+  [MessageType.Leave]: { roomId: string };
+  [MessageType.Disband]: { roomId: string };
+};
+
+export type Message<T extends keyof MessagePayloads> = MessagePayloads[T];
 
 export type Response<T extends ResponseType> =
   | {
@@ -57,6 +66,8 @@ export enum EClientToServerEvents {
   Answer = "answer",
   ICECandidate = "iceCandidate",
   JoinSuccess = "joinSuccess",
+  Leave = "leave",
+  Disband = "disband",
 }
 
 export enum EServerToClientEvents {
@@ -75,6 +86,8 @@ export interface ClientToServerEvents {
   answer: (msg: Message<MessageType.Answer>) => void;
   iceCandidate: (msg: Message<MessageType.ICE>) => void;
   joinSuccess: (msg: Message<MessageType.Join>) => void;
+  leave: (msg: Message<MessageType.Leave>) => void;
+  disband: (msg: Message<MessageType.Disband>) => void;
 }
 
 export interface ServerToClientEvents {
