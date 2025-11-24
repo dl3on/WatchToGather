@@ -255,6 +255,10 @@ export class WebRTCManager {
       const dc = pc.createDataChannel(`data-${targetPeerId}`);
       return [pc, dc];
     } else {
+      pc.addEventListener("datachannel", (e) => {
+        this._connections[targetPeerId].dataChannel = e.channel;
+      });
+      
       return pc;
     }
   }
