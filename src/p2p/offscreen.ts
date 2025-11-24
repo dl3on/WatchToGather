@@ -4,7 +4,7 @@ import { WebRTCManager } from "./lib/webrtc-manager";
 chrome.runtime.onMessage.addListener((msg: ChromeMsg) => {
   const { type, id, email } = msg;
 
-  const signalManager = new SignalManager({
+  const signalManager = SignalManager.getInstance({
     peerId: email,
     serverUrl: "wss://signal.coronne.io/",
     verbose: true,

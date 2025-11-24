@@ -19,10 +19,11 @@ type SignalManagerOptions = {
   query?: Record<string, string>;
 };
 export class SignalManager {
+  private static _instance: SignalManager | null;
   _peerId: string;
   _socket: Socket<ServerToClientEvents, ClientToServerEvents>;
   _verbose: boolean;
-  constructor(opts: SignalManagerOptions) {
+  private constructor(opts: SignalManagerOptions) {
     const {
       peerId,
       serverUrl,
@@ -37,6 +38,16 @@ export class SignalManager {
       query: { ...query, peerId },
     });
     this._verbose = verbose;
+  }
+
+  public static getInstance(opts: SignalManagerOptions): SignalManager {
+    if (!SignalManager._instance) {
+      const newInstance = new SignalManager(opts);
+      SignalManager._instance = newInstance;
+      return newInstance;
+    } else {
+      return SignalManager._instance;
+    }
   }
 
   public connect() {
