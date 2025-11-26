@@ -147,6 +147,21 @@ io.on("connection", (socket) => {
     if (!c) return;
     c.peers.push({ peerId, host: false });
   });
+
+  // TODO: peer authentication
+  socket.on(EClientToServerEvents.Leave, (msg) => {
+    const { roomId } = msg;
+
+    if (peerId in peerMap) delete peerMap[peerId];
+    if (roomId in connections) {
+      const peerIdx = connections[roomId].peers.indexOf(peerId);
+      if (peerIdx >= 0) {
+        connections[roomId].peers.splice(peerIdx, 1);
+      }
+    }
+  });
+
+  socket.on(EClientToServerEvents.Disband, (msg) => {});
 });
 
 export { httpServer, app, connections };
