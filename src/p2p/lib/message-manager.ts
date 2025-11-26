@@ -1,21 +1,23 @@
 import { randomUUID } from "node:crypto";
-import { PeerMessage, PeerMessageType } from "../../common/peer-messages-types";
+import { PeerMessage, PeerMessageType } from "../../common/sync-messages-types";
+import { WebRTCManager } from "./webrtc-manager";
+import { forwardRemotePeerMsg } from "./chrome";
 
 export class MessageManager {
   private static _instance: MessageManager | null;
   _peerId: string;
-  _peersChannel: RTCDataChannel[];
-  constructor(peerId: string, peersChannel: RTCDataChannel[]) {
+  _webrtcManager: WebRTCManager;
+  constructor(peerId: string, webrtc: WebRTCManager) {
     this._peerId = peerId;
-    this._peersChannel = peersChannel;
+    this._webrtcManager = webrtc;
   }
 
   public static getInstance(
     peerId: string,
-    peersChannel: RTCDataChannel[]
+    webrtc: WebRTCManager
   ): MessageManager {
     if (!MessageManager._instance) {
-      const newInstance = new MessageManager(peerId, peersChannel);
+      const newInstance = new MessageManager(peerId, webrtc);
       MessageManager._instance = newInstance;
       return newInstance;
     } else {
@@ -23,15 +25,31 @@ export class MessageManager {
     }
   }
 
-  sendToAll(eventType: PeerMessageType, time: number) {
-    const msg: PeerMessage = {
-      id: randomUUID(),
-      type: eventType,
-      time: time,
-      fromPeerId: this._peerId,
-    };
+  sendToAll(eventType: PeerMessageType, time?: number, url?: string) {
+    let msg: PeerMessage;
+
+    if (eventType === PeerMessageType.NextVideo) {
+      if (!url) throw new Error("NextVideo requires a url");
+
+      msg = {
+        mid: randomUUID(),
+        fromPeerId: this._peerId,
+        type: eventType,
+        url,
+      };
+    } else {
+      if (time == null) throw new Error(`${eventType} requires a time`);
+
+      msg = {
+        mid: randomUUID(),
+        fromPeerId: this._peerId,
+        type: eventType,
+        time,
+      };
+    }
     console.log(msg);
-    // send to all
+
+    // TODO: webrtc send to all
   }
 
   handleMessage(msg: PeerMessage) {
