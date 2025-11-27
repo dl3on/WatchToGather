@@ -45,9 +45,7 @@ export class MessageManager {
         time,
       };
     }
-    console.log(msg);
-
-    // TODO: webrtc send to all
+    this._webrtcManager.broadcastPeerMessage(msg);
   }
 
   handleMessage(msg: PeerMessage) {

@@ -1,3 +1,4 @@
+import { PeerMessage } from "../../common/sync-messages-types.js";
 import {
   EClientToServerEvents,
   EServerToClientEvents,
@@ -330,5 +331,14 @@ export class WebRTCManager {
 
     this._host = true;
     this._signalManager.emit(EClientToServerEvents.Host, { roomName });
+  }
+
+  public broadcastPeerMessage(msg: PeerMessage) {
+    const msgJson = JSON.stringify(msg);
+    for (const { dataChannel } of Object.values(this._connections)) {
+      if (!dataChannel) continue;
+
+      dataChannel.send(msgJson);
+    }
   }
 }
