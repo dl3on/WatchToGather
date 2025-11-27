@@ -256,11 +256,25 @@ export class WebRTCManager {
       return [pc, dc];
     } else {
       pc.addEventListener("datachannel", (e) => {
-        this._connections[targetPeerId].dataChannel = e.channel;
+        this._registerDataChannel(targetPeerId, e.channel);
       });
-      
+
       return pc;
     }
+  }
+
+  private _registerDataChannel(targetPeerId: string, dc: RTCDataChannel) {
+    this._connections[targetPeerId].dataChannel = dc;
+
+    dc.addEventListener("open", () => {
+      console.log(`[DC] Open with ${targetPeerId}`);
+    });
+    dc.addEventListener("message", (e) => {
+      console.log(`[DC] Message from ${targetPeerId}:`, e.data);
+    });
+    dc.addEventListener("close", () => {
+      console.log(`[DC] Channel closed for ${targetPeerId}`);
+    });
   }
 
   private async _createOffers(peers: string[]): Promise<{
@@ -285,7 +299,8 @@ export class WebRTCManager {
         }
 
         peerMap[peer] = pc.localDescription;
-        this._connections[peer] = { peerConnection: pc, dataChannel: dc };
+        this._connections[peer] = { peerConnection: pc };
+        this._registerDataChannel(peer, dc);
       })
     );
 
