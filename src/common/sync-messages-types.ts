@@ -28,22 +28,20 @@ export type PeerMessage =
       url: string;
     });
 
-type ChromeMsgBase = { id: string; email: string };
-
 export type LocalVideoEvent =
-  | ({
+  | {
       type: PeerMessageType.Pause;
       time: number;
-    } & ChromeMsgBase)
-  | ({
+    }
+  | {
       type: PeerMessageType.Play;
       time: number;
-    } & ChromeMsgBase)
-  | ({
+    }
+  | {
       type: PeerMessageType.Seek;
       time: number;
-    } & ChromeMsgBase)
-  | ({
+    }
+  | {
       type: PeerMessageType.NextVideo;
       url: string;
-    } & ChromeMsgBase);
+    };
