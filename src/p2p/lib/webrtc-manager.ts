@@ -191,7 +191,6 @@ export class WebRTCManager {
       msg.fromPeerId,
       EConnectionType.Acceptor
     );
-
     await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
@@ -209,6 +208,10 @@ export class WebRTCManager {
     );
 
     this._connections[msg.fromPeerId] = { peerConnection: pc };
+    pc.addEventListener("datachannel", (e) => {
+      this._registerDataChannel(msg.fromPeerId, e.channel);
+    });
+
     this._signalManager.emit(EClientToServerEvents.Answer, {
       fromPeerId: this._peerId,
       toPeerId: msg.fromPeerId,
@@ -268,10 +271,6 @@ export class WebRTCManager {
       const dc = pc.createDataChannel(`data-${targetPeerId}`);
       return [pc, dc];
     } else {
-      pc.addEventListener("datachannel", (e) => {
-        this._registerDataChannel(targetPeerId, e.channel);
-      });
-
       return pc;
     }
   }
