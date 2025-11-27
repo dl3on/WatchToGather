@@ -1,7 +1,5 @@
-import { randomUUID } from "node:crypto";
 import { PeerMessage, PeerMessageType } from "../../common/sync-messages-types";
 import { WebRTCManager } from "./webrtc-manager";
-import { forwardRemotePeerMsg } from "./chrome";
 
 export class MessageManager {
   private static _instance: MessageManager | null;
@@ -32,7 +30,7 @@ export class MessageManager {
       if (!url) throw new Error("NextVideo requires a url");
 
       msg = {
-        mid: randomUUID(),
+        mid: crypto.randomUUID(),
         fromPeerId: this._peerId,
         type: eventType,
         url,
@@ -41,7 +39,7 @@ export class MessageManager {
       if (time == null) throw new Error(`${eventType} requires a time`);
 
       msg = {
-        mid: randomUUID(),
+        mid: crypto.randomUUID(),
         fromPeerId: this._peerId,
         type: eventType,
         time,
