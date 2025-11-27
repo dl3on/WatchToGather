@@ -1,4 +1,5 @@
-import { PeerMessage, PeerMessageType } from "../../common/peer-messages-types";
+import { PeerMessage, PeerMessageType } from "../../common/sync-messages-types";
+import { sendVCMsg } from "./chrome";
 
 export class VideoController {
   _video: HTMLVideoElement;
@@ -12,18 +13,38 @@ export class VideoController {
   }
 
   onPause() {
-    // TODO:
-    chrome.runtime.sendMessage({
+    sendVCMsg({
       type: PeerMessageType.Pause,
       time: this._video.currentTime,
     });
   }
 
-  onPlay() {}
+  onPlay() {
+    sendVCMsg({
+      type: PeerMessageType.Play,
+      time: this._video.currentTime,
+    });
+  }
 
-  onSeek() {}
+  onSeek() {
+    sendVCMsg({
+      type: PeerMessageType.Seek,
+      time: this._video.currentTime,
+    });
+  }
 
   onRemoteEvent(msg: PeerMessage) {
     console.log(msg);
+    // TODO: pause/play/seek video; ignore if video is already in the same state as described in msg
+    switch (msg.type) {
+      case PeerMessageType.Pause:
+        break;
+
+      case PeerMessageType.Play:
+        break;
+
+      case PeerMessageType.Seek:
+        break;
+    }
   }
 }

@@ -1,29 +1,70 @@
+import { Sign } from "crypto";
+import {
+  LocalVideoEvent,
+  PeerMessageType,
+} from "../common/sync-messages-types";
 import { ChromeMsg } from "../common/types";
+import { MessageManager } from "./lib/message-manager";
 import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";
-chrome.runtime.onMessage.addListener((msg: ChromeMsg) => {
-  const { type, id, email } = msg;
+import { getInstallations } from "firebase/installations";
 
-  const signalManager = SignalManager.getInstance({
-    peerId: email,
-    serverUrl: "wss://signal.coronne.io/",
-    verbose: true,
-    socketOptions: {
-      transports: ["websocket"],
-    },
-  });
+chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
+  if (isChromeMsg(msg)) {
+    const { type, id, email } = msg;
 
-  const webrtc = WebRTCManager.getInstance(signalManager, {
-    peerId: email,
-    verbose: true,
-  });
+    const signalManager = SignalManager.getInstance({
+      peerId: email,
+      serverUrl: "wss://signal.coronne.io/",
+      verbose: true,
+      socketOptions: {
+        transports: ["websocket"],
+      },
+    });
 
-  if (type === "JOIN") {
-    const roomId = msg.roomId;
-    signalManager.connect();
-    webrtc.join(roomId);
-  } else if (type === "HOST") {
-    const roomName = msg.roomName;
-    webrtc.host(roomName);
+    const webrtc = WebRTCManager.getInstance(signalManager, {
+      peerId: email,
+      verbose: true,
+    });
+
+    if (type === "JOIN") {
+      const roomId = msg.roomId;
+      signalManager.connect();
+      webrtc.join(roomId);
+    } else if (type === "HOST") {
+      const roomName = msg.roomName;
+      webrtc.host(roomName);
+    }
+  } else if (isLocalVideoEvent(msg)) {
+    const signalManager = SignalManager.getInstance();
+    if (!signalManager) {
+      console.log(
+        "[WARN] Dropped Message: Received LocalVideoEvent before initialization"
+      );
+      return;
+    }
+
+    const webrtc = WebRTCManager.getInstance(signalManager);
+    if (!webrtc) {
+      console.log(
+        "[WARN] Dropped Message: Received LocalVideoEvent before initialization"
+      );
+      return;
+    }
+
+    const messageManager = MessageManager.getInstance(webrtc._peerId, webrtc);
+    if (msg.type == PeerMessageType.NextVideo) {
+      messageManager.sendToAll(msg.type, undefined, msg.url);
+    } else {
+      messageManager.sendToAll(msg.type, msg.time, undefined);
+    }
   }
 });
+
+function isChromeMsg(msg: any): msg is ChromeMsg {
+  return msg.type === "JOIN" || msg.type === "HOST";
+}
+
+function isLocalVideoEvent(msg: any): msg is LocalVideoEvent {
+  return !isChromeMsg(msg);
+}

@@ -1,3 +1,4 @@
+import { PeerMessage } from "../../common/sync-messages-types.js";
 import {
   EClientToServerEvents,
   EServerToClientEvents,
@@ -56,13 +57,25 @@ export class WebRTCManager {
   public static getInstance(
     signalManager: SignalManager,
     opts: WebRTCManagerOptions
+  ): WebRTCManager;
+
+  public static getInstance(
+    signalManager: SignalManager,
+    opts?: undefined
+  ): WebRTCManager | null;
+
+  public static getInstance(
+    signalManager: SignalManager,
+    opts?: WebRTCManagerOptions
   ) {
     if (WebRTCManager._instance) {
       return WebRTCManager._instance;
-    } else {
+    } else if (opts) {
       const newInstance = new WebRTCManager(signalManager, opts);
       WebRTCManager._instance = newInstance;
       return newInstance;
+    } else {
+      return null;
     }
   }
 
@@ -178,7 +191,6 @@ export class WebRTCManager {
       msg.fromPeerId,
       EConnectionType.Acceptor
     );
-
     await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
@@ -196,6 +208,10 @@ export class WebRTCManager {
     );
 
     this._connections[msg.fromPeerId] = { peerConnection: pc };
+    pc.addEventListener("datachannel", (e) => {
+      this._registerDataChannel(msg.fromPeerId, e.channel);
+    });
+
     this._signalManager.emit(EClientToServerEvents.Answer, {
       fromPeerId: this._peerId,
       toPeerId: msg.fromPeerId,
@@ -255,12 +271,22 @@ export class WebRTCManager {
       const dc = pc.createDataChannel(`data-${targetPeerId}`);
       return [pc, dc];
     } else {
-      pc.addEventListener("datachannel", (e) => {
-        this._connections[targetPeerId].dataChannel = e.channel;
-      });
-      
       return pc;
     }
+  }
+
+  private _registerDataChannel(targetPeerId: string, dc: RTCDataChannel) {
+    this._connections[targetPeerId].dataChannel = dc;
+
+    dc.addEventListener("open", () => {
+      console.log(`[DC] Open with ${targetPeerId}`);
+    });
+    dc.addEventListener("message", (e) => {
+      console.log(`[DC] Message from ${targetPeerId}:`, e.data);
+    });
+    dc.addEventListener("close", () => {
+      console.log(`[DC] Channel closed for ${targetPeerId}`);
+    });
   }
 
   private async _createOffers(peers: string[]): Promise<{
@@ -285,7 +311,8 @@ export class WebRTCManager {
         }
 
         peerMap[peer] = pc.localDescription;
-        this._connections[peer] = { peerConnection: pc, dataChannel: dc };
+        this._connections[peer] = { peerConnection: pc };
+        this._registerDataChannel(peer, dc);
       })
     );
 
@@ -315,5 +342,14 @@ export class WebRTCManager {
 
     this._host = true;
     this._signalManager.emit(EClientToServerEvents.Host, { roomName });
+  }
+
+  public broadcastPeerMessage(msg: PeerMessage) {
+    const msgJson = JSON.stringify(msg);
+    for (const { dataChannel } of Object.values(this._connections)) {
+      if (!dataChannel) continue;
+
+      dataChannel.send(msgJson);
+    }
   }
 }
