@@ -1,4 +1,4 @@
-import { sendChromeMsg } from "./lib/chrome";
+// import { sendReadyMsg } from "./lib/chrome";
 import { VideoController } from "./lib/video-controller";
 
 const observer = new MutationObserver(() => {
@@ -9,7 +9,7 @@ const observer = new MutationObserver(() => {
     const videoController = new VideoController(video);
 
     // TODO: notify peers ready state
-    sendChromeMsg({ type: "content-ready" });
+    // sendReadyMsg({ type: "content-ready" });
 
     chrome.runtime.onMessage.addListener((msg) => {
       if (msg.type === "VIDEO_ACTIONS") {

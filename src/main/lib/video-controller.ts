@@ -1,5 +1,5 @@
 import { PeerMessage, PeerMessageType } from "../../common/sync-messages-types";
-import { sendChromeMsg } from "./chrome";
+import { sendVCMsg } from "./chrome";
 
 export class VideoController {
   _video: HTMLVideoElement;
@@ -13,21 +13,21 @@ export class VideoController {
   }
 
   onPause() {
-    sendChromeMsg({
+    sendVCMsg({
       type: PeerMessageType.Pause,
       time: this._video.currentTime,
     });
   }
 
   onPlay() {
-    sendChromeMsg({
+    sendVCMsg({
       type: PeerMessageType.Play,
       time: this._video.currentTime,
     });
   }
 
   onSeek() {
-    sendChromeMsg({
+    sendVCMsg({
       type: PeerMessageType.Seek,
       time: this._video.currentTime,
     });
