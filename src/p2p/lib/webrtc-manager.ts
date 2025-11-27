@@ -57,13 +57,25 @@ export class WebRTCManager {
   public static getInstance(
     signalManager: SignalManager,
     opts: WebRTCManagerOptions
+  ): WebRTCManager;
+
+  public static getInstance(
+    signalManager: SignalManager,
+    opts?: undefined
+  ): WebRTCManager | null;
+
+  public static getInstance(
+    signalManager: SignalManager,
+    opts?: WebRTCManagerOptions
   ) {
     if (WebRTCManager._instance) {
       return WebRTCManager._instance;
-    } else {
+    } else if (opts) {
       const newInstance = new WebRTCManager(signalManager, opts);
       WebRTCManager._instance = newInstance;
       return newInstance;
+    } else {
+      return null;
     }
   }
 

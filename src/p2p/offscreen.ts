@@ -1,3 +1,4 @@
+import { Sign } from "crypto";
 import {
   LocalVideoEvent,
   PeerMessageType,
@@ -6,16 +7,13 @@ import { ChromeMsg } from "../common/types";
 import { MessageManager } from "./lib/message-manager";
 import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";
-
-let signalManager: SignalManager | null = null;
-let webrtc: WebRTCManager | null = null;
-let messageManager: MessageManager | null = null;
+import { getInstallations } from "firebase/installations";
 
 chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
   if (isChromeMsg(msg)) {
     const { type, id, email } = msg;
 
-    signalManager = SignalManager.getInstance({
+    const signalManager = SignalManager.getInstance({
       peerId: email,
       serverUrl: "wss://signal.coronne.io/",
       verbose: true,
@@ -24,12 +22,10 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
       },
     });
 
-    webrtc = WebRTCManager.getInstance(signalManager, {
+    const webrtc = WebRTCManager.getInstance(signalManager, {
       peerId: email,
       verbose: true,
     });
-
-    messageManager = MessageManager.getInstance(email, webrtc);
 
     if (type === "JOIN") {
       const roomId = msg.roomId;
@@ -40,13 +36,23 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
       webrtc.host(roomName);
     }
   } else if (isLocalVideoEvent(msg)) {
-    if (!webrtc || !messageManager) {
+    const signalManager = SignalManager.getInstance();
+    if (!signalManager) {
       console.log(
         "[WARN] Dropped Message: Received LocalVideoEvent before initialization"
       );
       return;
     }
 
+    const webrtc = WebRTCManager.getInstance(signalManager);
+    if (!webrtc) {
+      console.log(
+        "[WARN] Dropped Message: Received LocalVideoEvent before initialization"
+      );
+      return;
+    }
+
+    const messageManager = MessageManager.getInstance(webrtc._peerId, webrtc);
     if (msg.type == PeerMessageType.NextVideo) {
       messageManager.sendToAll(msg.type, undefined, msg.url);
     } else {

@@ -40,13 +40,19 @@ export class SignalManager {
     this._verbose = verbose;
   }
 
-  public static getInstance(opts: SignalManagerOptions): SignalManager {
-    if (!SignalManager._instance) {
+  public static getInstance(opts: SignalManagerOptions): SignalManager;
+
+  public static getInstance(opts?: undefined): SignalManager | null;
+
+  public static getInstance(opts?: SignalManagerOptions): SignalManager | null {
+    if (!SignalManager._instance && opts) {
       const newInstance = new SignalManager(opts);
       SignalManager._instance = newInstance;
       return newInstance;
-    } else {
+    } else if (SignalManager._instance) {
       return SignalManager._instance;
+    } else {
+      return null;
     }
   }
 
