@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "npx vite build",
+    "build": "vite build && vite build --config vite.content.config.js",
     "build:server": "npx tsc"
   },
   "repository": {
