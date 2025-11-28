@@ -1,3 +1,5 @@
+import { PeerMessage } from "../../common/sync-messages-types";
+
 function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
 }
@@ -17,11 +19,10 @@ export function sendHostSuccessMsg(roomId: string) {
   sendChromeMsg({ type: "HOST_SUCCESS", roomId });
 }
 
-// TODO:
-export function sendPauseMsg() {}
-
-export function sendPlayMsg() {}
-
-export function sendSeekMsg() {}
-
-export function sendNextVideoMsg() {}
+/** Forward PeerMessage to VideoController */
+export function forwardRemotePeerMsg(msg: PeerMessage) {
+  sendChromeMsg({
+    type: "VIDEO_ACTIONS",
+    payload: msg,
+  });
+}

@@ -1,12 +1,15 @@
 import { PeerMessage, PeerMessageType } from "../../common/sync-messages-types";
+import { forwardRemotePeerMsg } from "./chrome";
 import type { WebRTCManager } from "./webrtc-manager";
 
 export class MessageManager {
   private static _instance: MessageManager | null;
   _peerId: string;
   _webrtcManager!: WebRTCManager;
+  _seenMessages: Set<string>;
   constructor(peerId: string) {
     this._peerId = peerId;
+    this._seenMessages = new Set();
   }
 
   public static getInstance(peerId: string): MessageManager {
@@ -49,6 +52,8 @@ export class MessageManager {
   }
 
   handleMessage(msg: PeerMessage) {
-    // send pause/play/seek/nextVideo message to video controller
+    if (msg.mid in this._seenMessages) return;
+
+    forwardRemotePeerMsg(msg);
   }
 }
