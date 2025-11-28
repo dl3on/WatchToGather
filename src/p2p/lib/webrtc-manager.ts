@@ -8,6 +8,7 @@ import {
   ResponseType,
 } from "../../common/types.js";
 import { SignalManager } from "./signal-manager.js";
+import type { MessageManager } from "./message-manager.js";
 
 type WebRTCManagerOptions = {
   peerId: string;
@@ -29,6 +30,7 @@ enum EConnectionType {
 
 export class WebRTCManager {
   private static _instance: WebRTCManager | null;
+  _messageManager!: MessageManager;
   _peerId: string;
   _roomId: string | null = null;
   _host: boolean = false;
@@ -77,6 +79,10 @@ export class WebRTCManager {
     } else {
       return null;
     }
+  }
+
+  setMessageManager(mm: MessageManager) {
+    this._messageManager = mm;
   }
 
   private _checkJoinStatus(): boolean {

@@ -1,4 +1,3 @@
-import { Sign } from "crypto";
 import {
   LocalVideoEvent,
   PeerMessageType,
@@ -7,7 +6,6 @@ import { ChromeMsg } from "../common/types";
 import { MessageManager } from "./lib/message-manager";
 import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";
-import { getInstallations } from "firebase/installations";
 
 chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
   if (isChromeMsg(msg)) {
@@ -52,7 +50,10 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
       return;
     }
 
-    const messageManager = MessageManager.getInstance(webrtc._peerId, webrtc);
+    const messageManager = MessageManager.getInstance(webrtc._peerId);
+    webrtc.setMessageManager(messageManager);
+    messageManager.setWebRTCManager(webrtc);
+
     if (msg.type == PeerMessageType.NextVideo) {
       messageManager.sendToAll(msg.type, undefined, msg.url);
     } else {
