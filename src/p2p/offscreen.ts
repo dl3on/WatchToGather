@@ -25,6 +25,10 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
       verbose: true,
     });
 
+    const messageManager = MessageManager.getInstance(webrtc._peerId);
+    webrtc.setMessageManager(messageManager);
+    messageManager.setWebRTCManager(webrtc);
+
     if (type === "JOIN") {
       const roomId = msg.roomId;
       signalManager.connect();
@@ -51,8 +55,6 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
     }
 
     const messageManager = MessageManager.getInstance(webrtc._peerId);
-    webrtc.setMessageManager(messageManager);
-    messageManager.setWebRTCManager(webrtc);
 
     if (msg.type == PeerMessageType.NextVideo) {
       messageManager.sendToAll(msg.type, undefined, msg.url);
