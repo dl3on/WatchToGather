@@ -1,4 +1,6 @@
 // import { sendReadyMsg } from "./lib/chrome";
+import { RemoteVideoEventMsg } from "../common/sync-messages-types";
+import { sendVCReadyMsg } from "./lib/chrome";
 import { VideoController } from "./lib/video-controller";
 
 const observer = new MutationObserver(() => {
@@ -9,9 +11,10 @@ const observer = new MutationObserver(() => {
     const videoController = new VideoController(video);
 
     // TODO: notify peers ready state
-    // sendReadyMsg({ type: "content-ready" });
 
-    chrome.runtime.onMessage.addListener((msg) => {
+    sendVCReadyMsg({ type: "VC_READY" });
+
+    chrome.runtime.onMessage.addListener((msg: RemoteVideoEventMsg) => {
       if (msg.type === "VIDEO_ACTIONS") {
         videoController.onRemoteEvent(msg.payload);
       }

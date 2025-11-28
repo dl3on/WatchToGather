@@ -45,3 +45,10 @@ export type LocalVideoEvent =
       type: PeerMessageType.NextVideo;
       url: string;
     };
+
+export type RemoteVideoEventMsg = {
+  type: "VIDEO_ACTIONS";
+  payload: PeerMessage;
+};
+
+export type VCReadyMsg = { type: "VC_READY" };
