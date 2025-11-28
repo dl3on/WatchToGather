@@ -13,10 +13,15 @@ export function sendJoinSuccessMsg(
     roomName: roomName,
     participantsCount: participantsCount,
   });
+  // Notify background
+  sendChromeMsg({
+    type: "IN_ROOM",
+  });
 }
 
 export function sendHostSuccessMsg(roomId: string) {
   sendChromeMsg({ type: "HOST_SUCCESS", roomId });
+  sendChromeMsg({ type: "IN_ROOM" });
 }
 
 /** Forward PeerMessage to VideoController */

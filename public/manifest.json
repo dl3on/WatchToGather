@@ -9,14 +9,15 @@
   "content_scripts": [
     {
       "matches": ["*://*/*"],
-      "js": ["content/main.js"]
+      "js": ["content/main.js"],
+      "all_frames": true
     }
   ],
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage", "offscreen", "identity", "identity.email"],
+  "permissions": ["tabs", "storage", "offscreen", "identity", "identity.email"],
   "host_permissions": [
     "http://localhost:6767/*",
     "ws://localhost:6767/*",
