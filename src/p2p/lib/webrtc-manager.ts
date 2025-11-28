@@ -276,6 +276,7 @@ export class WebRTCManager {
   }
 
   private _registerDataChannel(targetPeerId: string, dc: RTCDataChannel) {
+    this._log(`Registered data channel from peer ${targetPeerId}`);
     this._connections[targetPeerId].dataChannel = dc;
 
     dc.addEventListener("open", () => {
