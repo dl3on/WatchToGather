@@ -9,8 +9,7 @@
   "content_scripts": [
     {
       "matches": ["*://*/*"],
-      "js": ["content/main.js"],
-      "all_frames": true
+      "js": ["content/main.js"]
     }
   ],
   "background": {
