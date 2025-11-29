@@ -3,22 +3,66 @@ import { RemoteVideoEventMsg } from "../common/sync-messages-types";
 import { sendVCReadyMsg } from "./lib/chrome";
 import { VideoController } from "./lib/video-controller";
 
-const observer = new MutationObserver(() => {
-  const video = document.querySelector("video");
-  if (video) {
-    console.log("Found VIDEO");
-    observer.disconnect();
-    const videoController = new VideoController(video);
+waitForVideo((video) => {
+  console.log("FOUND VIDEO");
 
-    // TODO: notify peers ready state
+  let vc = new VideoController(video);
 
-    sendVCReadyMsg({ type: "VC_READY" });
+  // TODO: notify peers ready state
 
-    chrome.runtime.onMessage.addListener((msg: RemoteVideoEventMsg) => {
-      if (msg.type === "VIDEO_ACTIONS") {
-        videoController.onRemoteEvent(msg.payload);
-      }
-    });
-  }
+  sendVCReadyMsg({ type: "VC_READY" });
+
+  observeVideo(video, (newVideo) => {
+    console.log("[VC] Rebasing VideoController to new element");
+    vc = new VideoController(newVideo);
+  });
+
+  chrome.runtime.onMessage.addListener((msg: RemoteVideoEventMsg) => {
+    if (msg.type === "VIDEO_ACTIONS") {
+      vc.onRemoteEvent(msg.payload);
+    }
+  });
 });
-observer.observe(document.body, { childList: true, subtree: true });
+
+function waitForVideo(onFound: (video: HTMLVideoElement) => void) {
+  const existing = document.querySelector("video") as HTMLVideoElement | null;
+  if (existing) {
+    onFound(existing);
+  }
+
+  const observer = new MutationObserver(() => {
+    const video = document.querySelector("video") as HTMLVideoElement | null;
+    if (video) {
+      observer.disconnect();
+      onFound(video);
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+}
+
+function observeVideo(
+  video: HTMLVideoElement,
+  onReplace: (newVideo: HTMLVideoElement) => void
+) {
+  let currentVideo = video;
+
+  const mo = new MutationObserver(() => {
+    const newVideo = document.querySelector("video") as HTMLVideoElement | null;
+    if (newVideo && newVideo !== currentVideo) {
+      console.log("[Video] Video element replaced");
+      currentVideo = newVideo;
+      onReplace(newVideo);
+    }
+  });
+
+  mo.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  return () => mo.disconnect();
+}
