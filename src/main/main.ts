@@ -1,33 +1,43 @@
 // import { sendReadyMsg } from "./lib/chrome";
-import { RemoteVideoEventMsg } from "../common/sync-messages-types";
-import { sendVCReadyMsg } from "./lib/chrome";
+import { sendVCStatusMsg } from "./lib/chrome";
 import { VideoController } from "./lib/video-controller";
 
-waitForVideo((video) => {
-  console.log("FOUND VIDEO");
+console.log("CONTENT SCRIPT LOADED");
 
-  let vc = new VideoController(video);
+let vc: VideoController | null = null;
+let currentVideo: HTMLVideoElement | null = null;
 
-  // TODO: notify peers ready state
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "PREPARE_VC") {
+    startVideoController();
+  }
 
-  sendVCReadyMsg({ type: "VC_READY" });
-
-  observeVideo(video, (newVideo) => {
-    console.log("[VC] Rebasing VideoController to new element");
-    vc = new VideoController(newVideo);
-  });
-
-  chrome.runtime.onMessage.addListener((msg: RemoteVideoEventMsg) => {
-    if (msg.type === "VIDEO_ACTIONS") {
-      vc.onRemoteEvent(msg.payload);
-    }
-  });
+  if (msg.type === "VIDEO_ACTIONS" && vc !== null) {
+    vc.onRemoteEvent(msg.payload);
+  }
 });
+
+function startVideoController() {
+  let timeout = setTimeout(() => {
+    // Notify popup of failure
+    sendVCStatusMsg(false);
+  }, 3000);
+
+  waitForVideo((video) => {
+    clearTimeout(timeout);
+    setupVideo(video);
+  });
+
+  observeVideoReplacements((newVideo) => {
+    setupVideo(newVideo);
+  });
+}
 
 function waitForVideo(onFound: (video: HTMLVideoElement) => void) {
   const existing = document.querySelector("video") as HTMLVideoElement | null;
   if (existing) {
     onFound(existing);
+    return;
   }
 
   const observer = new MutationObserver(() => {
@@ -44,25 +54,21 @@ function waitForVideo(onFound: (video: HTMLVideoElement) => void) {
   });
 }
 
-function observeVideo(
-  video: HTMLVideoElement,
-  onReplace: (newVideo: HTMLVideoElement) => void
-) {
-  let currentVideo = video;
+function setupVideo(video: HTMLVideoElement) {
+  currentVideo = video;
+  vc = new VideoController(video);
+  sendVCStatusMsg(true);
+  // TODO: notify peers ready state
+}
 
+function observeVideoReplacements(onReplace: (v: HTMLVideoElement) => void) {
   const mo = new MutationObserver(() => {
-    const newVideo = document.querySelector("video") as HTMLVideoElement | null;
-    if (newVideo && newVideo !== currentVideo) {
-      console.log("[Video] Video element replaced");
-      currentVideo = newVideo;
-      onReplace(newVideo);
+    const video = document.querySelector("video") as HTMLVideoElement | null;
+    if (video && video !== currentVideo) {
+      console.log("[VIDEO] Video element replaced");
+      onReplace(video);
     }
   });
 
-  mo.observe(document.body, {
-    childList: true,
-    subtree: true,
-  });
-
-  return () => mo.disconnect();
+  mo.observe(document.body, { childList: true, subtree: true });
 }
