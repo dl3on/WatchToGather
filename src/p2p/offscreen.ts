@@ -69,5 +69,10 @@ function isChromeMsg(msg: any): msg is ChromeMsg {
 }
 
 function isLocalVideoEvent(msg: any): msg is LocalVideoEvent {
-  return !isChromeMsg(msg);
+  return (
+    msg.type === PeerMessageType.Pause ||
+    msg.type === PeerMessageType.Play ||
+    msg.type === PeerMessageType.Seek ||
+    msg.type === PeerMessageType.NextVideo
+  );
 }
