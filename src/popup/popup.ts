@@ -1,5 +1,7 @@
 import {
+  loadRegisteredTabId,
   loadRoomDetails,
+  registerTabListener,
   saveRoomDetails,
   sendHostMsg,
   sendJoinMsg,
@@ -33,12 +35,16 @@ const webpageLinkInput = document.getElementById(
 const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
 const roomData = await loadRoomDetails();
+const registeredTabId = await loadRegisteredTabId();
 if (roomData) {
   const { roomId, roomName, participantsCount, host } = roomData;
-  updateUIForRoom(roomId, roomName, participantsCount, host);
+  const hasRegisteredTab = registeredTabId !== null ? true : false;
+  updateUIForRoom(roomId, roomName, participantsCount, host, hasRegisteredTab);
 } else {
   renderInitialView();
 }
+
+registerTabListener();
 
 // Create Room
 confirmCreateBtn.addEventListener("click", async () => {
@@ -58,7 +64,7 @@ confirmCreateBtn.addEventListener("click", async () => {
         participantsCount: 1,
         host: true,
       });
-      updateUIForRoom(roomId, roomName, 1, true);
+      updateUIForRoom(roomId, roomName, 1, true, false);
       createRoomModal.classList.add("hidden");
     } catch (e) {
       console.error("[ERROR] Unable to host:", e);
@@ -91,7 +97,7 @@ confirmJoinBtn.addEventListener("click", async () => {
         participantsCount: participantsCount + 1,
         host: false,
       });
-      updateUIForRoom(roomId, roomName, participantsCount + 1, false);
+      updateUIForRoom(roomId, roomName, participantsCount + 1, false, false);
     } catch (e) {
       console.error(`[ERROR] Unable to join Room ${roomId}:`, e);
     }

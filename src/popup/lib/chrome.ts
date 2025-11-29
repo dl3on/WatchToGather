@@ -55,10 +55,31 @@ export function loadRoomDetails(): Promise<RoomDetails | null> {
   });
 }
 
+export function loadRegisteredTabId(): Promise<number | null> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("controlledTabId", (res) => {
+      resolve(res.controlledTabId ?? null);
+    });
+  });
+}
+
 export function saveRoomDetails(roomDetails: RoomDetails) {
   chrome.storage.local.set({ roomDetails });
 }
 
 export function clearRoomDetails() {
   chrome.storage.local.remove("roomDetails");
+}
+
+export function registerCurrentTab() {
+  sendChromeMsg({ type: "REGISTER_TAB" });
+}
+
+export function registerTabListener() {
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === "VC_STATUS") {
+      if (msg.success === false) alert("Failed to register this tab.");
+      else alert("Register success!");
+    }
+  });
 }
