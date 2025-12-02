@@ -1,3 +1,10 @@
+import {
+  forwardVideoActionsMsg,
+  loadVCStates,
+  saveVCStates,
+  sendPrepareVcMsg,
+} from "./lib/chrome";
+
 async function ensureOffscreen() {
   if (await chrome.offscreen.hasDocument()) return;
 
@@ -14,15 +21,9 @@ let controlledTabId: number | null = null;
 let pendingTabId: number | null = null;
 let isInRoom = false;
 
-chrome.storage.local.get(["controlledTabId", "isInRoom"], (data) => {
-  controlledTabId = data.controlledTabId ?? null;
-  isInRoom = !!data.isInRoom;
-
-  console.log("Restored state:", {
-    controlledTabId,
-    isInRoom,
-  });
-});
+const data = await loadVCStates();
+controlledTabId = data.controlledTabId;
+isInRoom = data.isInRoom;
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "IN_ROOM") {
@@ -56,10 +57,9 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 
   if (msg.type === "VIDEO_ACTIONS") {
-    console.log("VIDEOACTIONS");
     // Relay messages from offscreen to content script
     if (controlledTabId !== null) {
-      chrome.tabs.sendMessage(controlledTabId, msg);
+      forwardVideoActionsMsg(controlledTabId, msg);
     } else {
       console.log("[ERROR] No tab registered");
     }
@@ -75,10 +75,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 });
 
 function saveState() {
-  chrome.storage.local.set({
-    controlledTabId,
-    isInRoom,
-  });
+  saveVCStates(controlledTabId, isInRoom);
 }
 
 /** Automatically registers current active tab
@@ -95,7 +92,7 @@ function registerActiveTab() {
     }
 
     console.log("Validating current tab:", tabId);
-    chrome.tabs.sendMessage(tabId, { type: "PREPARE_VC" });
+    sendPrepareVcMsg(tabId);
     pendingTabId = tabId;
   });
 }
