@@ -290,7 +290,7 @@ export class WebRTCManager {
     });
     dc.addEventListener("message", (e) => {
       console.log(`[DC] Message from ${targetPeerId}:`, e.data);
-      this._messageManager.handleMessage(e.data);
+      this._messageManager.handleMessage(JSON.parse(e.data));
     });
     dc.addEventListener("close", () => {
       console.log(`[DC] Channel closed for ${targetPeerId}`);
