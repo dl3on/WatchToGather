@@ -1,4 +1,3 @@
-import { Sign } from "crypto";
 import {
   LocalVideoEvent,
   PeerMessageType,
@@ -7,7 +6,6 @@ import { ChromeMsg } from "../common/types";
 import { MessageManager } from "./lib/message-manager";
 import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";
-import { getInstallations } from "firebase/installations";
 
 chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
   if (isChromeMsg(msg)) {
@@ -26,6 +24,10 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
       peerId: email,
       verbose: true,
     });
+
+    const messageManager = MessageManager.getInstance(webrtc._peerId);
+    webrtc.setMessageManager(messageManager);
+    messageManager.setWebRTCManager(webrtc);
 
     if (type === "JOIN") {
       const roomId = msg.roomId;
@@ -52,7 +54,8 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
       return;
     }
 
-    const messageManager = MessageManager.getInstance(webrtc._peerId, webrtc);
+    const messageManager = MessageManager.getInstance(webrtc._peerId);
+
     if (msg.type == PeerMessageType.NextVideo) {
       messageManager.sendToAll(msg.type, undefined, msg.url);
     } else {
@@ -66,5 +69,10 @@ function isChromeMsg(msg: any): msg is ChromeMsg {
 }
 
 function isLocalVideoEvent(msg: any): msg is LocalVideoEvent {
-  return !isChromeMsg(msg);
+  return (
+    msg.type === PeerMessageType.Pause ||
+    msg.type === PeerMessageType.Play ||
+    msg.type === PeerMessageType.Seek ||
+    msg.type === PeerMessageType.NextVideo
+  );
 }

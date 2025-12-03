@@ -1,26 +1,29 @@
 import { PeerMessage, PeerMessageType } from "../../common/sync-messages-types";
-import { WebRTCManager } from "./webrtc-manager";
+import { forwardRemotePeerMsg } from "./chrome";
+import type { WebRTCManager } from "./webrtc-manager";
 
 export class MessageManager {
   private static _instance: MessageManager | null;
   _peerId: string;
-  _webrtcManager: WebRTCManager;
-  constructor(peerId: string, webrtc: WebRTCManager) {
+  _webrtcManager!: WebRTCManager;
+  _seenMessages: Set<string>;
+  constructor(peerId: string) {
     this._peerId = peerId;
-    this._webrtcManager = webrtc;
+    this._seenMessages = new Set();
   }
 
-  public static getInstance(
-    peerId: string,
-    webrtc: WebRTCManager
-  ): MessageManager {
+  public static getInstance(peerId: string): MessageManager {
     if (!MessageManager._instance) {
-      const newInstance = new MessageManager(peerId, webrtc);
+      const newInstance = new MessageManager(peerId);
       MessageManager._instance = newInstance;
       return newInstance;
     } else {
       return MessageManager._instance;
     }
+  }
+
+  setWebRTCManager(wrtcm: WebRTCManager) {
+    this._webrtcManager = wrtcm;
   }
 
   sendToAll(eventType: PeerMessageType, time?: number, url?: string) {
@@ -49,6 +52,8 @@ export class MessageManager {
   }
 
   handleMessage(msg: PeerMessage) {
-    // send pause/play/seek/nextVideo message to video controller
+    if (msg.mid in this._seenMessages) return;
+
+    forwardRemotePeerMsg(msg);
   }
 }

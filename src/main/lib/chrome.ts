@@ -8,4 +8,7 @@ export function sendVCMsg(msg: LocalVideoEvent) {
   sendChromeMsg(msg);
 }
 
-// export function sendReadyMsg(msg) {}
+/** VideoController instantiation status */
+export function sendVCStatusMsg(success: boolean) {
+  sendChromeMsg({ type: "VC_STATUS", success: success });
+}

@@ -45,3 +45,8 @@ export type LocalVideoEvent =
       type: PeerMessageType.NextVideo;
       url: string;
     };
+
+export type VCActions = {
+  type: "VIDEO_ACTIONS";
+  payload: PeerMessage;
+};

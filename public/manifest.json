@@ -16,7 +16,7 @@
     "service_worker": "background.js",
     "type": "module"
   },
-  "permissions": ["storage", "offscreen", "identity", "identity.email"],
+  "permissions": ["tabs", "storage", "offscreen", "identity", "identity.email"],
   "host_permissions": [
     "http://localhost:6767/*",
     "ws://localhost:6767/*",

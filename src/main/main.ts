@@ -1,21 +1,15 @@
 // import { sendReadyMsg } from "./lib/chrome";
-import { VideoController } from "./lib/video-controller";
+import { getVC, startVideoController } from "./lib/vc-handler";
 
-const observer = new MutationObserver(() => {
-  const video = document.querySelector("video");
-  if (video) {
-    console.log("Found VIDEO");
-    observer.disconnect();
-    const videoController = new VideoController(video);
+console.log("CONTENT SCRIPT LOADED");
 
-    // TODO: notify peers ready state
-    // sendReadyMsg({ type: "content-ready" });
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "PREPARE_VC") {
+    startVideoController();
+  }
 
-    chrome.runtime.onMessage.addListener((msg) => {
-      if (msg.type === "VIDEO_ACTIONS") {
-        videoController.onRemoteEvent(msg.payload);
-      }
-    });
+  if (msg.type === "VIDEO_ACTIONS") {
+    const vc = getVC();
+    if (vc) vc.onRemoteEvent(msg.payload);
   }
 });
-observer.observe(document.body, { childList: true, subtree: true });

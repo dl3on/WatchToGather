@@ -1,4 +1,4 @@
-import { clearRoomDetails } from "./chrome";
+import { clearRoomDetails, registerCurrentTab } from "./chrome";
 
 const roomIdContainer = document.getElementById(
   "roomIdContainer"
@@ -45,7 +45,8 @@ export function updateUIForRoom(
   roomId: string,
   roomName: string,
   participantsCount: number,
-  isHost: boolean
+  isHost: boolean,
+  hasRegisteredTab: boolean
 ) {
   roomIdTextElement.textContent = `Room ID: ${roomId}`;
   roomIdContainer.classList.remove("hidden");
@@ -66,6 +67,10 @@ export function updateUIForRoom(
       `
       }
     </div>
+    <div id="register-tab">
+      <button id="registerTabBtn">Register Current Tab</button>
+      ${hasRegisteredTab ? `` : `<p>No registered tab for syncing</p>`}
+    </div>
   `;
 
   const copyRoomIdBtn = document.getElementById(
@@ -79,6 +84,9 @@ export function updateUIForRoom(
   ) as HTMLButtonElement;
   const leaveRoomBtn = document.getElementById(
     "leaveRoomBtn"
+  ) as HTMLButtonElement;
+  const registerTabBtn = document.getElementById(
+    "registerTabBtn"
   ) as HTMLButtonElement;
 
   if (copyRoomIdBtn) {
@@ -115,6 +123,12 @@ export function updateUIForRoom(
       renderInitialView();
     });
   }
+
+  if (registerTabBtn) {
+    registerTabBtn.addEventListener("click", () => {
+      registerCurrentTab();
+    });
+  }
 }
 
-// TODO: function to dynamically update participants count
+// TODO: function to dynamically update participants count and registered tab text

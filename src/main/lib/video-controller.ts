@@ -34,13 +34,15 @@ export class VideoController {
   }
 
   onRemoteEvent(msg: PeerMessage) {
-    console.log(msg);
+    console.log(`[VC] ${msg}`);
     // TODO: pause/play/seek video; ignore if video is already in the same state as described in msg
     switch (msg.type) {
       case PeerMessageType.Pause:
+        this._video.pause();
         break;
 
       case PeerMessageType.Play:
+        this._video.play();
         break;
 
       case PeerMessageType.Seek:
