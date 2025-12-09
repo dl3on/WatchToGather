@@ -51,7 +51,7 @@ h2 {
 }
 
 body {
-  width: 200px;
+  width: 220px;
   padding: 10px;
   font-family: sans-serif;
   background: #f60000;
@@ -122,11 +122,26 @@ body {
 
 #roomActions {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
   margin-bottom: 8px;
 }
 
 #roomActions button {
-  flex: 1;
+  flex: 1 1 0;
+  max-width: 140px;
+  white-space: nowrap;
+}
+
+#registerTab {
+  text-align: center;
+}
+
+#registerTab button {
+  width: 140px;
+  margin-bottom: 8px;
+}
+
+#registerTab p {
+  margin: 0;
 }

@@ -55,21 +55,23 @@ export function updateUIForRoom(
       <p><strong>${roomName}</strong></p>
       <span class="room-participants">${participantsCount} (i)</span>
     </div>
-    <div id="room-actions">
-      ${
-        isHost
-          ? `
-        <button id="disbandRoomBtn">Disband Room</button>
-        <button id="leaveRoomBtn">Leave Room</button>
+    <div>
+      <div id="roomActions">
+        ${
+          isHost
+            ? `
+          <button id="disbandRoomBtn">Disband Room</button>
+          <button id="leaveRoomBtn">Leave Room</button>
+          `
+            : `
+          <button id="leaveRoomBtn">Leave Room</button>
         `
-          : `
-        <button id="leaveRoomBtn">Leave Room</button>
-      `
-      }
-    </div>
-    <div id="register-tab">
-      <button id="registerTabBtn">Register Current Tab</button>
-      ${hasRegisteredTab ? `` : `<p>No registered tab for syncing</p>`}
+        }
+      </div>
+      <div id="registerTab">
+        <button id="registerTabBtn">Register Current Tab</button>
+        ${hasRegisteredTab ? `` : `<p>No registered tab for syncing</p>`}
+      </div>
     </div>
   `;
 
