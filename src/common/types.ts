@@ -1,5 +1,6 @@
 export type RoomInfo = {
   roomName: string;
+  currentUrl: string;
   peers: PeerData[];
 };
 
@@ -42,7 +43,7 @@ type MessagePayloads = {
     toPeerId: string;
     candidate: RTCIceCandidate;
   };
-  [MessageType.Host]: { roomName: string };
+  [MessageType.Host]: { roomName: string; currentUrl: string };
   [MessageType.Error]: { msg: string };
   [MessageType.Leave]: { roomId: string };
   [MessageType.Disband]: { roomId: string };
@@ -54,7 +55,7 @@ export type Response<T extends ResponseType> =
   | {
       success: true;
       roomId: string;
-      body: T extends ResponseType.Join ? RoomInfo : string;
+      body: RoomInfo;
       type: T;
     }
   | { success: false; roomId: string; errMsg: string };
@@ -109,11 +110,14 @@ export type ChromeMsg =
   | ({
       type: "HOST";
       roomName: string;
+      currentUrl: string;
     } & ChromeMsgBase);
 
+/** Stored locally */
 export interface RoomDetails {
   roomId: string;
   roomName: string;
   participantsCount: number;
+  url: string;
   host: boolean;
 }
