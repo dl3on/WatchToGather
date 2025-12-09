@@ -14,6 +14,7 @@ export function sendJoinMsg(roomId: string) {
 export function waitForJoinSuccess(): Promise<{
   roomName: string;
   participantsCount: number;
+  currentUrl: string;
 }> {
   return new Promise((resolve) => {
     function handler(msg: any) {
@@ -23,6 +24,7 @@ export function waitForJoinSuccess(): Promise<{
         resolve({
           roomName: msg.roomName,
           participantsCount: msg.participantsCount,
+          currentUrl: msg.currentUrl,
         });
       }
     }
@@ -30,8 +32,8 @@ export function waitForJoinSuccess(): Promise<{
   });
 }
 
-export function sendHostMsg(roomName: string) {
-  sendChromeMsg({ type: "HOST", roomName });
+export function sendHostMsg(roomName: string, currentUrl: string) {
+  sendChromeMsg({ type: "HOST", roomName, currentUrl });
 }
 
 export function waitForHostSuccess(): Promise<{ roomId: string }> {
@@ -78,7 +80,8 @@ export function registerCurrentTab() {
 export function registerTabListener() {
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "VC_STATUS") {
-      if (msg.success === false) alert("Failed to register this tab.");
+      if (msg.success === false)
+        alert("Failed to register this tab: No video element found.");
       else alert("Register success!");
     }
   });
