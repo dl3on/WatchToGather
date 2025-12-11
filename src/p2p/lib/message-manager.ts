@@ -38,6 +38,7 @@ export class MessageManager {
         type: eventType,
         url,
       };
+      this._seenMessages.add(msg.mid);
     } else {
       if (time == null) throw new Error(`${eventType} requires a time`);
 
@@ -48,12 +49,23 @@ export class MessageManager {
         time,
       };
     }
+    this._seenMessages.add(msg.mid);
     this._webrtcManager.broadcastPeerMessage(msg);
   }
 
   handleMessage(msg: PeerMessage) {
-    if (msg.mid in this._seenMessages) return;
+    if (this._seenMessages.has(msg.mid)) {
+      console.log("[MM] Dropped seen message");
+      return;
+    }
 
+    this._seenMessages.add(msg.mid);
     forwardRemotePeerMsg(msg);
+
+    // Broadcast received msg to ensure every peer receives it
+    this._webrtcManager.broadcastPeerMessage(msg);
   }
+
+  // TODO:
+  clearSeenMessages() {}
 }
