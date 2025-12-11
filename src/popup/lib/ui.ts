@@ -45,31 +45,36 @@ export function updateUIForRoom(
   roomId: string,
   roomName: string,
   participantsCount: number,
+  url: string,
   isHost: boolean,
   hasRegisteredTab: boolean
 ) {
   roomIdTextElement.textContent = `Room ID: ${roomId}`;
   roomIdContainer.classList.remove("hidden");
   mainView.innerHTML = `
-    <div class="room-header">
-      <p><strong>${roomName}</strong></p>
-      <span class="room-participants">${participantsCount} (i)</span>
+    <div id="roomHeader">
+      <p id="roomNameText"><strong>${roomName}</strong></p>
+      <span id="roomParticipants">${participantsCount} (i)</span>
+      <a id="urlText" class="sub-text" href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>
     </div>
-    <div id="room-actions">
-      ${
-        isHost
-          ? `
-        <button id="disbandRoomBtn">Disband Room</button>
-        <button id="leaveRoomBtn">Leave Room</button>
+
+    <div>
+      <div id="roomActions">
+        ${
+          isHost
+            ? `
+          <button id="disbandRoomBtn">Disband Room</button>
+          <button id="leaveRoomBtn">Leave Room</button>
+          `
+            : `
+          <button id="leaveRoomBtn">Leave Room</button>
         `
-          : `
-        <button id="leaveRoomBtn">Leave Room</button>
-      `
-      }
-    </div>
-    <div id="register-tab">
-      <button id="registerTabBtn">Register Current Tab</button>
-      ${hasRegisteredTab ? `` : `<p>No registered tab for syncing</p>`}
+        }
+      </div>
+      <div id="registerTab">
+        <button id="registerTabBtn">Register Current Tab</button>
+        ${hasRegisteredTab ? `` : `<p>No registered tab for syncing</p>`}
+      </div>
     </div>
   `;
 

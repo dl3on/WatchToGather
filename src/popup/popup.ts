@@ -1,3 +1,4 @@
+import { isValidUrl } from "../common/utils";
 import {
   loadRegisteredTabId,
   loadRoomDetails,
@@ -37,9 +38,16 @@ const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 const roomData = await loadRoomDetails();
 const registeredTabId = await loadRegisteredTabId();
 if (roomData) {
-  const { roomId, roomName, participantsCount, host } = roomData;
+  const { roomId, roomName, participantsCount, url, host } = roomData;
   const hasRegisteredTab = registeredTabId !== null ? true : false;
-  updateUIForRoom(roomId, roomName, participantsCount, host, hasRegisteredTab);
+  updateUIForRoom(
+    roomId,
+    roomName,
+    participantsCount,
+    url,
+    host,
+    hasRegisteredTab
+  );
 } else {
   renderInitialView();
 }
@@ -52,8 +60,13 @@ confirmCreateBtn.addEventListener("click", async () => {
   const webpageLink = webpageLinkInput.value.trim();
 
   if (roomName !== "" && webpageLink !== "") {
+    if (!isValidUrl(webpageLink)) {
+      alert("Invalid link");
+      return;
+    }
+
     console.log("Creating room:", roomName);
-    sendHostMsg(roomName);
+    sendHostMsg(roomName, webpageLink);
 
     try {
       const { roomId } = await waitForHostSuccess();
@@ -62,9 +75,10 @@ confirmCreateBtn.addEventListener("click", async () => {
         roomId,
         roomName,
         participantsCount: 1,
+        url: webpageLink,
         host: true,
       });
-      updateUIForRoom(roomId, roomName, 1, true, false);
+      updateUIForRoom(roomId, roomName, 1, webpageLink, true, false);
       createRoomModal.classList.add("hidden");
     } catch (e) {
       console.error("[ERROR] Unable to host:", e);
@@ -89,15 +103,24 @@ confirmJoinBtn.addEventListener("click", async () => {
     joinRoomModal.classList.add("hidden");
 
     try {
-      const { roomName, participantsCount } = await waitForJoinSuccess();
+      const { roomName, participantsCount, currentUrl } =
+        await waitForJoinSuccess();
 
       saveRoomDetails({
         roomId,
         roomName,
         participantsCount: participantsCount + 1,
+        url: currentUrl,
         host: false,
       });
-      updateUIForRoom(roomId, roomName, participantsCount + 1, false, false);
+      updateUIForRoom(
+        roomId,
+        roomName,
+        participantsCount + 1,
+        currentUrl,
+        false,
+        false
+      );
     } catch (e) {
       console.error(`[ERROR] Unable to join Room ${roomId}:`, e);
     }

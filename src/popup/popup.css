@@ -4,19 +4,37 @@
   margin-bottom: 10px;
 }
 
-#roomIdContainer {
-  position: relative;
-  display: flex;
-  gap: 10px;
+h2 {
+  margin: 0;
+  line-height: 1.2;
 }
 
-#roomIdText {
+body {
+  width: 220px;
+  padding: 10px;
+  font-family: sans-serif;
+  background: #88caff;
+  display: flex;
+  flex-direction: column;
+}
+
+.hidden {
+  display: none !important;
+}
+
+.sub-text {
   margin-top: 5px;
   margin-bottom: 0;
   font-size: 10px;
   color: rgb(51, 50, 50);
   word-break: break-word;
-  overflow-wrap: break-word;
+}
+
+/* Room ID */
+#roomIdContainer {
+  position: relative;
+  display: flex;
+  gap: 10px;
 }
 
 #copyRoomIdArea {
@@ -26,14 +44,14 @@
   position: relative;
 }
 
-.copy-btn {
+#copyRoomIdBtn {
   border: none;
   background: transparent;
   cursor: pointer;
   padding: 4px;
 }
 
-.copy-feedback {
+#copyFeedback {
   position: absolute;
   margin-left: 6px;
   font-size: 10px;
@@ -45,20 +63,7 @@
   transition: opacity 0.3s ease;
 }
 
-h3 {
-  margin: 0;
-  line-height: 1.2;
-}
-
-body {
-  width: 200px;
-  padding: 10px;
-  font-family: sans-serif;
-  background: #f60000;
-  display: flex;
-  flex-direction: column;
-}
-
+/* Main View */
 #mainView {
   display: flex;
   flex-direction: column;
@@ -70,10 +75,7 @@ body {
   align-self: flex-start;
 }
 
-.hidden {
-  display: none !important;
-}
-
+/* Modal */
 .modal {
   position: fixed;
   top: 0;
@@ -87,46 +89,68 @@ body {
 }
 
 .modal-content {
-  background: #f60000;
+  background: #88caff;
   padding: 10px;
   border-radius: 10px;
   width: 80%;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
 }
 
-.room-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 8px;
+/* Room Header */
+#roomHeader {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto;
   margin-bottom: 8px;
   max-width: 100%;
 }
 
-.room-header p {
-  flex: 1;
-  text-align: left;
+#roomNameText {
+  grid-column: 1;
+  grid-row: 1;
   margin: 0;
   word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: normal;
   font-weight: bold;
 }
 
-.room-participants {
-  flex-shrink: 0;
-  text-align: right;
+#roomParticipants {
+  grid-column: 2;
+  grid-row: 1;
   white-space: nowrap;
-  min-width: 20px;
 }
 
+#urlText {
+  grid-column: 1 / 3;
+  grid-row: 2;
+}
+
+#urlText:hover {
+  color: #0066cc;
+}
+
+/* Room Buttons */
 #roomActions {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
   margin-bottom: 8px;
 }
 
 #roomActions button {
-  flex: 1;
+  flex: 1 1 0;
+  max-width: 140px;
+  white-space: nowrap;
+}
+
+#registerTab {
+  text-align: center;
+}
+
+#registerTab button {
+  width: 140px;
+  margin-bottom: 8px;
+}
+
+#registerTab p {
+  margin: 0;
 }

@@ -80,16 +80,21 @@ io.on("connection", (socket) => {
 
   socket.on(EClientToServerEvents.Host, (msg) => {
     const roomId = randomUUID();
-    const { roomName } = msg;
+    const { roomName, currentUrl } = msg;
     console.log(`Peer with id ${peerId} hosting new room: ${roomId}`);
-    connections[roomId] = { roomName, peers: [{ peerId, host: true }] };
+    connections[roomId] = {
+      roomName,
+      currentUrl,
+      peers: [{ peerId, host: true }],
+    };
+    const roomInfo = connections[roomId];
     peerMap[peerId] = { socketId, roomId };
 
     socket.emit(EServerToClientEvents.HostResponse, {
       type: ResponseType.Host,
       success: true,
       roomId,
-      body: roomId,
+      body: roomInfo,
     });
   });
 
@@ -163,5 +168,7 @@ io.on("connection", (socket) => {
 
   socket.on(EClientToServerEvents.Disband, (msg) => {});
 });
+
+// TODO: url change event listener to update currentUrl in "connections"
 
 export { httpServer, app, connections };

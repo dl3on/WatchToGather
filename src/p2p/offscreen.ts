@@ -35,7 +35,8 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
       webrtc.join(roomId);
     } else if (type === "HOST") {
       const roomName = msg.roomName;
-      webrtc.host(roomName);
+      const currentUrl = msg.currentUrl;
+      webrtc.host(roomName, currentUrl);
     }
   } else if (isLocalVideoEvent(msg)) {
     const signalManager = SignalManager.getInstance();

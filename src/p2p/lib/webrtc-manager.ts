@@ -337,7 +337,7 @@ export class WebRTCManager {
     this._signalManager.emit(EClientToServerEvents.Join, { roomId });
   }
 
-  public host(roomName: string) {
+  public host(roomName: string, currentUrl: string) {
     this._signalManager.setListener(
       EServerToClientEvents.HostResponse,
       (msg) => {
@@ -349,7 +349,10 @@ export class WebRTCManager {
     );
 
     this._host = true;
-    this._signalManager.emit(EClientToServerEvents.Host, { roomName });
+    this._signalManager.emit(EClientToServerEvents.Host, {
+      roomName,
+      currentUrl,
+    });
   }
 
   public broadcastPeerMessage(msg: PeerMessage) {
