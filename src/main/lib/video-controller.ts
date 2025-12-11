@@ -35,10 +35,9 @@ export class VideoController {
     });
   }
 
+  // TODOs: onBuffering & onAds
+
   onRemoteEvent(msg: PeerMessage) {
-    // TODO: pause/play/seek video; ignore if video is already in the same state as described in msg
-    // Current observations: pause&play action is being echoed by other peer so sender also receives the same msg w/ diff mid.
-    // its fine for now because video.pause and video.play has no effect hence no further messages are echoed.
     switch (msg.type) {
       case PeerMessageType.Pause:
         console.log("[VC] PAUSE");

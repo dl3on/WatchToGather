@@ -1,4 +1,3 @@
-// import { sendReadyMsg } from "./lib/chrome";
 import { getVC, startVideoController } from "./lib/vc-handler";
 
 console.log("CONTENT SCRIPT LOADED");
