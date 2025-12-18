@@ -19,6 +19,7 @@ type WebRTCManagerOptions = {
 type PeerConnectionData = {
   [peerId: string]: {
     peerConnection: RTCPeerConnection;
+    isHost: boolean;
     dataChannel?: RTCDataChannel;
   };
 };
@@ -126,8 +127,16 @@ export class WebRTCManager {
     msg: Response<ResponseType.Join>
   ) {
     if (msg.success) {
+      const hostId = msg.body.peers.find((pd) => pd.host)?.peerId;
+      if (!hostId) {
+        throw new Error(
+          `[WebRTC Manager] No host found in room ${msg.roomId}.`
+        );
+      }
+
       const offers = await this._createOffers(
-        msg.body.peers.map((pd) => pd.peerId)
+        msg.body.peers.map((pd) => pd.peerId),
+        hostId
       );
 
       this._log(`Created offers: ${JSON.stringify(offers, null, 2)}`);
@@ -213,7 +222,10 @@ export class WebRTCManager {
       )}`
     );
 
-    this._connections[msg.fromPeerId] = { peerConnection: pc };
+    this._connections[msg.fromPeerId] = {
+      peerConnection: pc,
+      isHost: false,
+    };
     pc.addEventListener("datachannel", (e) => {
       this._registerDataChannel(msg.fromPeerId, e.channel);
     });
@@ -297,7 +309,10 @@ export class WebRTCManager {
     });
   }
 
-  private async _createOffers(peers: string[]): Promise<{
+  private async _createOffers(
+    peers: string[],
+    hostId: string
+  ): Promise<{
     [targetPeerId: string]: RTCSessionDescription;
   }> {
     const peerMap: Record<string, RTCSessionDescription> = {};
@@ -319,7 +334,10 @@ export class WebRTCManager {
         }
 
         peerMap[peer] = pc.localDescription;
-        this._connections[peer] = { peerConnection: pc };
+        this._connections[peer] = {
+          peerConnection: pc,
+          isHost: peer === hostId,
+        };
         this._registerDataChannel(peer, dc);
       })
     );
