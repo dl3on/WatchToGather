@@ -1,6 +1,6 @@
 export enum PeerMessageType {
-  Play = "play",
   Pause = "pause",
+  Play = "play",
   Seek = "seek",
   NextVideo = "next_video",
 }
@@ -10,7 +10,7 @@ type PeerMessageBase = {
   fromPeerId: string;
 };
 
-export type PeerMessage =
+export type PeerTimeMessage =
   | (PeerMessageBase & {
       type: PeerMessageType.Pause;
       time: number;
@@ -22,11 +22,14 @@ export type PeerMessage =
   | (PeerMessageBase & {
       type: PeerMessageType.Seek;
       time: number;
-    })
-  | (PeerMessageBase & {
-      type: PeerMessageType.NextVideo;
-      url: string;
     });
+
+export type PeerNextVideoMessage = PeerMessageBase & {
+  type: PeerMessageType.NextVideo;
+  url: string;
+};
+
+export type PeerMessage = PeerTimeMessage | PeerNextVideoMessage;
 
 export type LocalVideoEvent =
   | {
