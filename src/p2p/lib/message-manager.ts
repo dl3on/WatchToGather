@@ -1,4 +1,9 @@
-import { PeerMessage, PeerMessageType } from "../../common/sync-messages-types";
+import {
+  PeerMessage,
+  PeerMessageType,
+  PeerNextVideoMessage,
+  PeerTimeMessage,
+} from "../../common/sync-messages-types";
 import { forwardRemotePeerMsg } from "./chrome";
 import type { WebRTCManager } from "./webrtc-manager";
 
@@ -26,44 +31,44 @@ export class MessageManager {
     this._webrtcManager = wrtcm;
   }
 
-  sendToAll(eventType: PeerMessageType, time?: number, url?: string) {
-    let msg: PeerMessage;
-
-    if (eventType === PeerMessageType.NextVideo) {
-      if (!url) throw new Error("NextVideo requires a url");
-
-      msg = {
-        mid: crypto.randomUUID(),
-        fromPeerId: this._peerId,
-        type: eventType,
-        url,
-      };
-      this._seenMessages.add(msg.mid);
-    } else {
-      if (time == null) throw new Error(`${eventType} requires a time`);
-
-      msg = {
-        mid: crypto.randomUUID(),
-        fromPeerId: this._peerId,
-        type: eventType,
-        time,
-      };
-    }
+  sendToAll(
+    eventType:
+      | PeerMessageType.Pause
+      | PeerMessageType.Play
+      | PeerMessageType.Seek,
+    time: number
+  ) {
+    let msg: PeerTimeMessage;
+    msg = {
+      mid: crypto.randomUUID(),
+      fromPeerId: this._peerId,
+      type: eventType,
+      time,
+    };
     this._seenMessages.add(msg.mid);
-    this._webrtcManager.broadcastPeerMessage(msg);
+    this._webrtcManager.broadcastPeerMessage(msg, false);
+  }
+
+  sendNextVideo(eventType: PeerMessageType.NextVideo, url: string) {
+    let msg: PeerNextVideoMessage;
+    msg = {
+      mid: crypto.randomUUID(),
+      fromPeerId: this._peerId,
+      type: eventType,
+      url,
+    };
+    this._seenMessages.add(msg.mid);
+    this._webrtcManager.sendNextVideoMessage(msg);
   }
 
   handleMessage(msg: PeerMessage) {
-    if (this._seenMessages.has(msg.mid)) {
-      console.log("[MM] Dropped seen message");
-      return;
-    }
+    if (this._seenMessages.has(msg.mid)) return;
 
     this._seenMessages.add(msg.mid);
     forwardRemotePeerMsg(msg);
 
-    // Broadcast received msg to ensure every peer receives it
-    this._webrtcManager.broadcastPeerMessage(msg);
+    // Relay received msg to ensure every peer receives it
+    this._webrtcManager.broadcastPeerMessage(msg, true);
   }
 
   // TODO:

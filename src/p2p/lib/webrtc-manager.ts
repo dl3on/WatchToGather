@@ -1,4 +1,8 @@
-import { PeerMessage } from "../../common/sync-messages-types.js";
+import {
+  PeerMessage,
+  PeerMessageType,
+  PeerNextVideoMessage,
+} from "../../common/sync-messages-types.js";
 import {
   EClientToServerEvents,
   EServerToClientEvents,
@@ -373,12 +377,33 @@ export class WebRTCManager {
     });
   }
 
-  public broadcastPeerMessage(msg: PeerMessage) {
+  public broadcastPeerMessage(msg: PeerMessage, relayed: boolean) {
+    if (msg.type === PeerMessageType.NextVideo && this._host && relayed) return;
+
     const msgJson = JSON.stringify(msg);
     for (const { dataChannel } of Object.values(this._connections)) {
       if (!dataChannel) continue;
 
       dataChannel.send(msgJson);
+    }
+  }
+
+  public sendNextVideoMessage(msg: PeerNextVideoMessage) {
+    if (this._host) {
+      this.broadcastPeerMessage(msg, false);
+    } else {
+      const msgJson = JSON.stringify(msg);
+      const hostConn = Object.entries(this._connections).find(
+        ([_, conn]) => conn.isHost
+      );
+
+      if (!hostConn || !hostConn[1].dataChannel) {
+        throw new Error(
+          `[WebRTC Manager] No datachannel found with host ${hostConn?.[0]}.`
+        );
+      }
+
+      hostConn[1].dataChannel.send(msgJson);
     }
   }
 }

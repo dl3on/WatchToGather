@@ -58,9 +58,9 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
     const messageManager = MessageManager.getInstance(webrtc._peerId);
 
     if (msg.type == PeerMessageType.NextVideo) {
-      messageManager.sendToAll(msg.type, undefined, msg.url);
+      messageManager.sendNextVideo(msg.type, msg.url);
     } else {
-      messageManager.sendToAll(msg.type, msg.time, undefined);
+      messageManager.sendToAll(msg.type, msg.time);
     }
   }
 });
