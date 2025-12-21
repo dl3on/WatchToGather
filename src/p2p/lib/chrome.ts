@@ -46,6 +46,10 @@ export function forwardVideoActionsMsg(tabId: number, msg: VCActions) {
   sendTabMsg(tabId, msg);
 }
 
+export function sendUrlChangeMsg(tabId: number, url: string) {
+  sendTabMsg(tabId, { type: "URL_CHANGED", url });
+}
+
 export function loadVCStates(): Promise<{
   controlledTabId: number | null;
   isInRoom: boolean;

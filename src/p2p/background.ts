@@ -3,6 +3,7 @@ import {
   loadVCStates,
   saveVCStates,
   sendPrepareVcMsg,
+  sendUrlChangeMsg,
 } from "./lib/chrome";
 
 async function ensureOffscreen() {
@@ -72,6 +73,12 @@ async function init() {
     if (tabId === controlledTabId) {
       controlledTabId = null;
       saveState();
+    }
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+    if (tabId === controlledTabId && changeInfo.url) {
+      sendUrlChangeMsg(tabId, changeInfo.url);
     }
   });
 
