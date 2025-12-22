@@ -1,4 +1,8 @@
-import { PeerMessage, VCActions } from "../../common/sync-messages-types";
+import {
+  PeerMessage,
+  PeerTimeMessage,
+  VCActions,
+} from "../../common/sync-messages-types";
 
 function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
@@ -30,8 +34,8 @@ export function sendHostSuccessMsg(roomId: string, currentUrl: string) {
   sendChromeMsg({ type: "IN_ROOM" });
 }
 
-/** Forward PeerMessage to VideoController */
-export function forwardRemotePeerMsg(msg: PeerMessage) {
+/** Forward PeerTimeMessage to Background */
+export function forwardRemotePeerMsg(msg: PeerTimeMessage) {
   sendChromeMsg({
     type: "VIDEO_ACTIONS",
     payload: msg,
@@ -42,6 +46,7 @@ export function sendPrepareVcMsg(tabId: number) {
   sendTabMsg(tabId, { type: "PREPARE_VC" });
 }
 
+/** Forward PeerTimeMessage to Content Script */
 export function forwardVideoActionsMsg(tabId: number, msg: VCActions) {
   sendTabMsg(tabId, msg);
 }
