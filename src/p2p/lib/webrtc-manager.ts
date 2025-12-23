@@ -377,7 +377,9 @@ export class WebRTCManager {
     });
   }
 
+  // TODO: Peers send to Host and Host handles ordering & broadcasting
   public broadcastPeerMessage(msg: PeerMessage, relayed: boolean) {
+    // Host don't relay NextVideo messages
     if (msg.type === PeerMessageType.NextVideo && this._host && relayed) return;
 
     const msgJson = JSON.stringify(msg);
@@ -390,9 +392,11 @@ export class WebRTCManager {
 
   public sendNextVideoMessage(msg: PeerNextVideoMessage) {
     if (this._host) {
-      this.broadcastPeerMessage(msg, false);
+      const stampedMsg = { ...msg, fromHost: true };
+      this.broadcastPeerMessage(stampedMsg, false);
     } else {
-      const msgJson = JSON.stringify(msg);
+      const stampedMsg = { ...msg, fromHost: false };
+      const msgJson = JSON.stringify(stampedMsg);
       const hostConn = Object.entries(this._connections).find(
         ([_, conn]) => conn.isHost
       );
