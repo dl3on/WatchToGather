@@ -1,4 +1,9 @@
-import { getVC, onUrlChange, startVideoController } from "./lib/vc-handler";
+import {
+  PeerMessageType,
+  PeerNextVideoMessage,
+} from "../common/sync-messages-types";
+import { getVC, startVideoController } from "./lib/vc-handler";
+import { showNextVideoNotif } from "./ui/notifications/next-video";
 
 console.log("CONTENT SCRIPT LOADED");
 
@@ -11,11 +16,34 @@ chrome.runtime.onMessage.addListener((msg) => {
     console.log("[CONTENT SCRIPT]", msg);
     const vc = getVC();
     if (vc) vc.onRemoteEvent(msg.payload);
-    // TODO: handle NextVideo event
-    // TODO: host tracks peer ready state by receiving matching NextVideo msgs
   }
 
-  if (msg.type === "URL_CHANGED") {
-    onUrlChange(msg.url);
+  // if (msg.type === "URL_CHANGED") {
+  //   onUrlChange(msg.url);
+  // }
+
+  if (isPeerNextVideoMessage(msg)) {
+    console.log("[CS: Next Video]", msg);
+    showNextVideoNotif(msg);
+    // TODO: host tracks peer ready state
   }
 });
+
+function isPeerNextVideoMessage(msg: any): msg is PeerNextVideoMessage {
+  if (
+    msg.type === PeerMessageType.NextVideo &&
+    typeof msg.mid === "string" &&
+    typeof msg.fromPeerId === "string" &&
+    typeof msg.url === "string"
+  ) {
+    if (typeof msg.fromHost !== "boolean") {
+      console.warn(
+        "[WARN] isPeerNextVideoMessage: fromHost missing or invalid",
+        msg
+      );
+      return false;
+    }
+    return true;
+  }
+  return false;
+}

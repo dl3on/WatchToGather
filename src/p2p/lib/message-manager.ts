@@ -4,7 +4,7 @@ import {
   PeerNextVideoMessage,
   PeerTimeMessage,
 } from "../../common/sync-messages-types";
-import { forwardRemotePeerMsg } from "./chrome";
+import { forwardRemotePeerMsg, notifyNextVideo } from "./chrome";
 import type { WebRTCManager } from "./webrtc-manager";
 
 export class MessageManager {
@@ -31,6 +31,7 @@ export class MessageManager {
     this._webrtcManager = wrtcm;
   }
 
+  // TODO: Peers send to Host and Host handles ordering & broadcasting
   sendToAll(
     eventType:
       | PeerMessageType.Pause
@@ -65,12 +66,16 @@ export class MessageManager {
     if (this._seenMessages.has(msg.mid)) return;
 
     this._seenMessages.add(msg.mid);
-    forwardRemotePeerMsg(msg);
+    if (msg.type !== PeerMessageType.NextVideo) {
+      forwardRemotePeerMsg(msg);
+    } else {
+      notifyNextVideo(msg);
+    }
 
     // Relay received msg to ensure every peer receives it
     this._webrtcManager.broadcastPeerMessage(msg, true);
   }
 
-  // TODO:
+  // TODO: Implement clearing seen messages
   clearSeenMessages() {}
 }
