@@ -39,14 +39,13 @@ const roomData = await loadRoomDetails();
 const registeredTabId = await loadRegisteredTabId();
 if (roomData) {
   const { roomId, roomName, participantsCount, url, host } = roomData;
-  const hasRegisteredTab = registeredTabId !== null ? true : false;
   updateUIForRoom(
     roomId,
     roomName,
     participantsCount,
     url,
     host,
-    hasRegisteredTab
+    registeredTabId
   );
 } else {
   renderInitialView();
@@ -78,7 +77,7 @@ confirmCreateBtn.addEventListener("click", async () => {
         url: webpageLink,
         host: true,
       });
-      updateUIForRoom(roomId, roomName, 1, webpageLink, true, false);
+      updateUIForRoom(roomId, roomName, 1, webpageLink, true, registeredTabId);
       createRoomModal.classList.add("hidden");
     } catch (e) {
       console.error("[ERROR] Unable to host:", e);
@@ -103,6 +102,7 @@ confirmJoinBtn.addEventListener("click", async () => {
     joinRoomModal.classList.add("hidden");
 
     try {
+      // TODO: listen to URL from /p2p and save it here
       const { roomName, participantsCount, currentUrl } =
         await waitForJoinSuccess();
 
@@ -119,7 +119,7 @@ confirmJoinBtn.addEventListener("click", async () => {
         participantsCount + 1,
         currentUrl,
         false,
-        false
+        registeredTabId
       );
     } catch (e) {
       console.error(`[ERROR] Unable to join Room ${roomId}:`, e);

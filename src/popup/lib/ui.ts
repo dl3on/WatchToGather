@@ -47,7 +47,7 @@ export function updateUIForRoom(
   participantsCount: number,
   url: string,
   isHost: boolean,
-  hasRegisteredTab: boolean
+  registeredTabId: number | null
 ) {
   roomIdTextElement.textContent = `Room ID: ${roomId}`;
   roomIdContainer.classList.remove("hidden");
@@ -55,7 +55,7 @@ export function updateUIForRoom(
     <div id="roomHeader">
       <p id="roomNameText"><strong>${roomName}</strong></p>
       <span id="roomParticipants">${participantsCount} (i)</span>
-      <a id="urlText" class="sub-text" href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>
+      <span id="urlText" class="sub-text" data-url="${url}">${url}</span>
     </div>
 
     <div>
@@ -73,7 +73,9 @@ export function updateUIForRoom(
       </div>
       <div id="registerTab">
         <button id="registerTabBtn">Register Current Tab</button>
-        ${hasRegisteredTab ? `` : `<p>No registered tab for syncing</p>`}
+        ${
+          registeredTabId !== null ? `` : `<p>No registered tab for syncing</p>`
+        }
       </div>
     </div>
   `;
@@ -93,6 +95,7 @@ export function updateUIForRoom(
   const registerTabBtn = document.getElementById(
     "registerTabBtn"
   ) as HTMLButtonElement;
+  const urlTextElement = document.getElementById("urlText") as HTMLSpanElement;
 
   if (copyRoomIdBtn) {
     copyRoomIdBtn.addEventListener("click", () => {
@@ -133,6 +136,34 @@ export function updateUIForRoom(
     registerTabBtn.addEventListener("click", () => {
       registerCurrentTab();
     });
+  }
+
+  if (urlTextElement) {
+    urlTextElement.addEventListener("click", () => {
+      handleUrlNavigation(url, registeredTabId);
+    });
+  }
+}
+
+async function handleUrlNavigation(
+  url: string,
+  registeredTabId: number | null
+) {
+  try {
+    if (registeredTabId !== null) {
+      await chrome.tabs.update(registeredTabId, { url: url, active: true });
+
+      // Focus the window of the target tab
+      const targetTab = await chrome.tabs.get(registeredTabId);
+      if (targetTab.windowId) {
+        await chrome.windows.update(targetTab.windowId, { focused: true });
+      }
+    } else {
+      // No registered tab, create a new tab
+      await chrome.tabs.create({ url: url, active: true });
+    }
+  } catch (error) {
+    console.error("Failed to navigate to URL:", error);
   }
 }
 
