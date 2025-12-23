@@ -27,6 +27,7 @@ export type PeerTimeMessage =
 export type PeerNextVideoMessage = PeerMessageBase & {
   type: PeerMessageType.NextVideo;
   url: string;
+  fromHost?: boolean;
 };
 
 export type PeerMessage = PeerTimeMessage | PeerNextVideoMessage;
@@ -51,5 +52,5 @@ export type LocalVideoEvent =
 
 export type VCActions = {
   type: "VIDEO_ACTIONS";
-  payload: PeerMessage;
+  payload: PeerTimeMessage;
 };

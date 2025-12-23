@@ -5,12 +5,6 @@ import { VideoController } from "./video-controller";
 let vc: VideoController | null = null;
 let currentVideo: HTMLVideoElement | null = null;
 
-// let _urlObserverInstalled = false;
-let _pendingUrlChange = false;
-let _pendingUrlValue: string | null = null;
-let _vcReady = false;
-let lastObservedUrl = location.href;
-
 export function getVC() {
   return vc;
 }
@@ -73,7 +67,7 @@ function observeVideoRemoval() {
       console.log("[VIDEO] Video element removed");
       currentVideo = null;
       vc = null;
-      _vcReady = false;
+      // _vcReady = false;
       sendVCStatusMsg(false);
     }
   });
@@ -84,9 +78,9 @@ function observeVideoRemoval() {
 function setupVideo(video: HTMLVideoElement) {
   currentVideo = video;
   vc = new VideoController(video);
-  _vcReady = true;
+  // _vcReady = true;
   sendVCStatusMsg(true);
-  maybeSendNextVideo();
+  // maybeSendNextVideo();
 
   // if (!_urlObserverInstalled) {
   //   console.log("[VIDEO] Installing URL change observer");
@@ -122,39 +116,4 @@ function setupVideo(video: HTMLVideoElement) {
 
   //   _urlObserverInstalled = true;
   // }
-}
-
-export function onUrlChange(newUrl: string) {
-  console.log(`[VIDEO] onUrlChange called with URL: ${newUrl}`);
-  if (newUrl !== lastObservedUrl) {
-    lastObservedUrl = newUrl;
-    _pendingUrlChange = true;
-    _pendingUrlValue = newUrl;
-    maybeSendNextVideo();
-    console.log("[VIDEO] URL change detected");
-  }
-}
-
-async function maybeSendNextVideo() {
-  console.log(
-    `[VIDEO] maybeSendNextVideo { vcReady: ${_vcReady}, pendingUrlChange: ${_pendingUrlChange} }`
-  );
-  if (!_pendingUrlChange || !_vcReady || !_pendingUrlValue) return;
-
-  const room = await loadRoomDetails();
-  const roomUrl = room?.url ?? "";
-
-  if (_pendingUrlValue === roomUrl) {
-    _pendingUrlChange = false;
-    _pendingUrlValue = null;
-    return;
-  }
-
-  sendVCMsg({
-    type: PeerMessageType.NextVideo,
-    url: _pendingUrlValue,
-  });
-
-  _pendingUrlChange = false;
-  _pendingUrlValue = null;
 }

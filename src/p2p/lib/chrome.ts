@@ -1,8 +1,10 @@
 import {
-  PeerMessage,
+  LocalVideoEvent,
+  PeerNextVideoMessage,
   PeerTimeMessage,
   VCActions,
 } from "../../common/sync-messages-types";
+import { RoomDetails } from "../../common/types";
 
 function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
@@ -42,12 +44,25 @@ export function forwardRemotePeerMsg(msg: PeerTimeMessage) {
   });
 }
 
+/** Forward PeerNextVideoMessage to Background */
+export function notifyNextVideo(msg: PeerNextVideoMessage) {
+  sendChromeMsg(msg);
+}
+
 export function sendPrepareVcMsg(tabId: number) {
   sendTabMsg(tabId, { type: "PREPARE_VC" });
 }
 
 /** Forward PeerTimeMessage to Content Script */
 export function forwardVideoActionsMsg(tabId: number, msg: VCActions) {
+  sendTabMsg(tabId, msg);
+}
+
+/** Forward PeerNextVideoMessage to Content Script */
+export function forwardNotifyNextVideo(
+  tabId: number,
+  msg: PeerNextVideoMessage
+) {
   sendTabMsg(tabId, msg);
 }
 
@@ -75,3 +90,17 @@ export function saveVCStates(
 ) {
   chrome.storage.local.set({ controlledTabId, isInRoom });
 }
+
+export function loadRoomDetails(): Promise<RoomDetails | null> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("roomDetails", (res) => {
+      resolve(res.roomDetails ?? null);
+    });
+  });
+}
+
+export function sendVCMsg(msg: LocalVideoEvent) {
+  sendChromeMsg(msg);
+}
+
+// TODO: function to save room url

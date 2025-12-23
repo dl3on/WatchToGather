@@ -1,9 +1,16 @@
 import {
+  PeerMessageType,
+  PeerNextVideoMessage,
+} from "../common/sync-messages-types";
+import {
+  forwardNotifyNextVideo,
   forwardVideoActionsMsg,
+  loadRoomDetails,
   loadVCStates,
   saveVCStates,
   sendPrepareVcMsg,
   sendUrlChangeMsg,
+  sendVCMsg,
 } from "./lib/chrome";
 
 async function ensureOffscreen() {
@@ -22,6 +29,11 @@ async function init() {
   let controlledTabId: number | null = null;
   let pendingTabId: number | null = null;
   let isInRoom = false;
+
+  let _pendingUrlChange = false;
+  let _pendingUrlValue: string | null = null;
+  let _vcReady = false;
+  let lastObservedUrl = location.href;
 
   const data = await loadVCStates();
   controlledTabId = data.controlledTabId;
@@ -43,8 +55,13 @@ async function init() {
     if (msg.type === "VC_STATUS") {
       if (msg.success) {
         controlledTabId = pendingTabId;
+        _vcReady = true;
 
+        maybeSendNextVideo();
         saveState();
+        return;
+      } else {
+        _vcReady = false;
         return;
       }
     }
@@ -59,9 +76,19 @@ async function init() {
     }
 
     if (msg.type === "VIDEO_ACTIONS") {
-      // Relay messages from offscreen to content script
       if (controlledTabId !== null) {
+        // TODO: Drop message if current URL different from room URL
         forwardVideoActionsMsg(controlledTabId, msg);
+      } else {
+        console.log("[ERROR] No tab registered");
+      }
+      return;
+    }
+
+    if (isPeerNextVideoMessage(msg)) {
+      if (controlledTabId !== null) {
+        // TODO: Update saved room URL
+        forwardNotifyNextVideo(controlledTabId, msg);
       } else {
         console.log("[ERROR] No tab registered");
       }
@@ -77,8 +104,9 @@ async function init() {
   });
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if (tabId === controlledTabId && changeInfo.url) {
-      sendUrlChangeMsg(tabId, changeInfo.url);
+    if (tabId === controlledTabId) {
+      if (changeInfo.url) onUrlChange(changeInfo.url);
+      if (changeInfo.status === "complete") registerActiveTab();
     }
   });
 
@@ -103,6 +131,60 @@ async function init() {
       sendPrepareVcMsg(tabId);
       pendingTabId = tabId;
     });
+  }
+
+  function onUrlChange(newUrl: string) {
+    console.log(`[BG] onUrlChange called with URL: ${newUrl}`);
+    if (newUrl !== lastObservedUrl) {
+      lastObservedUrl = newUrl;
+      _pendingUrlChange = true;
+      _pendingUrlValue = newUrl;
+      maybeSendNextVideo();
+      console.log("[BG] URL change detected");
+    }
+  }
+
+  async function maybeSendNextVideo() {
+    if (!_pendingUrlChange || !_vcReady || !_pendingUrlValue) return;
+
+    // To check: doesnt work on youtube
+    // if (_vcReady) vc?._video.pause();
+
+    const room = await loadRoomDetails();
+    const roomUrl = room?.url ?? "";
+
+    if (_pendingUrlValue === roomUrl) {
+      _pendingUrlChange = false;
+      _pendingUrlValue = null;
+      return;
+    }
+
+    sendVCMsg({
+      type: PeerMessageType.NextVideo,
+      url: _pendingUrlValue,
+    });
+
+    _pendingUrlChange = false;
+    _pendingUrlValue = null;
+  }
+
+  function isPeerNextVideoMessage(msg: any): msg is PeerNextVideoMessage {
+    if (
+      msg.type === PeerMessageType.NextVideo &&
+      typeof msg.mid === "string" &&
+      typeof msg.fromPeerId === "string" &&
+      typeof msg.url === "string"
+    ) {
+      if (typeof msg.fromHost !== "boolean") {
+        console.warn(
+          "[WARN] isPeerNextVideoMessage: fromHost missing or invalid",
+          msg
+        );
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 }
 
