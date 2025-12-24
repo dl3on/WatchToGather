@@ -1,4 +1,4 @@
-import { RoomDetails } from "../../common/types";
+import { RoomDetails, RoomUrl } from "../../common/types";
 
 function sendChromeMsg(msg: any) {
   chrome.identity.getProfileUserInfo().then((res) => {
@@ -84,5 +84,18 @@ export function registerTabListener() {
         alert("Failed to register this tab: No video element found.");
       else alert("Register success!");
     }
+  });
+}
+
+// TODO: listen to new url changes and update roomDetails
+export function saveRoomUrl(url: string) {
+  chrome.storage.local.set({ roomUrl: { url } });
+}
+
+export function loadRoomUrl(): Promise<RoomUrl | null> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("roomUrl", (res) => {
+      resolve(res.roomUrl ?? null);
+    });
   });
 }

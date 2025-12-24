@@ -6,7 +6,9 @@ import {
   forwardNotifyNextVideo,
   forwardVideoActionsMsg,
   loadRoomDetails,
+  loadRoomUrl,
   loadVCStates,
+  saveRoomUrl,
   saveVCStates,
   sendPrepareVcMsg,
   sendUrlChangeMsg,
@@ -87,7 +89,7 @@ async function init() {
 
     if (isPeerNextVideoMessage(msg)) {
       if (controlledTabId !== null) {
-        // TODO: Update saved room URL
+        if (msg.fromHost) saveRoomUrl(msg.url);
         forwardNotifyNextVideo(controlledTabId, msg);
       } else {
         console.log("[ERROR] No tab registered");
@@ -147,10 +149,7 @@ async function init() {
   async function maybeSendNextVideo() {
     if (!_pendingUrlChange || !_vcReady || !_pendingUrlValue) return;
 
-    // To check: doesnt work on youtube
-    // if (_vcReady) vc?._video.pause();
-
-    const room = await loadRoomDetails();
+    const room = await loadRoomUrl();
     const roomUrl = room?.url ?? "";
 
     if (_pendingUrlValue === roomUrl) {

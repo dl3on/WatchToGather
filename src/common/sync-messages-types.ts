@@ -54,3 +54,8 @@ export type VCActions = {
   type: "VIDEO_ACTIONS";
   payload: PeerTimeMessage;
 };
+
+export type HostInitialUrl = {
+  type: "HOST_INITIAL_URL";
+  url: string;
+};

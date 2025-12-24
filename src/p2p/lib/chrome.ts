@@ -4,7 +4,7 @@ import {
   PeerTimeMessage,
   VCActions,
 } from "../../common/sync-messages-types";
-import { RoomDetails } from "../../common/types";
+import { RoomDetails, RoomUrl } from "../../common/types";
 
 function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
@@ -103,4 +103,14 @@ export function sendVCMsg(msg: LocalVideoEvent) {
   sendChromeMsg(msg);
 }
 
-// TODO: function to save room url
+export function saveRoomUrl(url: string) {
+  chrome.storage.local.set({ roomUrl: { url } });
+}
+
+export function loadRoomUrl(): Promise<RoomUrl | null> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("roomUrl", (res) => {
+      resolve(res.roomUrl ?? null);
+    });
+  });
+}

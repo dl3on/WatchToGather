@@ -1,4 +1,5 @@
 import {
+  HostInitialUrl,
   PeerMessage,
   PeerMessageType,
   PeerNextVideoMessage,
@@ -13,6 +14,7 @@ import {
 } from "../../common/types.js";
 import { SignalManager } from "./signal-manager.js";
 import type { MessageManager } from "./message-manager.js";
+import { loadRoomUrl, saveRoomUrl } from "./chrome.js";
 
 type WebRTCManagerOptions = {
   peerId: string;
@@ -38,6 +40,7 @@ export class WebRTCManager {
   _messageManager!: MessageManager;
   _peerId: string;
   _roomId: string | null = null;
+  _currentVideoUrl: string | null = null;
   _host: boolean = false;
   _verbose: boolean;
   _stunServerUrl: string;
@@ -88,6 +91,10 @@ export class WebRTCManager {
 
   setMessageManager(mm: MessageManager) {
     this._messageManager = mm;
+  }
+
+  public isHost(): boolean {
+    return this._host;
   }
 
   private _checkJoinStatus(): boolean {
@@ -303,10 +310,22 @@ export class WebRTCManager {
 
     dc.addEventListener("open", () => {
       console.log(`[DC] Open with ${targetPeerId}`);
+
+      if (this._host) {
+        this.sendInitialUrlToPeer(dc);
+      }
     });
     dc.addEventListener("message", (e) => {
       console.log(`[DC] Message from ${targetPeerId}:`, e.data);
-      this._messageManager.handleMessage(JSON.parse(e.data));
+      const msg = JSON.parse(e.data);
+
+      if (msg.type === "HOST_INITIAL_URL") {
+        this._log(`Received initial URL from host: ${msg.url}`);
+        this._currentVideoUrl = msg.url;
+        return;
+      }
+
+      this._messageManager.handleMessage(msg);
     });
     dc.addEventListener("close", () => {
       console.log(`[DC] Channel closed for ${targetPeerId}`);
@@ -370,6 +389,7 @@ export class WebRTCManager {
       true
     );
 
+    this._currentVideoUrl = currentUrl;
     this._host = true;
     this._signalManager.emit(EClientToServerEvents.Host, {
       roomName,
@@ -392,6 +412,7 @@ export class WebRTCManager {
 
   public sendNextVideoMessage(msg: PeerNextVideoMessage) {
     if (this._host) {
+      this.updateCurrentVideoUrl(msg.url);
       const stampedMsg = { ...msg, fromHost: true };
       this.broadcastPeerMessage(stampedMsg, false);
     } else {
@@ -409,5 +430,17 @@ export class WebRTCManager {
 
       hostConn[1].dataChannel.send(msgJson);
     }
+  }
+
+  private sendInitialUrlToPeer(dc: RTCDataChannel) {
+    let initMsg: HostInitialUrl = {
+      type: "HOST_INITIAL_URL",
+      url: this._currentVideoUrl!,
+    };
+    dc.send(JSON.stringify(initMsg));
+  }
+
+  public updateCurrentVideoUrl(url: string) {
+    this._currentVideoUrl = url;
   }
 }

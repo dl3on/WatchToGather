@@ -69,6 +69,7 @@ export class MessageManager {
     if (msg.type !== PeerMessageType.NextVideo) {
       forwardRemotePeerMsg(msg);
     } else {
+      this._webrtcManager.updateCurrentVideoUrl(msg.url);
       notifyNextVideo(msg);
     }
 

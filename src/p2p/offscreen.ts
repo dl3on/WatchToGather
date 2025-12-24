@@ -3,6 +3,7 @@ import {
   PeerMessageType,
 } from "../common/sync-messages-types";
 import { ChromeMsg } from "../common/types";
+import { saveRoomUrl } from "./lib/chrome";
 import { MessageManager } from "./lib/message-manager";
 import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";
@@ -59,6 +60,9 @@ chrome.runtime.onMessage.addListener((msg: ChromeMsg | LocalVideoEvent) => {
 
     if (msg.type == PeerMessageType.NextVideo) {
       messageManager.sendNextVideo(msg.type, msg.url);
+      if (webrtc.isHost()) {
+        saveRoomUrl(msg.url);
+      }
     } else {
       messageManager.sendToAll(msg.type, msg.time);
     }

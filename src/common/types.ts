@@ -118,6 +118,9 @@ export interface RoomDetails {
   roomId: string;
   roomName: string;
   participantsCount: number;
-  url: string;
   host: boolean;
+}
+
+export interface RoomUrl {
+  url: string;
 }

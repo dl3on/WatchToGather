@@ -2,8 +2,10 @@ import { isValidUrl } from "../common/utils";
 import {
   loadRegisteredTabId,
   loadRoomDetails,
+  loadRoomUrl,
   registerTabListener,
   saveRoomDetails,
+  saveRoomUrl,
   sendHostMsg,
   sendJoinMsg,
   waitForHostSuccess,
@@ -36,9 +38,10 @@ const webpageLinkInput = document.getElementById(
 const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
 const roomData = await loadRoomDetails();
+const url = (await loadRoomUrl())?.url || "";
 const registeredTabId = await loadRegisteredTabId();
 if (roomData) {
-  const { roomId, roomName, participantsCount, url, host } = roomData;
+  const { roomId, roomName, participantsCount, host } = roomData;
   updateUIForRoom(
     roomId,
     roomName,
@@ -74,9 +77,9 @@ confirmCreateBtn.addEventListener("click", async () => {
         roomId,
         roomName,
         participantsCount: 1,
-        url: webpageLink,
         host: true,
       });
+      saveRoomUrl(webpageLink);
       updateUIForRoom(roomId, roomName, 1, webpageLink, true, registeredTabId);
       createRoomModal.classList.add("hidden");
     } catch (e) {
@@ -110,7 +113,6 @@ confirmJoinBtn.addEventListener("click", async () => {
         roomId,
         roomName,
         participantsCount: participantsCount + 1,
-        url: currentUrl,
         host: false,
       });
       updateUIForRoom(
