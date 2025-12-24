@@ -1,6 +1,5 @@
 export type RoomInfo = {
   roomName: string;
-  currentUrl: string;
   peers: PeerData[];
 };
 
@@ -43,7 +42,7 @@ type MessagePayloads = {
     toPeerId: string;
     candidate: RTCIceCandidate;
   };
-  [MessageType.Host]: { roomName: string; currentUrl: string };
+  [MessageType.Host]: { roomName: string };
   [MessageType.Error]: { msg: string };
   [MessageType.Leave]: { roomId: string };
   [MessageType.Disband]: { roomId: string };

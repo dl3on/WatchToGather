@@ -105,9 +105,8 @@ confirmJoinBtn.addEventListener("click", async () => {
     joinRoomModal.classList.add("hidden");
 
     try {
-      // TODO: listen to URL from /p2p and save it here
-      const { roomName, participantsCount, currentUrl } =
-        await waitForJoinSuccess();
+      const { roomName, participantsCount } = await waitForJoinSuccess();
+      const currentUrl = (await loadRoomUrl())?.url || "";
 
       saveRoomDetails({
         roomId,

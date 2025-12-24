@@ -14,7 +14,6 @@ export function sendJoinMsg(roomId: string) {
 export function waitForJoinSuccess(): Promise<{
   roomName: string;
   participantsCount: number;
-  currentUrl: string;
 }> {
   return new Promise((resolve) => {
     function handler(msg: any) {
@@ -24,7 +23,6 @@ export function waitForJoinSuccess(): Promise<{
         resolve({
           roomName: msg.roomName,
           participantsCount: msg.participantsCount,
-          currentUrl: msg.currentUrl,
         });
       }
     }

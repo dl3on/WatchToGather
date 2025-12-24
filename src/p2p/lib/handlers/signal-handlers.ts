@@ -26,11 +26,7 @@ export function onJoinResponse(
   if (!res.success) return;
 
   // TODO: wait until P2P established
-  sendJoinSuccessMsg(
-    res.body.roomName,
-    res.body.peers.length,
-    res.body.currentUrl
-  );
+  sendJoinSuccessMsg(res.body.roomName, res.body.peers.length);
 }
 
 export function onHostResponse(
@@ -39,9 +35,7 @@ export function onHostResponse(
 ) {
   if (verbose) {
     if (res.success) {
-      console.log(
-        `[SignalManager] Successfully created Room ${res.roomId} (URL: ${res.body.currentUrl})`
-      );
+      console.log(`[SignalManager] Successfully created Room ${res.roomId}`);
     } else {
       console.log(`[SignalManager] Failed to create room:`, res.errMsg);
     }
@@ -49,7 +43,7 @@ export function onHostResponse(
 
   if (!res.success) return;
 
-  sendHostSuccessMsg(res.roomId, res.body.currentUrl);
+  sendHostSuccessMsg(res.roomId);
 }
 
 export function onConnect(

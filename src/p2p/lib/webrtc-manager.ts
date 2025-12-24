@@ -393,7 +393,6 @@ export class WebRTCManager {
     this._host = true;
     this._signalManager.emit(EClientToServerEvents.Host, {
       roomName,
-      currentUrl,
     });
   }
 

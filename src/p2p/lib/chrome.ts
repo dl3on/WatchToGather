@@ -16,14 +16,12 @@ function sendTabMsg(tabId: number, msg: any) {
 
 export function sendJoinSuccessMsg(
   roomName: string,
-  participantsCount: number,
-  currentUrl: string
+  participantsCount: number
 ) {
   sendChromeMsg({
     type: "JOIN_SUCCESS",
     roomName: roomName,
     participantsCount: participantsCount,
-    currentUrl: currentUrl,
   });
   // Notify background
   sendChromeMsg({
@@ -31,8 +29,8 @@ export function sendJoinSuccessMsg(
   });
 }
 
-export function sendHostSuccessMsg(roomId: string, currentUrl: string) {
-  sendChromeMsg({ type: "HOST_SUCCESS", roomId, currentUrl });
+export function sendHostSuccessMsg(roomId: string) {
+  sendChromeMsg({ type: "HOST_SUCCESS", roomId });
   sendChromeMsg({ type: "IN_ROOM" });
 }
 
