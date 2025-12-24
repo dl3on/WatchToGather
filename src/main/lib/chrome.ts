@@ -4,6 +4,7 @@ function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
 }
 
+/** Content Script -> Offscreen */
 export function sendVCMsg(msg: LocalVideoEvent) {
   sendChromeMsg(msg);
 }

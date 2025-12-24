@@ -14,7 +14,7 @@ import {
 } from "../../common/types.js";
 import { SignalManager } from "./signal-manager.js";
 import type { MessageManager } from "./message-manager.js";
-import { sendSaveRoomUrlMsg } from "./chrome.js";
+import { sendHostLinkCompleteMsg, sendSaveRoomUrlMsg } from "./chrome.js";
 
 type WebRTCManagerOptions = {
   peerId: string;
@@ -323,6 +323,7 @@ export class WebRTCManager {
         this._log(`Received initial URL from host: ${msg.url}`);
         this._currentVideoUrl = msg.url;
         sendSaveRoomUrlMsg(msg.url);
+        sendHostLinkCompleteMsg();
         return;
       }
 

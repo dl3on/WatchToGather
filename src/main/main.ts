@@ -18,10 +18,6 @@ chrome.runtime.onMessage.addListener((msg) => {
     if (vc) vc.onRemoteEvent(msg.payload);
   }
 
-  // if (msg.type === "URL_CHANGED") {
-  //   onUrlChange(msg.url);
-  // }
-
   if (isPeerNextVideoMessage(msg)) {
     console.log("[CS: Next Video]", msg);
     showNextVideoNotif(msg);

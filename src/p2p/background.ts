@@ -5,6 +5,7 @@ import {
 import {
   forwardNotifyNextVideo,
   forwardVideoActionsMsg,
+  sendJoinSuccessMsg,
   sendPrepareVcMsg,
   sendVCMsg,
 } from "./lib/chrome";
@@ -28,6 +29,11 @@ async function ensureOffscreen() {
 async function init() {
   await ensureOffscreen();
 
+  let cachedRoomDetails: {
+    roomName: string;
+    participantsCount: number;
+  } | null = null;
+
   let controlledTabId: number | null = null;
   let pendingTabId: number | null = null;
   let isInRoom = false;
@@ -49,8 +55,22 @@ async function init() {
       return;
     }
 
+    if (msg.type === "ROOM_DETAILS") {
+      cachedRoomDetails = {
+        roomName: msg.roomName,
+        participantsCount: msg.participantsCount,
+      };
+      return;
+    }
+
     if (msg.type === "SAVE_ROOM_URL") {
       saveRoomUrl(msg.url);
+      return;
+    }
+
+    if (msg.type === "SEND_JOIN_SUCCESS") {
+      sendJoinSuccess();
+      return;
     }
 
     if (msg.type === "REGISTER_TAB") {
@@ -188,6 +208,17 @@ async function init() {
       return true;
     }
     return false;
+  }
+
+  function sendJoinSuccess() {
+    if (cachedRoomDetails) {
+      sendJoinSuccessMsg(
+        cachedRoomDetails.roomName,
+        cachedRoomDetails.participantsCount
+      );
+    } else {
+      throw new Error("[Background] No room details found");
+    }
   }
 }
 

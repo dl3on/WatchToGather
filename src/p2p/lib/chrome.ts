@@ -9,8 +9,17 @@ function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
 }
 
+/** Send messages to content script */
 function sendTabMsg(tabId: number, msg: any) {
   chrome.tabs.sendMessage(tabId, msg);
+}
+
+export function sendRoomDetails(roomName: string, participantsCount: number) {
+  sendChromeMsg({
+    type: "ROOM_DETAILS",
+    roomName: roomName,
+    participantsCount: participantsCount,
+  });
 }
 
 export function sendJoinSuccessMsg(
@@ -63,14 +72,17 @@ export function forwardNotifyNextVideo(
   sendTabMsg(tabId, msg);
 }
 
-export function sendUrlChangeMsg(tabId: number, url: string) {
-  sendTabMsg(tabId, { type: "URL_CHANGED", url });
-}
-
+/** Background -> Offscreen */
 export function sendVCMsg(msg: LocalVideoEvent) {
   sendChromeMsg(msg);
 }
 
+/** Offscreen -> Background */
 export function sendSaveRoomUrlMsg(url: string) {
   sendChromeMsg({ type: "SAVE_ROOM_URL", url });
+}
+
+/** Offscreen -> Background */
+export function sendHostLinkCompleteMsg() {
+  sendChromeMsg({ type: "SEND_JOIN_SUCCESS" });
 }
