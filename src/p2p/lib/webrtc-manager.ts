@@ -14,7 +14,7 @@ import {
 } from "../../common/types.js";
 import { SignalManager } from "./signal-manager.js";
 import type { MessageManager } from "./message-manager.js";
-import { loadRoomUrl, saveRoomUrl, sendSaveRoomUrlMsg } from "./chrome.js";
+import { sendSaveRoomUrlMsg } from "./chrome.js";
 
 type WebRTCManagerOptions = {
   peerId: string;

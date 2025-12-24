@@ -4,7 +4,6 @@ import {
   PeerTimeMessage,
   VCActions,
 } from "../../common/sync-messages-types";
-import { RoomDetails, RoomUrl } from "../../common/types";
 
 function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
@@ -68,49 +67,8 @@ export function sendUrlChangeMsg(tabId: number, url: string) {
   sendTabMsg(tabId, { type: "URL_CHANGED", url });
 }
 
-export function loadVCStates(): Promise<{
-  controlledTabId: number | null;
-  isInRoom: boolean;
-}> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(["controlledTabId", "isInRoom"], (res) => {
-      resolve({
-        controlledTabId: res.controlledTabId ?? null,
-        isInRoom: !!res.isInRoom,
-      });
-    });
-  });
-}
-
-export function saveVCStates(
-  controlledTabId: number | null,
-  isInRoom: boolean
-) {
-  chrome.storage.local.set({ controlledTabId, isInRoom });
-}
-
-export function loadRoomDetails(): Promise<RoomDetails | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get("roomDetails", (res) => {
-      resolve(res.roomDetails ?? null);
-    });
-  });
-}
-
 export function sendVCMsg(msg: LocalVideoEvent) {
   sendChromeMsg(msg);
-}
-
-export function saveRoomUrl(url: string) {
-  chrome.storage.local.set({ roomUrl: { url } });
-}
-
-export function loadRoomUrl(): Promise<RoomUrl | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get("roomUrl", (res) => {
-      resolve(res.roomUrl ?? null);
-    });
-  });
 }
 
 export function sendSaveRoomUrlMsg(url: string) {

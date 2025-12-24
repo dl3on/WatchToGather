@@ -1,9 +1,9 @@
+import { saveRoomUrl } from "../common/chrome-storage";
 import {
   LocalVideoEvent,
   PeerMessageType,
 } from "../common/sync-messages-types";
 import { ChromeMsg } from "../common/types";
-import { saveRoomUrl } from "./lib/chrome";
 import { MessageManager } from "./lib/message-manager";
 import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";

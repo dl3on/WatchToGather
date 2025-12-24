@@ -1,11 +1,13 @@
-import { isValidUrl } from "../common/utils";
 import {
-  loadRegisteredTabId,
   loadRoomDetails,
   loadRoomUrl,
-  registerTabListener,
+  loadVCStates,
   saveRoomDetails,
   saveRoomUrl,
+} from "../common/chrome-storage";
+import { isValidUrl } from "../common/utils";
+import {
+  registerTabListener,
   sendHostMsg,
   sendJoinMsg,
   waitForHostSuccess,
@@ -39,7 +41,8 @@ const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
 const roomData = await loadRoomDetails();
 const url = (await loadRoomUrl())?.url || "";
-const registeredTabId = await loadRegisteredTabId();
+const { controlledTabId } = await loadVCStates();
+console.log("room url: ", url);
 if (roomData) {
   const { roomId, roomName, participantsCount, host } = roomData;
   updateUIForRoom(
@@ -48,7 +51,7 @@ if (roomData) {
     participantsCount,
     url,
     host,
-    registeredTabId
+    controlledTabId
   );
 } else {
   renderInitialView();
@@ -80,7 +83,7 @@ confirmCreateBtn.addEventListener("click", async () => {
         host: true,
       });
       saveRoomUrl(webpageLink);
-      updateUIForRoom(roomId, roomName, 1, webpageLink, true, registeredTabId);
+      updateUIForRoom(roomId, roomName, 1, webpageLink, true, controlledTabId);
       createRoomModal.classList.add("hidden");
     } catch (e) {
       console.error("[ERROR] Unable to host:", e);
@@ -120,7 +123,7 @@ confirmJoinBtn.addEventListener("click", async () => {
         participantsCount + 1,
         currentUrl,
         false,
-        registeredTabId
+        controlledTabId
       );
     } catch (e) {
       console.error(`[ERROR] Unable to join Room ${roomId}:`, e);

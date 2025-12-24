@@ -1,4 +1,5 @@
-import { clearRoomDetails, registerCurrentTab } from "./chrome";
+import { clearRoomDetails } from "../../common/chrome-storage";
+import { registerCurrentTab } from "./chrome";
 
 const roomIdContainer = document.getElementById(
   "roomIdContainer"

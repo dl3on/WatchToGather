@@ -5,15 +5,15 @@ import {
 import {
   forwardNotifyNextVideo,
   forwardVideoActionsMsg,
-  loadRoomDetails,
+  sendPrepareVcMsg,
+  sendVCMsg,
+} from "./lib/chrome";
+import {
   loadRoomUrl,
   loadVCStates,
   saveRoomUrl,
   saveVCStates,
-  sendPrepareVcMsg,
-  sendUrlChangeMsg,
-  sendVCMsg,
-} from "./lib/chrome";
+} from "../common/chrome-storage";
 
 async function ensureOffscreen() {
   if (await chrome.offscreen.hasDocument()) return;
