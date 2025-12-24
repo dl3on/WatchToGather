@@ -49,6 +49,10 @@ async function init() {
       return;
     }
 
+    if (msg.type === "SAVE_ROOM_URL") {
+      saveRoomUrl(msg.url);
+    }
+
     if (msg.type === "REGISTER_TAB") {
       registerActiveTab();
       return;

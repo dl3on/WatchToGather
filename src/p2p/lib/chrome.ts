@@ -112,3 +112,7 @@ export function loadRoomUrl(): Promise<RoomUrl | null> {
     });
   });
 }
+
+export function sendSaveRoomUrlMsg(url: string) {
+  sendChromeMsg({ type: "SAVE_ROOM_URL", url });
+}
