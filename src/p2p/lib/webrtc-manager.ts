@@ -14,7 +14,11 @@ import {
 } from "../../common/types.js";
 import { SignalManager } from "./signal-manager.js";
 import type { MessageManager } from "./message-manager.js";
-import { sendHostLinkCompleteMsg, sendSaveRoomUrlMsg } from "./chrome.js";
+import {
+  getCurrentTabUrl,
+  sendHostLinkCompleteMsg,
+  sendSaveRoomUrlMsg,
+} from "./chrome.js";
 
 type WebRTCManagerOptions = {
   peerId: string;
@@ -315,7 +319,7 @@ export class WebRTCManager {
         this.sendInitialUrlToPeer(dc);
       }
     });
-    dc.addEventListener("message", (e) => {
+    dc.addEventListener("message", async (e) => {
       console.log(`[DC] Message from ${targetPeerId}:`, e.data);
       const msg = JSON.parse(e.data);
 
@@ -327,6 +331,13 @@ export class WebRTCManager {
         return;
       }
 
+      const localUrl = await getCurrentTabUrl();
+      if (localUrl !== this._currentVideoUrl) {
+        console.log(
+          `[DC Receiver] Current URL mismatch. Dropping message. ${localUrl} != ${this._currentVideoUrl}`
+        );
+        return;
+      }
       this._messageManager.handleMessage(msg);
     });
     dc.addEventListener("close", () => {
@@ -399,9 +410,19 @@ export class WebRTCManager {
   }
 
   // TODO: Peers send to Host and Host handles ordering & broadcasting
-  public broadcastPeerMessage(msg: PeerMessage, relayed: boolean) {
+  public async broadcastPeerMessage(msg: PeerMessage, relayed: boolean) {
     // Host don't relay NextVideo messages
     if (msg.type === PeerMessageType.NextVideo && this._host && relayed) return;
+
+    if (msg.type !== PeerMessageType.NextVideo) {
+      const localUrl = await getCurrentTabUrl();
+      if (localUrl !== this._currentVideoUrl) {
+        console.log(
+          `[DC Sender] Current URL mismatch. Dropping message. ${localUrl} != ${this._currentVideoUrl}`
+        );
+        return;
+      }
+    }
 
     const msgJson = JSON.stringify(msg);
     for (const { dataChannel } of Object.values(this._connections)) {

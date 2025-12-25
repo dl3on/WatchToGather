@@ -47,7 +47,7 @@ async function init() {
   controlledTabId = data.controlledTabId;
   isInRoom = data.isInRoom;
 
-  chrome.runtime.onMessage.addListener((msg) => {
+  chrome.runtime.onMessage.addListener((msg, _, sendResponse) => {
     if (msg.type === "IN_ROOM") {
       isInRoom = true;
 
@@ -99,6 +99,19 @@ async function init() {
 
       saveState();
       return;
+    }
+
+    if (msg.type === "GET_CURRENT_TAB_URL") {
+      if (controlledTabId === null) {
+        console.log("[ERROR] No tab registered");
+        sendResponse({ url: "" });
+        return;
+      }
+
+      chrome.tabs.get(controlledTabId, (tab) => {
+        sendResponse({ url: tab.url ?? "" });
+      });
+      return true; // Indicate async response
     }
 
     if (msg.type === "VIDEO_ACTIONS") {
