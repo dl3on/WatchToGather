@@ -60,11 +60,8 @@ chrome.runtime.onMessage.addListener(
 
       const messageManager = MessageManager.getInstance(webrtc._peerId);
 
-      if (msg.type == PeerMessageType.NextVideo) {
+      if (msg.type === PeerMessageType.NextVideo) {
         messageManager.sendNextVideo(msg.type, msg.url);
-        if (webrtc.isHost()) {
-          saveRoomUrl(msg.url);
-        }
       } else {
         messageManager.sendToAll(msg.type, msg.time);
       }

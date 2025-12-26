@@ -113,7 +113,6 @@ async function init() {
 
     if (isPeerNextVideoMessage(msg)) {
       if (controlledTabId !== null) {
-        if (msg.fromHost) saveRoomUrl(msg.url);
         forwardNotifyNextVideo(controlledTabId, msg);
       } else {
         console.log("[ERROR] No tab registered");

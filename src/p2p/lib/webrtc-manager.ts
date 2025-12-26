@@ -94,10 +94,6 @@ export class WebRTCManager {
     this._messageManager = mm;
   }
 
-  public isHost(): boolean {
-    return this._host;
-  }
-
   private _checkJoinStatus(): boolean {
     return this._connectionCount === Object.keys(this._connections).length;
   }
@@ -323,17 +319,27 @@ export class WebRTCManager {
       if (msg.type === "HOST_INITIAL_URL") {
         this._log(`Received initial URL from host: ${msg.url}`);
         this.updateRoomVideoUrl(msg.url);
-        sendSaveRoomUrlMsg(msg.url);
         sendHostLinkCompleteMsg();
         return;
       }
 
-      if (this._localVideoUrl !== this._roomVideoUrl) {
+      if (
+        this._localVideoUrl !== this._roomVideoUrl &&
+        msg.type !== PeerMessageType.NextVideo
+      ) {
         console.log(
           `[DC Receiver] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
         );
         return;
       }
+
+      if (msg.type === PeerMessageType.NextVideo && !this._host) {
+        this.updateRoomVideoUrl(msg.url);
+        if (this._localVideoUrl === this._roomVideoUrl) {
+          // TODO: Acknowledge to host that peer is ready
+        }
+      }
+
       this._messageManager.handleMessage(msg);
     });
     dc.addEventListener("close", () => {
@@ -432,6 +438,7 @@ export class WebRTCManager {
       this.updateRoomVideoUrl(msg.url);
       const stampedMsg = { ...msg, fromHost: true };
       this.broadcastPeerMessage(stampedMsg, false);
+      // TODO: Wait for peer acks
     } else {
       const stampedMsg = { ...msg, fromHost: false };
       const msgJson = JSON.stringify(stampedMsg);
@@ -457,11 +464,17 @@ export class WebRTCManager {
     dc.send(JSON.stringify(initMsg));
   }
 
-  public updateRoomVideoUrl(url: string) {
+  private updateRoomVideoUrl(url: string) {
     this._roomVideoUrl = url;
+    sendSaveRoomUrlMsg(url);
   }
 
   public updateLocalVideoUrl(url: string) {
     this._localVideoUrl = url;
+    if (this._localVideoUrl === this._roomVideoUrl) {
+      // TODO: Acknowledge to host that peer is ready
+    } else {
+      // TODO: Notify host that peer is no longer ready
+    }
   }
 }
