@@ -53,8 +53,10 @@ export function registerTabListener() {
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "VC_STATUS") {
       if (msg.success === false)
-        alert("Failed to register this tab: No video element found.");
-      else alert("Register success!");
+        alert(
+          "[WatchToGather] Failed to register tab. Please ensure the tab has a video element and keep the tab active."
+        );
+      else alert("[WatchToGather] Register success!");
     }
   });
 }

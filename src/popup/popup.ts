@@ -66,7 +66,7 @@ confirmCreateBtn.addEventListener("click", async () => {
 
   if (roomName !== "" && webpageLink !== "") {
     if (!isValidUrl(webpageLink)) {
-      alert("Invalid link");
+      alert("[WatchToGather] Invalid link");
       return;
     }
 
@@ -104,7 +104,7 @@ confirmCreateBtn.addEventListener("click", async () => {
     } catch (e) {
       loadingOverlay.classList.add("hidden");
       console.error("[ERROR] Unable to host:", e);
-      alert(`(Failed) ${e}`);
+      alert(`[WatchToGather] (Failed) ${e}`);
     }
   } else {
     console.log("Fill in all the fields.");
@@ -165,7 +165,7 @@ confirmJoinBtn.addEventListener("click", async () => {
       loadingOverlay.classList.add("hidden");
       console.error(`[ERROR] Unable to join Room ${roomId}:`, e);
       alert(
-        `Unable to join Room ${roomId}. Please check the Room ID and try again.`
+        `[WatchToGather] Unable to join Room ${roomId}. Please check the Room ID and try again.`
       );
     }
   } else {
