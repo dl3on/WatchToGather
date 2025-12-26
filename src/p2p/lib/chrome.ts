@@ -1,18 +1,10 @@
+import { sendChromeMsg, sendTabMsg } from "../../common/chrome-utils";
 import {
   LocalVideoEvent,
   PeerNextVideoMessage,
   PeerTimeMessage,
   VCActions,
 } from "../../common/sync-messages-types";
-
-function sendChromeMsg(msg: any) {
-  chrome.runtime.sendMessage(msg);
-}
-
-/** Send messages to content script */
-function sendTabMsg(tabId: number, msg: any) {
-  chrome.tabs.sendMessage(tabId, msg);
-}
 
 export function sendRoomDetails(roomName: string, participantsCount: number) {
   sendChromeMsg({

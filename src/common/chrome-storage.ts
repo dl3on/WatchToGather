@@ -1,3 +1,4 @@
+import { validateControlledTabId } from "./chrome-utils";
 import { RoomDetails, RoomUrl } from "./types";
 
 export function saveRoomDetails(roomDetails: RoomDetails) {
@@ -40,9 +41,17 @@ export function loadVCStates(): Promise<{
   isInRoom: boolean;
 }> {
   return new Promise((resolve) => {
-    chrome.storage.local.get(["controlledTabId", "isInRoom"], (res) => {
+    chrome.storage.local.get(["controlledTabId", "isInRoom"], async (res) => {
+      const validTabId = await validateControlledTabId(
+        res.controlledTabId ?? null
+      );
+
+      if (!validTabId) {
+        chrome.storage.local.set({ controlledTabId: null });
+      }
+
       resolve({
-        controlledTabId: res.controlledTabId ?? null,
+        controlledTabId: validTabId,
         isInRoom: !!res.isInRoom,
       });
     });

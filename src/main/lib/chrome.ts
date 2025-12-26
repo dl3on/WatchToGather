@@ -1,8 +1,5 @@
+import { sendChromeMsg } from "../../common/chrome-utils";
 import { LocalVideoEvent } from "../../common/sync-messages-types";
-
-function sendChromeMsg(msg: any) {
-  chrome.runtime.sendMessage(msg);
-}
 
 /** Content Script -> Offscreen */
 export function sendVCMsg(msg: LocalVideoEvent) {
