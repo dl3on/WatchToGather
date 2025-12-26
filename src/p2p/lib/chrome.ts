@@ -14,18 +14,6 @@ function sendTabMsg(tabId: number, msg: any) {
   chrome.tabs.sendMessage(tabId, msg);
 }
 
-function sendChromeMsgWithResponse<T = any>(msg: any): Promise<T> {
-  return new Promise((resolve, reject) => {
-    chrome.runtime.sendMessage(msg, (response: T) => {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
-
 export function sendRoomDetails(roomName: string, participantsCount: number) {
   sendChromeMsg({
     type: "ROOM_DETAILS",
@@ -99,9 +87,6 @@ export function sendHostLinkCompleteMsg() {
   sendChromeMsg({ type: "SEND_JOIN_SUCCESS" });
 }
 
-export async function getCurrentTabUrl(): Promise<string> {
-  const res = await sendChromeMsgWithResponse<{ url: string }>({
-    type: "GET_CURRENT_TAB_URL",
-  });
-  return res.url;
+export function sendLocalUrlChangeMsg(url: string) {
+  sendChromeMsg({ type: "LOCAL_URL_CHANGE", url });
 }

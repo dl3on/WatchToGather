@@ -1,5 +1,4 @@
-import { PeerMessageType } from "../../common/sync-messages-types";
-import { loadRoomDetails, sendVCMsg, sendVCStatusMsg } from "./chrome";
+import { sendVCStatusMsg } from "./chrome";
 import { VideoController } from "./video-controller";
 
 let vc: VideoController | null = null;

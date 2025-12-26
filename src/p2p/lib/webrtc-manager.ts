@@ -14,11 +14,7 @@ import {
 } from "../../common/types.js";
 import { SignalManager } from "./signal-manager.js";
 import type { MessageManager } from "./message-manager.js";
-import {
-  getCurrentTabUrl,
-  sendHostLinkCompleteMsg,
-  sendSaveRoomUrlMsg,
-} from "./chrome.js";
+import { sendHostLinkCompleteMsg, sendSaveRoomUrlMsg } from "./chrome.js";
 
 type WebRTCManagerOptions = {
   peerId: string;
@@ -44,7 +40,8 @@ export class WebRTCManager {
   _messageManager!: MessageManager;
   _peerId: string;
   _roomId: string | null = null;
-  _currentVideoUrl: string | null = null;
+  _localVideoUrl: string | null = null;
+  _roomVideoUrl: string | null = null;
   _host: boolean = false;
   _verbose: boolean;
   _stunServerUrl: string;
@@ -325,16 +322,15 @@ export class WebRTCManager {
 
       if (msg.type === "HOST_INITIAL_URL") {
         this._log(`Received initial URL from host: ${msg.url}`);
-        this._currentVideoUrl = msg.url;
+        this.updateRoomVideoUrl(msg.url);
         sendSaveRoomUrlMsg(msg.url);
         sendHostLinkCompleteMsg();
         return;
       }
 
-      const localUrl = await getCurrentTabUrl();
-      if (localUrl !== this._currentVideoUrl) {
+      if (this._localVideoUrl !== this._roomVideoUrl) {
         console.log(
-          `[DC Receiver] Current URL mismatch. Dropping message. ${localUrl} != ${this._currentVideoUrl}`
+          `[DC Receiver] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
         );
         return;
       }
@@ -402,7 +398,7 @@ export class WebRTCManager {
       true
     );
 
-    this._currentVideoUrl = currentUrl;
+    this._roomVideoUrl = currentUrl;
     this._host = true;
     this._signalManager.emit(EClientToServerEvents.Host, {
       roomName,
@@ -415,10 +411,9 @@ export class WebRTCManager {
     if (msg.type === PeerMessageType.NextVideo && this._host && relayed) return;
 
     if (msg.type !== PeerMessageType.NextVideo) {
-      const localUrl = await getCurrentTabUrl();
-      if (localUrl !== this._currentVideoUrl) {
+      if (this._localVideoUrl !== this._roomVideoUrl) {
         console.log(
-          `[DC Sender] Current URL mismatch. Dropping message. ${localUrl} != ${this._currentVideoUrl}`
+          `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
         );
         return;
       }
@@ -434,7 +429,7 @@ export class WebRTCManager {
 
   public sendNextVideoMessage(msg: PeerNextVideoMessage) {
     if (this._host) {
-      this.updateCurrentVideoUrl(msg.url);
+      this.updateRoomVideoUrl(msg.url);
       const stampedMsg = { ...msg, fromHost: true };
       this.broadcastPeerMessage(stampedMsg, false);
     } else {
@@ -457,12 +452,16 @@ export class WebRTCManager {
   private sendInitialUrlToPeer(dc: RTCDataChannel) {
     let initMsg: HostInitialUrl = {
       type: "HOST_INITIAL_URL",
-      url: this._currentVideoUrl!,
+      url: this._roomVideoUrl!,
     };
     dc.send(JSON.stringify(initMsg));
   }
 
-  public updateCurrentVideoUrl(url: string) {
-    this._currentVideoUrl = url;
+  public updateRoomVideoUrl(url: string) {
+    this._roomVideoUrl = url;
+  }
+
+  public updateLocalVideoUrl(url: string) {
+    this._localVideoUrl = url;
   }
 }

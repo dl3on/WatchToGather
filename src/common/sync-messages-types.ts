@@ -59,3 +59,8 @@ export type HostInitialUrl = {
   type: "HOST_INITIAL_URL";
   url: string;
 };
+
+export type LocalUrlChange = {
+  type: "LOCAL_URL_CHANGE";
+  url: string;
+};

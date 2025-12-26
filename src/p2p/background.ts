@@ -6,6 +6,7 @@ import {
   forwardNotifyNextVideo,
   forwardVideoActionsMsg,
   sendJoinSuccessMsg,
+  sendLocalUrlChangeMsg,
   sendPrepareVcMsg,
   sendVCMsg,
 } from "./lib/chrome";
@@ -47,7 +48,7 @@ async function init() {
   controlledTabId = data.controlledTabId;
   isInRoom = data.isInRoom;
 
-  chrome.runtime.onMessage.addListener((msg, _, sendResponse) => {
+  chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === "IN_ROOM") {
       isInRoom = true;
 
@@ -101,22 +102,8 @@ async function init() {
       return;
     }
 
-    if (msg.type === "GET_CURRENT_TAB_URL") {
-      if (controlledTabId === null) {
-        console.log("[ERROR] No tab registered");
-        sendResponse({ url: "" });
-        return;
-      }
-
-      chrome.tabs.get(controlledTabId, (tab) => {
-        sendResponse({ url: tab.url ?? "" });
-      });
-      return true; // Indicate async response
-    }
-
     if (msg.type === "VIDEO_ACTIONS") {
       if (controlledTabId !== null) {
-        // TODO: Drop message if current URL different from room URL
         forwardVideoActionsMsg(controlledTabId, msg);
       } else {
         console.log("[ERROR] No tab registered");
@@ -168,18 +155,18 @@ async function init() {
 
       console.log("Validating current tab:", tabId);
       sendPrepareVcMsg(tabId);
+      sendLocalUrlChangeMsg(tabs[0]?.url ?? "");
       pendingTabId = tabId;
     });
   }
 
   function onUrlChange(newUrl: string) {
-    console.log(`[BG] onUrlChange called with URL: ${newUrl}`);
     if (newUrl !== lastObservedUrl) {
+      sendLocalUrlChangeMsg(newUrl);
       lastObservedUrl = newUrl;
       _pendingUrlChange = true;
       _pendingUrlValue = newUrl;
       maybeSendNextVideo();
-      console.log("[BG] URL change detected");
     }
   }
 
