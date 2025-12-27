@@ -325,7 +325,9 @@ export class WebRTCManager {
 
       if (
         this._localVideoUrl !== this._roomVideoUrl &&
-        msg.type !== PeerMessageType.NextVideo
+        (msg.type === PeerMessageType.Pause ||
+          msg.type === PeerMessageType.Play ||
+          msg.type === PeerMessageType.Seek)
       ) {
         console.log(
           `[DC Receiver] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
@@ -336,9 +338,17 @@ export class WebRTCManager {
       if (msg.type === PeerMessageType.NextVideo && !this._host) {
         this.updateRoomVideoUrl(msg.url);
         if (this._localVideoUrl === this._roomVideoUrl) {
-          // TODO: Acknowledge to host that peer is ready
+          this._messageManager.nextVideoAck(this._localVideoUrl!, false);
         }
       }
+
+      if (
+        (msg.type === PeerMessageType.NextVideoAck ||
+          msg.type === PeerMessageType.NextVideoNack) &&
+        !this._host
+      )
+        return;
+      if (msg.type === PeerMessageType.ReadyStateUpdate && this._host) return;
 
       this._messageManager.handleMessage(msg);
     });
@@ -412,17 +422,49 @@ export class WebRTCManager {
   }
 
   // TODO: Peers send to Host and Host handles ordering & broadcasting
+  public sendToHost(msg: PeerMessage) {
+    if (
+      this._localVideoUrl !== this._roomVideoUrl &&
+      (msg.type === PeerMessageType.Pause ||
+        msg.type === PeerMessageType.Play ||
+        msg.type === PeerMessageType.Seek)
+    ) {
+      console.log(
+        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+      );
+      return;
+    }
+
+    const msgJson = JSON.stringify(msg);
+    const hostConn = Object.entries(this._connections).find(
+      ([_, conn]) => conn.isHost
+    );
+
+    if (!hostConn || !hostConn[1].dataChannel) {
+      throw new Error(
+        `[WebRTC Manager] No datachannel found with host ${
+          hostConn?.[0]
+        }. MSG: ${JSON.stringify(msg)}`
+      );
+    }
+
+    hostConn[1].dataChannel.send(msgJson);
+  }
+
   public async broadcastPeerMessage(msg: PeerMessage, relayed: boolean) {
     // Host don't relay NextVideo messages
     if (msg.type === PeerMessageType.NextVideo && this._host && relayed) return;
 
-    if (msg.type !== PeerMessageType.NextVideo) {
-      if (this._localVideoUrl !== this._roomVideoUrl) {
-        console.log(
-          `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
-        );
-        return;
-      }
+    if (
+      this._localVideoUrl !== this._roomVideoUrl &&
+      (msg.type === PeerMessageType.Pause ||
+        msg.type === PeerMessageType.Play ||
+        msg.type === PeerMessageType.Seek)
+    ) {
+      console.log(
+        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+      );
+      return;
     }
 
     const msgJson = JSON.stringify(msg);
@@ -436,9 +478,10 @@ export class WebRTCManager {
   public sendNextVideoMessage(msg: PeerNextVideoMessage) {
     if (this._host) {
       this.updateRoomVideoUrl(msg.url);
+      this._messageManager.resetPeerReadiness();
       const stampedMsg = { ...msg, fromHost: true };
       this.broadcastPeerMessage(stampedMsg, false);
-      // TODO: Wait for peer acks
+      this._messageManager.nextVideoAck(msg.url, true);
     } else {
       const stampedMsg = { ...msg, fromHost: false };
       const msgJson = JSON.stringify(stampedMsg);
@@ -471,10 +514,11 @@ export class WebRTCManager {
 
   public updateLocalVideoUrl(url: string) {
     this._localVideoUrl = url;
+
     if (this._localVideoUrl === this._roomVideoUrl) {
-      // TODO: Acknowledge to host that peer is ready
+      this._messageManager.nextVideoAck(url, this._host);
     } else {
-      // TODO: Notify host that peer is no longer ready
+      this._messageManager.nextVideoNack(url, this._host);
     }
   }
 }

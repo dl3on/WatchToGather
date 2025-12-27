@@ -1,7 +1,10 @@
 import {
   PeerMessage,
   PeerMessageType,
+  PeerNextVideoAckMessage,
   PeerNextVideoMessage,
+  PeerNextVideoNackMessage,
+  PeerReadyStateMessage,
   PeerTimeMessage,
 } from "../../common/sync-messages-types";
 import { forwardRemotePeerMsg, notifyNextVideo } from "./chrome";
@@ -12,9 +15,11 @@ export class MessageManager {
   _peerId: string;
   _webrtcManager!: WebRTCManager;
   _seenMessages: Set<string>;
+  _peerReadinessMap: Record<string, boolean>;
   constructor(peerId: string) {
     this._peerId = peerId;
     this._seenMessages = new Set();
+    this._peerReadinessMap = {};
   }
 
   public static getInstance(peerId: string): MessageManager {
@@ -31,8 +36,36 @@ export class MessageManager {
     this._webrtcManager = wrtcm;
   }
 
+  public handleMessage(msg: PeerMessage) {
+    if (this._seenMessages.has(msg.mid)) return;
+
+    this._seenMessages.add(msg.mid);
+    if (msg.type === PeerMessageType.NextVideo) {
+      notifyNextVideo(msg);
+    } else if (msg.type === PeerMessageType.NextVideoAck) {
+      this.updatePeerReadiness(msg.fromPeerId, true);
+      console.log(`[MM] Received Ack from ${msg.fromPeerId}`);
+      // TODO: Update content script UI
+      return;
+    } else if (msg.type === PeerMessageType.NextVideoNack) {
+      this.updatePeerReadiness(msg.fromPeerId, false);
+      console.log(`[MM] Received Nack from ${msg.fromPeerId}`);
+      // TODO: Update content script UI
+      return;
+    } else if (msg.type === PeerMessageType.ReadyStateUpdate) {
+      this._peerReadinessMap = msg.readinessMap;
+      console.log(`[MM] Received Map update from host ${msg.fromPeerId}`);
+      // TODO: Update content script UI
+    } else {
+      forwardRemotePeerMsg(msg);
+    }
+
+    // Relay received msg to ensure every peer receives it
+    this._webrtcManager.broadcastPeerMessage(msg, true);
+  }
+
   // TODO: Peers send to Host and Host handles ordering & broadcasting
-  sendToAll(
+  public sendToAll(
     eventType:
       | PeerMessageType.Pause
       | PeerMessageType.Play
@@ -50,7 +83,7 @@ export class MessageManager {
     this._webrtcManager.broadcastPeerMessage(msg, false);
   }
 
-  sendNextVideo(eventType: PeerMessageType.NextVideo, url: string) {
+  public sendNextVideo(eventType: PeerMessageType.NextVideo, url: string) {
     let msg: PeerNextVideoMessage;
     msg = {
       mid: crypto.randomUUID(),
@@ -62,19 +95,62 @@ export class MessageManager {
     this._webrtcManager.sendNextVideoMessage(msg);
   }
 
-  handleMessage(msg: PeerMessage) {
-    if (this._seenMessages.has(msg.mid)) return;
-
-    this._seenMessages.add(msg.mid);
-    if (msg.type !== PeerMessageType.NextVideo) {
-      forwardRemotePeerMsg(msg);
-    } else {
-      notifyNextVideo(msg);
+  public nextVideoAck(url: string, isHost: boolean) {
+    if (isHost) {
+      this.updatePeerReadiness(this._peerId, true);
+      return;
     }
 
-    // Relay received msg to ensure every peer receives it
-    this._webrtcManager.broadcastPeerMessage(msg, true);
+    let ackMsg: PeerNextVideoAckMessage;
+    ackMsg = {
+      mid: crypto.randomUUID(),
+      fromPeerId: this._peerId,
+      type: PeerMessageType.NextVideoAck,
+      url,
+    };
+    this._webrtcManager.sendToHost(ackMsg);
   }
+
+  public nextVideoNack(url: string, isHost: boolean) {
+    if (isHost) {
+      this.updatePeerReadiness(this._peerId, false);
+      return;
+    }
+
+    let nackMsg: PeerNextVideoNackMessage;
+    nackMsg = {
+      mid: crypto.randomUUID(),
+      fromPeerId: this._peerId,
+      type: PeerMessageType.NextVideoNack,
+      url,
+    };
+    this._webrtcManager.sendToHost(nackMsg);
+  }
+
+  private updatePeerReadiness(peerId: string, isReady: boolean) {
+    // Host-only function
+    this._peerReadinessMap[peerId] = isReady;
+
+    let mapUpdateMsg: PeerReadyStateMessage;
+    mapUpdateMsg = {
+      mid: crypto.randomUUID(),
+      fromPeerId: this._peerId,
+      type: PeerMessageType.ReadyStateUpdate,
+      readinessMap: this._peerReadinessMap,
+    };
+
+    this._webrtcManager.broadcastPeerMessage(mapUpdateMsg, false);
+  }
+
+  public resetPeerReadiness() {
+    // Host-only function
+    for (const peerId in this._peerReadinessMap) {
+      this._peerReadinessMap[peerId] = false;
+    }
+  }
+
+  // TODO: handle peer leaving room
+  public deletePeerFromMap(peerId: string) {}
 
   // TODO: Implement clearing seen messages
   clearSeenMessages() {}

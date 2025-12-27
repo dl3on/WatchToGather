@@ -3,6 +3,9 @@ export enum PeerMessageType {
   Play = "play",
   Seek = "seek",
   NextVideo = "next_video",
+  NextVideoAck = "next_video_ack",
+  NextVideoNack = "next_video_nack",
+  ReadyStateUpdate = "peer_ready_state",
 }
 
 type PeerMessageBase = {
@@ -30,7 +33,27 @@ export type PeerNextVideoMessage = PeerMessageBase & {
   fromHost?: boolean;
 };
 
-export type PeerMessage = PeerTimeMessage | PeerNextVideoMessage;
+export type PeerNextVideoAckMessage = PeerMessageBase & {
+  type: PeerMessageType.NextVideoAck;
+  url: string;
+};
+
+export type PeerNextVideoNackMessage = PeerMessageBase & {
+  type: PeerMessageType.NextVideoNack;
+  url: string;
+};
+
+export type PeerReadyStateMessage = PeerMessageBase & {
+  type: PeerMessageType.ReadyStateUpdate;
+  readinessMap: Record<string, boolean>;
+};
+
+export type PeerMessage =
+  | PeerTimeMessage
+  | PeerNextVideoMessage
+  | PeerNextVideoAckMessage
+  | PeerNextVideoNackMessage
+  | PeerReadyStateMessage;
 
 export type LocalVideoEvent =
   | {
