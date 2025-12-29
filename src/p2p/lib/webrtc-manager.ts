@@ -313,7 +313,6 @@ export class WebRTCManager {
       }
     });
     dc.addEventListener("message", async (e) => {
-      console.log(`[DC] Message from ${targetPeerId}:`, e.data);
       const msg = JSON.parse(e.data);
 
       if (msg.type === "HOST_INITIAL_URL") {
@@ -348,8 +347,18 @@ export class WebRTCManager {
         !this._host
       )
         return;
+
+      if (
+        (msg.type === PeerMessageType.NextVideoAck &&
+          msg.url !== this._roomVideoUrl) ||
+        (msg.type === PeerMessageType.NextVideoNack &&
+          msg.url === this._roomVideoUrl)
+      )
+        return;
+
       if (msg.type === PeerMessageType.ReadyStateUpdate && this._host) return;
 
+      console.log(`[DC] Message from ${targetPeerId}:`, e.data);
       this._messageManager.handleMessage(msg);
     });
     dc.addEventListener("close", () => {
@@ -514,11 +523,14 @@ export class WebRTCManager {
 
   public updateLocalVideoUrl(url: string) {
     this._localVideoUrl = url;
+  }
 
+  public sendAckNack(currentUrl: string) {
     if (this._localVideoUrl === this._roomVideoUrl) {
-      this._messageManager.nextVideoAck(url, this._host);
+      this._messageManager.nextVideoAck(currentUrl, this._host);
     } else {
-      this._messageManager.nextVideoNack(url, this._host);
+      this._messageManager.nextVideoNack(currentUrl, this._host);
     }
+    console.log(`SENT ACK/NACK in webrtc with url: ${currentUrl}`);
   }
 }

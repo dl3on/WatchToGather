@@ -87,3 +87,8 @@ export type LocalUrlChange = {
   type: "LOCAL_URL_CHANGE";
   url: string;
 };
+
+export type NotifyAckNack = {
+  type: "ACK_OR_NACK";
+  url: string;
+};

@@ -1,7 +1,7 @@
-import { saveRoomUrl } from "../common/chrome-storage";
 import {
   LocalUrlChange,
   LocalVideoEvent,
+  NotifyAckNack,
   PeerMessageType,
 } from "../common/sync-messages-types";
 import { ChromeMsg } from "../common/types";
@@ -10,7 +10,7 @@ import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";
 
 chrome.runtime.onMessage.addListener(
-  (msg: ChromeMsg | LocalVideoEvent | LocalUrlChange) => {
+  (msg: ChromeMsg | LocalVideoEvent | LocalUrlChange | NotifyAckNack) => {
     if (isChromeMsg(msg)) {
       const { type, id, email } = msg;
 
@@ -71,6 +71,12 @@ chrome.runtime.onMessage.addListener(
       if (!webrtc) return;
 
       webrtc.updateLocalVideoUrl(msg.url);
+    } else if (msg.type === "ACK_OR_NACK") {
+      const signalManager = SignalManager.getInstance();
+      const webrtc = signalManager && WebRTCManager.getInstance(signalManager);
+      if (!webrtc) return;
+
+      webrtc.sendAckNack(msg.url);
     }
   }
 );

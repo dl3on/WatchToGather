@@ -82,3 +82,7 @@ export function sendHostLinkCompleteMsg() {
 export function sendLocalUrlChangeMsg(url: string) {
   sendChromeMsg({ type: "LOCAL_URL_CHANGE", url });
 }
+
+export function sendAckNackMsg(url: string) {
+  sendChromeMsg({ type: "ACK_OR_NACK", url });
+}
