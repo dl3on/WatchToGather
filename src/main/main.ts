@@ -4,8 +4,9 @@ import {
 } from "../common/sync-messages-types";
 import { getVC, startVideoController } from "./lib/vc-handler";
 import { showNextVideoNotif } from "./ui/notifications/next-video";
+import { updateParticipantsList } from "./ui/participants/participants-list";
 
-console.log("CONTENT SCRIPT LOADED");
+console.log("[WatchToGather] Ready to use");
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "PREPARE_VC") {
@@ -13,15 +14,16 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 
   if (msg.type === "VIDEO_ACTIONS") {
-    console.log("[CONTENT SCRIPT]", msg);
     const vc = getVC();
     if (vc) vc.onRemoteEvent(msg.payload);
   }
 
   if (isPeerNextVideoMessage(msg)) {
-    console.log("[CS: Next Video]", msg);
     showNextVideoNotif(msg);
-    // TODO: host tracks peer ready state
+  }
+
+  if (msg.type === "READINESS_UPDATE") {
+    updateParticipantsList(msg.readinessMap);
   }
 });
 

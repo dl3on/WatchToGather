@@ -7,7 +7,11 @@ import {
   PeerReadyStateMessage,
   PeerTimeMessage,
 } from "../../common/sync-messages-types";
-import { forwardRemotePeerMsg, notifyNextVideo } from "./chrome";
+import {
+  forwardRemotePeerMsg,
+  notifyNextVideo,
+  updatePeerReadinessUI,
+} from "./chrome";
 import type { WebRTCManager } from "./webrtc-manager";
 
 export class MessageManager {
@@ -32,8 +36,12 @@ export class MessageManager {
     }
   }
 
-  setWebRTCManager(wrtcm: WebRTCManager) {
+  public setWebRTCManager(wrtcm: WebRTCManager) {
     this._webrtcManager = wrtcm;
+  }
+
+  public getPeerReadinessMap(): Record<string, boolean> {
+    return this._peerReadinessMap;
   }
 
   public handleMessage(msg: PeerMessage) {
@@ -43,19 +51,17 @@ export class MessageManager {
     if (msg.type === PeerMessageType.NextVideo) {
       notifyNextVideo(msg);
     } else if (msg.type === PeerMessageType.NextVideoAck) {
-      this.updatePeerReadiness(msg.fromPeerId, true);
-      console.log(`[MM] Received Ack from ${msg.fromPeerId}`);
-      // TODO: Update content script UI
+      this.updatePeerReadinessMap(msg.fromPeerId, true);
+      console.log(`[MM] Host received Ack from ${msg.fromPeerId}`);
       return;
     } else if (msg.type === PeerMessageType.NextVideoNack) {
-      this.updatePeerReadiness(msg.fromPeerId, false);
-      console.log(`[MM] Received Nack from ${msg.fromPeerId}`);
-      // TODO: Update content script UI
+      this.updatePeerReadinessMap(msg.fromPeerId, false);
+      console.log(`[MM] Host received Nack from ${msg.fromPeerId}`);
       return;
     } else if (msg.type === PeerMessageType.ReadyStateUpdate) {
       this._peerReadinessMap = msg.readinessMap;
       console.log(`[MM] Received Map update from host ${msg.fromPeerId}`);
-      // TODO: Update content script UI
+      updatePeerReadinessUI(this.getPeerReadinessMap());
     } else {
       forwardRemotePeerMsg(msg);
     }
@@ -97,7 +103,7 @@ export class MessageManager {
 
   public nextVideoAck(url: string, isHost: boolean) {
     if (isHost) {
-      this.updatePeerReadiness(this._peerId, true);
+      this.updatePeerReadinessMap(this._peerId, true);
       return;
     }
 
@@ -113,7 +119,7 @@ export class MessageManager {
 
   public nextVideoNack(url: string, isHost: boolean) {
     if (isHost) {
-      this.updatePeerReadiness(this._peerId, false);
+      this.updatePeerReadinessMap(this._peerId, false);
       return;
     }
 
@@ -127,9 +133,10 @@ export class MessageManager {
     this._webrtcManager.sendToHost(nackMsg);
   }
 
-  private updatePeerReadiness(peerId: string, isReady: boolean) {
+  private updatePeerReadinessMap(peerId: string, isReady: boolean) {
     // Host-only function
     this._peerReadinessMap[peerId] = isReady;
+    updatePeerReadinessUI(this.getPeerReadinessMap());
 
     let mapUpdateMsg: PeerReadyStateMessage;
     mapUpdateMsg = {

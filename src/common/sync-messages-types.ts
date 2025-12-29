@@ -92,3 +92,8 @@ export type NotifyAckNack = {
   type: "ACK_OR_NACK";
   url: string;
 };
+
+export type ReadinessUIUpdate = {
+  type: "READINESS_UPDATE";
+  readinessMap: Record<string, boolean>;
+};

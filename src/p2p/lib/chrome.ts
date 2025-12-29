@@ -3,6 +3,7 @@ import {
   LocalVideoEvent,
   PeerNextVideoMessage,
   PeerTimeMessage,
+  ReadinessUIUpdate,
   VCActions,
 } from "../../common/sync-messages-types";
 
@@ -85,4 +86,17 @@ export function sendLocalUrlChangeMsg(url: string) {
 
 export function sendAckNackMsg(url: string) {
   sendChromeMsg({ type: "ACK_OR_NACK", url });
+}
+
+/** Offscreen -> Background */
+export function updatePeerReadinessUI(readinessMap: Record<string, boolean>) {
+  sendChromeMsg({ type: "READINESS_UPDATE", readinessMap });
+}
+
+/** Background -> Content Script */
+export function forwardUpdatePeerReadinessMsg(
+  tabId: number,
+  msg: ReadinessUIUpdate
+) {
+  sendTabMsg(tabId, msg);
 }

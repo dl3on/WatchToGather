@@ -4,6 +4,7 @@ import {
 } from "../common/sync-messages-types";
 import {
   forwardNotifyNextVideo,
+  forwardUpdatePeerReadinessMsg,
   forwardVideoActionsMsg,
   sendAckNackMsg,
   sendJoinSuccessMsg,
@@ -135,6 +136,15 @@ async function init() {
     if (isPeerNextVideoMessage(msg)) {
       if (controlledTabId !== null) {
         forwardNotifyNextVideo(controlledTabId, msg);
+      } else {
+        console.log("[ERROR] No tab registered");
+      }
+      return;
+    }
+
+    if (msg.type === "READINESS_UPDATE") {
+      if (controlledTabId !== null) {
+        forwardUpdatePeerReadinessMsg(controlledTabId, msg);
       } else {
         console.log("[ERROR] No tab registered");
       }
