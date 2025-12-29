@@ -5,6 +5,7 @@ import {
 import {
   forwardNotifyNextVideo,
   forwardVideoActionsMsg,
+  sendAckNackMsg,
   sendJoinSuccessMsg,
   sendLocalUrlChangeMsg,
   sendPrepareVcMsg,
@@ -29,6 +30,8 @@ async function ensureOffscreen() {
 
 async function init() {
   await ensureOffscreen();
+
+  let sendTimeout: NodeJS.Timeout | null = null;
 
   let cachedRoomDetails: {
     roomName: string;
@@ -80,15 +83,33 @@ async function init() {
     }
 
     if (msg.type === "VC_STATUS") {
+      const currPendingUrl = _pendingUrlValue;
+      const currPendingChange = _pendingUrlChange;
       if (msg.success) {
-        controlledTabId = pendingTabId;
+        if (controlledTabId !== pendingTabId) {
+          controlledTabId = pendingTabId;
+        }
         _vcReady = true;
 
-        maybeSendNextVideo();
+        // Only send message after video controller is ready
+        if (currPendingUrl) {
+          sendAckNackMsg(currPendingUrl);
+          if (currPendingChange) maybeSendNextVideo(currPendingUrl);
+          else _pendingUrlValue = null;
+        }
+
         saveState();
         return;
       } else {
         _vcReady = false;
+
+        // Only send message after video controller is ready
+        if (currPendingUrl) {
+          sendAckNackMsg(currPendingUrl);
+          _pendingUrlChange = false;
+          _pendingUrlValue = null;
+        }
+
         return;
       }
     }
@@ -124,6 +145,12 @@ async function init() {
   chrome.tabs.onRemoved.addListener((tabId) => {
     if (tabId === controlledTabId) {
       controlledTabId = null;
+
+      if (sendTimeout) {
+        clearTimeout(sendTimeout);
+        sendTimeout = null;
+      }
+
       saveState();
     }
   });
@@ -131,7 +158,7 @@ async function init() {
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (tabId === controlledTabId) {
       if (changeInfo.url) onUrlChange(changeInfo.url);
-      if (changeInfo.status === "complete") registerActiveTab();
+      if (changeInfo.status === "complete") sendPrepareVcMsg(controlledTabId);
     }
   });
 
@@ -147,15 +174,21 @@ async function init() {
 
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0]?.id;
+      const tabUrl = tabs[0]?.url;
       if (!tabId) {
         console.log("No active tab to register");
         return;
       }
+      if (!tabUrl) {
+        console.log("No URL found");
+        return;
+      }
 
       console.log("Validating current tab:", tabId);
-      sendPrepareVcMsg(tabId);
-      sendLocalUrlChangeMsg(tabs[0]?.url ?? "");
       pendingTabId = tabId;
+      _pendingUrlValue = tabUrl;
+      sendPrepareVcMsg(tabId);
+      sendLocalUrlChangeMsg(tabUrl);
     });
   }
 
@@ -163,27 +196,56 @@ async function init() {
     if (newUrl !== lastObservedUrl) {
       sendLocalUrlChangeMsg(newUrl);
       lastObservedUrl = newUrl;
-      _pendingUrlChange = true;
-      _pendingUrlValue = newUrl;
-      maybeSendNextVideo();
+      const currentProcessingUrl = newUrl;
+
+      if (sendTimeout) {
+        clearTimeout(sendTimeout);
+        sendTimeout = null;
+      }
+
+      // Debounce: Filter out quick navigations
+      sendTimeout = setTimeout(() => {
+        if (
+          (_pendingUrlValue && _pendingUrlValue !== currentProcessingUrl) ||
+          !controlledTabId
+        ) {
+          console.log(
+            `[BG] DROPPED URLCHANGE sendTImeout ${_pendingUrlValue} !== ${currentProcessingUrl}
+            }`
+          );
+          return;
+        }
+
+        // Always check if new url has video element first
+        _pendingUrlChange = true;
+        _pendingUrlValue = newUrl;
+        _vcReady = false;
+        // maybeSendNextVideo();
+        sendPrepareVcMsg(controlledTabId);
+        console.log("[BG] Sent prepare vc msg after debounce timer");
+      }, 500);
     }
   }
 
-  async function maybeSendNextVideo() {
-    if (!_pendingUrlChange || !_vcReady || !_pendingUrlValue) return;
+  async function maybeSendNextVideo(pendingUrl: string) {
+    const shouldSend = _pendingUrlChange && _vcReady && pendingUrl;
+    if (!shouldSend) return;
 
     const room = await loadRoomUrl();
     const roomUrl = room?.url ?? "";
 
+    // Double check in case the current url is invalid, or has a new value, or same as room url
     if (_pendingUrlValue === roomUrl) {
       _pendingUrlChange = false;
       _pendingUrlValue = null;
       return;
     }
 
+    if (!_vcReady || _pendingUrlValue !== pendingUrl) return;
+
     sendVCMsg({
       type: PeerMessageType.NextVideo,
-      url: _pendingUrlValue,
+      url: pendingUrl,
     });
 
     _pendingUrlChange = false;
