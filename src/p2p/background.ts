@@ -11,6 +11,7 @@ import {
   sendLocalUrlChangeMsg,
   sendPrepareVcMsg,
   sendVCMsg,
+  showVideoStatusNotification,
 } from "./lib/chrome";
 import {
   loadRoomUrl,
@@ -33,6 +34,7 @@ async function init() {
   await ensureOffscreen();
 
   let sendTimeout: NodeJS.Timeout | null = null;
+  // let clearPendingFlagsTimeout: NodeJS.Timeout | null = null;
 
   let cachedRoomDetails: {
     roomName: string;
@@ -40,19 +42,72 @@ async function init() {
   } | null = null;
 
   let controlledTabId: number | null = null;
+  let controlledFrameId: number | undefined = undefined;
   let pendingTabId: number | null = null;
   let isInRoom = false;
 
   let _pendingUrlChange = false;
   let _pendingUrlValue: string | null = null;
-  let _vcReady = false;
   let lastObservedUrl = location.href;
+
+  let _vcReady = false;
+  let hasReceivedVCSuccess = false;
+  let pendingVCReplies = 0;
 
   const data = await loadVCStates();
   controlledTabId = data.controlledTabId;
   isInRoom = data.isInRoom;
 
-  chrome.runtime.onMessage.addListener((msg) => {
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    // Cross-origin iframes
+    if (msg.type === "INJECT_INTO_IFRAME") {
+      console.log("[BG] INJECTION REQUESTED");
+      pendingVCReplies++;
+
+      const tabId = controlledTabId ?? sender.tab?.id;
+
+      if (!tabId) {
+        sendResponse({ success: false, reason: "No tab ID" });
+        return true;
+      }
+
+      chrome.webNavigation.getAllFrames({ tabId }, (frames) => {
+        const targetFrame = frames?.find(
+          (f) =>
+            f.url === msg.iframeSrc ||
+            (f.parentFrameId === sender.frameId &&
+              f.url.includes(msg.iframeSrc))
+        );
+
+        if (!targetFrame) {
+          sendResponse({ success: false, reason: "Frame not found" });
+          return;
+        }
+
+        chrome.scripting
+          .executeScript({
+            target: {
+              tabId,
+              frameIds: [targetFrame.frameId],
+            },
+            files: ["content/main.js"],
+          })
+          .then(() => {
+            sendPrepareVcMsg(tabId, targetFrame.frameId);
+            sendResponse({ success: true, frameId: targetFrame.frameId });
+          })
+          .catch((err) => {
+            sendResponse({
+              success: false,
+              reason: "Script injection failed",
+              error: err.message,
+            });
+          });
+      });
+
+      return true;
+    }
+
     if (msg.type === "IN_ROOM") {
       isInRoom = true;
 
@@ -86,30 +141,49 @@ async function init() {
     if (msg.type === "VC_STATUS") {
       const currPendingUrl = _pendingUrlValue;
       const currPendingChange = _pendingUrlChange;
+      const frameId = sender.frameId;
+      pendingVCReplies--;
+
       if (msg.success) {
-        if (controlledTabId !== pendingTabId) {
-          controlledTabId = pendingTabId;
-        }
-        _vcReady = true;
+        if (sender.tab?.id === pendingTabId) {
+          // if (clearPendingFlagsTimeout) {
+          //   clearTimeout(clearPendingFlagsTimeout);
+          //   clearPendingFlagsTimeout = null;
+          // }
 
-        // Only send message after video controller is ready
-        if (currPendingUrl) {
-          sendAckNackMsg(currPendingUrl);
-          if (currPendingChange) maybeSendNextVideo(currPendingUrl);
-          else _pendingUrlValue = null;
-        }
+          console.log("[BG] VC SUCCESS");
+          _vcReady = true;
+          hasReceivedVCSuccess = true;
 
-        saveState();
+          if (controlledTabId !== pendingTabId) {
+            controlledTabId = pendingTabId;
+            pendingTabId = null;
+          }
+
+          if (frameId) controlledFrameId = frameId; // TODO: multiple frames may have video
+
+          // Only send message after video controller is ready
+          if (currPendingUrl) {
+            sendAckNackMsg(currPendingUrl);
+            console.log(`[BG] sent AckNackMsg w url: ${currPendingUrl}`);
+            if (currPendingChange) maybeSendNextVideo(currPendingUrl);
+            else _pendingUrlValue = null;
+          }
+
+          saveState();
+          showVideoStatusNotification(true);
+        }
         return;
       } else {
-        _vcReady = false;
-
         // Only send message after video controller is ready
-        if (currPendingUrl) {
+        if (currPendingUrl && !hasReceivedVCSuccess) {
+          console.log("[BG] VC FAIL");
           sendAckNackMsg(currPendingUrl);
-          _pendingUrlChange = false;
-          _pendingUrlValue = null;
         }
+
+        // Notify registration failure
+        if (!controlledTabId && pendingVCReplies <= 0)
+          showVideoStatusNotification(false);
 
         return;
       }
@@ -124,9 +198,11 @@ async function init() {
       return;
     }
 
+    /* Background -> Content Script */
+
     if (msg.type === "VIDEO_ACTIONS") {
       if (controlledTabId !== null) {
-        forwardVideoActionsMsg(controlledTabId, msg);
+        forwardVideoActionsMsg(controlledTabId, msg, controlledFrameId);
       } else {
         console.log("[ERROR] No tab registered");
       }
@@ -135,7 +211,7 @@ async function init() {
 
     if (isPeerNextVideoMessage(msg)) {
       if (controlledTabId !== null) {
-        forwardNotifyNextVideo(controlledTabId, msg);
+        forwardNotifyNextVideo(controlledTabId, msg, 0); // Main frame only
       } else {
         console.log("[ERROR] No tab registered");
       }
@@ -144,7 +220,8 @@ async function init() {
 
     if (msg.type === "READINESS_UPDATE") {
       if (controlledTabId !== null) {
-        forwardUpdatePeerReadinessMsg(controlledTabId, msg);
+        console.log("[BG] Received readiness update");
+        forwardUpdatePeerReadinessMsg(controlledTabId, msg, 0); // Main frame only
       } else {
         console.log("[ERROR] No tab registered");
       }
@@ -168,7 +245,8 @@ async function init() {
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (tabId === controlledTabId) {
       if (changeInfo.url) onUrlChange(changeInfo.url);
-      if (changeInfo.status === "complete") sendPrepareVcMsg(controlledTabId);
+      if (changeInfo.status === "complete")
+        sendPrepareVcMsg(controlledTabId, controlledFrameId);
     }
   });
 
@@ -229,16 +307,38 @@ async function init() {
         // Always check if new url has video element first
         _pendingUrlChange = true;
         _pendingUrlValue = newUrl;
+        console.log(
+          `[BG] CHANGED _pendingUrlValue: ${_pendingUrlValue} -> ${newUrl}`
+        );
+        controlledFrameId = undefined;
         _vcReady = false;
-        // maybeSendNextVideo();
+        hasReceivedVCSuccess = false;
+
         sendPrepareVcMsg(controlledTabId);
-        console.log("[BG] Sent prepare vc msg after debounce timer");
+
+        // clearPendingFlagsTimeout = setTimeout(() => {
+        //   if (_pendingUrlChange && _pendingUrlValue === newUrl) {
+        //     console.log("[BG] No video found after 10s");
+
+        //     // Clean up if no VC success received
+        //     if (!hasReceivedVCSuccess && _pendingUrlValue) {
+        //       _vcReady = false;
+        //       _pendingUrlChange = false;
+        //       _pendingUrlValue = null;
+        //       showVideoStatusNotification(false);
+        //     }
+        //   }
+        //   clearPendingFlagsTimeout = null;
+        // }, 10000);
       }, 500);
     }
   }
 
   async function maybeSendNextVideo(pendingUrl: string) {
     const shouldSend = _pendingUrlChange && _vcReady && pendingUrl;
+    console.log(
+      `[BG] shouldsend values: ${_pendingUrlChange} ${_vcReady} ${pendingUrl}`
+    );
     if (!shouldSend) return;
 
     const room = await loadRoomUrl();
@@ -246,6 +346,9 @@ async function init() {
 
     // Double check in case the current url is invalid, or has a new value, or same as room url
     if (_pendingUrlValue === roomUrl) {
+      console.log(
+        `[BG] Dropped sendnextvideo ${_pendingUrlValue} === ${roomUrl}`
+      );
       _pendingUrlChange = false;
       _pendingUrlValue = null;
       return;

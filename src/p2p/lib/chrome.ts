@@ -48,21 +48,26 @@ export function notifyNextVideo(msg: PeerNextVideoMessage) {
   sendChromeMsg(msg);
 }
 
-export function sendPrepareVcMsg(tabId: number) {
-  sendTabMsg(tabId, { type: "PREPARE_VC" });
+export function sendPrepareVcMsg(tabId: number, frameId?: number) {
+  sendTabMsg(tabId, { type: "PREPARE_VC" }, frameId);
 }
 
 /** Forward PeerTimeMessage to Content Script */
-export function forwardVideoActionsMsg(tabId: number, msg: VCActions) {
-  sendTabMsg(tabId, msg);
+export function forwardVideoActionsMsg(
+  tabId: number,
+  msg: VCActions,
+  frameId?: number
+) {
+  sendTabMsg(tabId, msg, frameId);
 }
 
 /** Forward PeerNextVideoMessage to Content Script */
 export function forwardNotifyNextVideo(
   tabId: number,
-  msg: PeerNextVideoMessage
+  msg: PeerNextVideoMessage,
+  frameId?: number
 ) {
-  sendTabMsg(tabId, msg);
+  sendTabMsg(tabId, msg, frameId);
 }
 
 /** Background -> Offscreen */
@@ -96,7 +101,26 @@ export function updatePeerReadinessUI(readinessMap: Record<string, boolean>) {
 /** Background -> Content Script */
 export function forwardUpdatePeerReadinessMsg(
   tabId: number,
-  msg: ReadinessUIUpdate
+  msg: ReadinessUIUpdate,
+  frameId?: number
 ) {
-  sendTabMsg(tabId, msg);
+  sendTabMsg(tabId, msg, frameId);
+}
+
+export function showVideoStatusNotification(success: boolean) {
+  const title = "WatchToGather";
+  const message = success
+    ? "Video ready to watch!"
+    : "[Video not found] Ensure video exists and keep the tab active. Please try again.";
+
+  const iconUrl = chrome.runtime.getURL("evadr.jpg");
+
+  chrome.notifications.create({
+    type: "basic",
+    iconUrl: iconUrl,
+    title,
+    message,
+    priority: 2,
+    requireInteraction: false,
+  });
 }

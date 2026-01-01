@@ -8,6 +8,8 @@ import { updateParticipantsList } from "./ui/participants/participants-list";
 
 console.log("[WatchToGather] Ready to use");
 
+const isMainFrame = window.self === window.top;
+
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "PREPARE_VC") {
     startVideoController();
@@ -18,12 +20,17 @@ chrome.runtime.onMessage.addListener((msg) => {
     if (vc) vc.onRemoteEvent(msg.payload);
   }
 
-  if (isPeerNextVideoMessage(msg)) {
-    showNextVideoNotif(msg);
-  }
+  // TODO: only show UI in main frame, remove duplicates in iframes.
+  if (isMainFrame) {
+    if (isPeerNextVideoMessage(msg)) {
+      showNextVideoNotif(msg);
+    }
 
-  if (msg.type === "READINESS_UPDATE") {
-    updateParticipantsList(msg.readinessMap);
+    if (msg.type === "READINESS_UPDATE") {
+      updateParticipantsList(msg.readinessMap);
+    }
+  } else {
+    console.log("[Iframe] Dropping UI-related messages");
   }
 });
 
