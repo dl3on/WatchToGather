@@ -34,7 +34,6 @@ async function init() {
   await ensureOffscreen();
 
   let sendTimeout: NodeJS.Timeout | null = null;
-  // let clearPendingFlagsTimeout: NodeJS.Timeout | null = null;
 
   let cachedRoomDetails: {
     roomName: string;
@@ -93,6 +92,7 @@ async function init() {
             files: ["content/main.js"],
           })
           .then(() => {
+            console.log(`[BG] INJECTED TO FRAME ${targetFrame.frameId}`);
             sendPrepareVcMsg(tabId, targetFrame.frameId);
             sendResponse({ success: true, frameId: targetFrame.frameId });
           })
@@ -145,17 +145,20 @@ async function init() {
       pendingVCReplies--;
 
       if (msg.success) {
-        if (sender.tab?.id === pendingTabId) {
-          // if (clearPendingFlagsTimeout) {
-          //   clearTimeout(clearPendingFlagsTimeout);
-          //   clearPendingFlagsTimeout = null;
-          // }
+        const senderTabId = sender.tab?.id;
+        if (!senderTabId) {
+          console.error(
+            `[BG] Ignoring VC_STATUS message from unidentified sender`
+          );
+          return;
+        }
 
-          console.log("[BG] VC SUCCESS");
+        if (senderTabId === pendingTabId || senderTabId === controlledTabId) {
+          console.log(`[BG] VC SUCCESS from iframe ${sender.frameId}`);
           _vcReady = true;
           hasReceivedVCSuccess = true;
 
-          if (controlledTabId !== pendingTabId) {
+          if (pendingTabId && controlledTabId !== pendingTabId) {
             controlledTabId = pendingTabId;
             pendingTabId = null;
           }
@@ -173,11 +176,12 @@ async function init() {
           saveState();
           showVideoStatusNotification(true);
         }
+
         return;
       } else {
         // Only send message after video controller is ready
         if (currPendingUrl && !hasReceivedVCSuccess) {
-          console.log("[BG] VC FAIL");
+          console.log(`[BG] VC FAIL from iframe ${sender.frameId}`);
           sendAckNackMsg(currPendingUrl);
         }
 
@@ -245,8 +249,10 @@ async function init() {
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
     if (tabId === controlledTabId) {
       if (changeInfo.url) onUrlChange(changeInfo.url);
-      if (changeInfo.status === "complete")
+      if (changeInfo.status === "complete") {
+        console.log(`[BG] CALLED PREPARE VC FROM STATUS COMPLETE`);
         sendPrepareVcMsg(controlledTabId, controlledFrameId);
+      }
     }
   });
 
@@ -293,6 +299,10 @@ async function init() {
 
       // Debounce: Filter out quick navigations
       sendTimeout = setTimeout(() => {
+        console.log(
+          `[BG] URLCHANGE sendTImeout ${_pendingUrlValue} !== ${currentProcessingUrl}
+            }`
+        );
         if (
           (_pendingUrlValue && _pendingUrlValue !== currentProcessingUrl) ||
           !controlledTabId
@@ -314,22 +324,8 @@ async function init() {
         _vcReady = false;
         hasReceivedVCSuccess = false;
 
+        console.log(`[BG] CALLED PREPARE VC FROM ONURLCHANGE`);
         sendPrepareVcMsg(controlledTabId);
-
-        // clearPendingFlagsTimeout = setTimeout(() => {
-        //   if (_pendingUrlChange && _pendingUrlValue === newUrl) {
-        //     console.log("[BG] No video found after 10s");
-
-        //     // Clean up if no VC success received
-        //     if (!hasReceivedVCSuccess && _pendingUrlValue) {
-        //       _vcReady = false;
-        //       _pendingUrlChange = false;
-        //       _pendingUrlValue = null;
-        //       showVideoStatusNotification(false);
-        //     }
-        //   }
-        //   clearPendingFlagsTimeout = null;
-        // }, 10000);
       }, 500);
     }
   }
