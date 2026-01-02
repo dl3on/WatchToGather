@@ -1,14 +1,34 @@
 import {
+  loadReadinessMap,
+  loadVCStates,
+  saveReadinessMap,
+} from "../common/chrome-storage";
+import {
   PeerMessageType,
   PeerNextVideoMessage,
 } from "../common/sync-messages-types";
 import { getVC, startVideoController } from "./lib/vc-handler";
 import { showNextVideoNotif } from "./ui/notifications/next-video";
-import { updateParticipantsList } from "./ui/participants/participants-list";
+import {
+  removeParticipantsList,
+  updateParticipantsList,
+} from "./ui/participants/participants-list";
 
 console.log("[WatchToGather] Ready to use");
 
 const isMainFrame = window.self === window.top;
+
+if (isMainFrame) {
+  loadVCStates().then(({ isInRoom }) => {
+    if (isInRoom) {
+      loadReadinessMap().then((cachedMap) => {
+        if (cachedMap) updateParticipantsList(cachedMap);
+      });
+    } else {
+      removeParticipantsList();
+    }
+  });
+}
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "PREPARE_VC") {
@@ -20,7 +40,6 @@ chrome.runtime.onMessage.addListener((msg) => {
     if (vc) vc.onRemoteEvent(msg.payload);
   }
 
-  // TODO: only show UI in main frame, remove duplicates in iframes.
   if (isMainFrame) {
     if (isPeerNextVideoMessage(msg)) {
       showNextVideoNotif(msg);
@@ -28,6 +47,11 @@ chrome.runtime.onMessage.addListener((msg) => {
 
     if (msg.type === "READINESS_UPDATE") {
       updateParticipantsList(msg.readinessMap);
+      saveReadinessMap(msg.readinessMap);
+    }
+
+    if (msg.type === "LEFT_ROOM") {
+      removeParticipantsList();
     }
   } else {
     console.log("[Iframe] Dropping UI-related messages");

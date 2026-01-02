@@ -58,4 +58,16 @@ export function loadVCStates(): Promise<{
   });
 }
 
+export function saveReadinessMap(peerReadinessMap: Record<string, boolean>) {
+  chrome.storage.local.set({ peerReadinessMap });
+}
+
+export function loadReadinessMap(): Promise<Record<string, boolean> | null> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("peerReadinessMap", (res) => {
+      resolve(res.peerReadinessMap ?? null);
+    });
+  });
+}
+
 // TODO: clear other storages

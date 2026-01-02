@@ -84,7 +84,7 @@ function getParticipantsListContainer() {
         container!.style.minWidth = "220px";
       } else {
         title.style.display = "none";
-        toggleBtn.textContent = "Participants";
+        toggleBtn.textContent = "Show Participants";
         divider.style.display = "none";
         list.style.display = "none";
         container!.style.padding = CLOSED_PADDING;
@@ -159,4 +159,11 @@ export function updateParticipantsList(readinessMap: Record<string, boolean>) {
   for (const row of rows.values()) {
     row.remove();
   }
+}
+
+export function removeParticipantsList() {
+  let container = document.getElementById(
+    "watchtogather-participants-list-container"
+  );
+  if (container) container.remove();
 }
