@@ -48,15 +48,3 @@ export function waitForHostSuccess(): Promise<{ roomId: string }> {
 export function registerCurrentTab() {
   sendChromeMsg({ type: "REGISTER_TAB" });
 }
-
-export function registerTabListener() {
-  chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.type === "VC_STATUS") {
-      if (msg.success === false)
-        alert(
-          "[WatchToGather] Failed to register tab. Please ensure the tab has a video element and keep the tab active."
-        );
-      else alert("[WatchToGather] Register success!");
-    }
-  });
-}

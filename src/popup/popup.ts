@@ -7,7 +7,6 @@ import {
 } from "../common/chrome-storage";
 import { isValidUrl } from "../common/utils";
 import {
-  registerTabListener,
   sendHostMsg,
   sendJoinMsg,
   waitForHostSuccess,
@@ -42,7 +41,7 @@ const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 const roomData = await loadRoomDetails();
 const url = (await loadRoomUrl())?.url || "";
 const { controlledTabId } = await loadVCStates();
-console.log("room url: ", url);
+
 if (roomData) {
   const { roomId, roomName, participantsCount, host } = roomData;
   updateUIForRoom(
@@ -56,8 +55,6 @@ if (roomData) {
 } else {
   renderInitialView();
 }
-
-registerTabListener();
 
 // Create Room
 confirmCreateBtn.addEventListener("click", async () => {
