@@ -1,6 +1,6 @@
 import {
+  getIsInRoom,
   loadReadinessMap,
-  loadVCStates,
   saveReadinessMap,
 } from "../common/chrome-storage";
 import {
@@ -19,7 +19,7 @@ console.log("[WatchToGather] Ready to use");
 const isMainFrame = window.self === window.top;
 
 if (isMainFrame) {
-  loadVCStates().then(({ isInRoom }) => {
+  getIsInRoom().then((isInRoom) => {
     if (isInRoom) {
       loadReadinessMap().then((cachedMap) => {
         if (cachedMap) updateParticipantsList(cachedMap);

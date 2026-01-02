@@ -29,7 +29,8 @@ export async function validateControlledTabId(
   try {
     await chrome.tabs.get(tabId);
     return tabId;
-  } catch {
+  } catch (e) {
+    console.log(`Tab ID ${tabId}: ${e}`);
     return null;
   }
 }

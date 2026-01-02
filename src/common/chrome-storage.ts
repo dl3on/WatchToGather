@@ -29,31 +29,32 @@ export function loadRoomUrl(): Promise<RoomUrl | null> {
   });
 }
 
-export function saveVCStates(
-  controlledTabId: number | null,
-  isInRoom: boolean
-) {
-  chrome.storage.local.set({ controlledTabId, isInRoom });
+export function saveControlledTabId(controlledTabId: number | null) {
+  chrome.storage.local.set({ controlledTabId });
 }
 
-export function loadVCStates(): Promise<{
-  controlledTabId: number | null;
-  isInRoom: boolean;
-}> {
+export function getControlledTabId(): Promise<number | null> {
   return new Promise((resolve) => {
-    chrome.storage.local.get(["controlledTabId", "isInRoom"], async (res) => {
+    chrome.storage.local.get("controlledTabId", async (res) => {
       const validTabId = await validateControlledTabId(
         res.controlledTabId ?? null
       );
 
-      if (!validTabId) {
-        chrome.storage.local.set({ controlledTabId: null });
-      }
+      if (!validTabId) chrome.storage.local.set({ controlledTabId: null });
 
-      resolve({
-        controlledTabId: validTabId,
-        isInRoom: !!res.isInRoom,
-      });
+      resolve(validTabId);
+    });
+  });
+}
+
+export function saveIsInRoom(isInRoom: boolean) {
+  chrome.storage.local.set({ isInRoom });
+}
+
+export function getIsInRoom(): Promise<boolean> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("isInRoom", async (res) => {
+      resolve(!!res.isInRoom);
     });
   });
 }

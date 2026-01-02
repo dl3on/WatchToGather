@@ -14,10 +14,12 @@ import {
   showVideoStatusNotification,
 } from "./lib/chrome";
 import {
+  getControlledTabId,
+  getIsInRoom,
   loadRoomUrl,
-  loadVCStates,
+  saveControlledTabId,
+  saveIsInRoom,
   saveRoomUrl,
-  saveVCStates,
 } from "../common/chrome-storage";
 
 async function ensureOffscreen() {
@@ -53,9 +55,8 @@ async function init() {
   let hasReceivedVCSuccess = false;
   let pendingVCReplies = 0;
 
-  const data = await loadVCStates();
-  controlledTabId = data.controlledTabId;
-  isInRoom = data.isInRoom;
+  controlledTabId = await getControlledTabId();
+  isInRoom = await getIsInRoom();
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Cross-origin iframes
@@ -111,7 +112,7 @@ async function init() {
     if (msg.type === "IN_ROOM") {
       isInRoom = true;
 
-      saveState();
+      saveIsInRoom(isInRoom);
       return;
     }
 
@@ -161,6 +162,7 @@ async function init() {
           if (pendingTabId && controlledTabId !== pendingTabId) {
             controlledTabId = pendingTabId;
             pendingTabId = null;
+            saveControlledTabId(controlledTabId);
           }
 
           if (frameId) controlledFrameId = frameId; // TODO: multiple frames may have video
@@ -174,7 +176,6 @@ async function init() {
             else _pendingUrlValue = null;
           }
 
-          saveState();
           showVideoStatusNotification(true);
         }
 
@@ -200,7 +201,8 @@ async function init() {
       controlledTabId = null;
       isInRoom = false;
 
-      saveState();
+      saveControlledTabId(controlledTabId);
+      saveIsInRoom(isInRoom);
       return;
     }
 
@@ -244,7 +246,7 @@ async function init() {
         sendTimeout = null;
       }
 
-      saveState();
+      saveControlledTabId(controlledTabId);
     }
   });
 
@@ -252,15 +254,14 @@ async function init() {
     if (tabId === controlledTabId) {
       if (changeInfo.url) onUrlChange(changeInfo.url);
       if (changeInfo.status === "complete") {
-        console.log(`[BG] CALLED PREPARE VC FROM STATUS COMPLETE`);
+        console.log(
+          `[BG] CALLED PREPARE VC FROM STATUS COMPLETE: ctid ${controlledTabId} cfid ${controlledFrameId}`
+        );
+        // TODO: Message failed to send on tab reload for some reason
         sendPrepareVcMsg(controlledTabId, controlledFrameId);
       }
     }
   });
-
-  function saveState() {
-    saveVCStates(controlledTabId, isInRoom);
-  }
 
   /** Automatically registers current active tab
    * if it has a video element

@@ -1,7 +1,7 @@
 import {
+  getControlledTabId,
   loadRoomDetails,
   loadRoomUrl,
-  loadVCStates,
   saveRoomDetails,
   saveRoomUrl,
 } from "../common/chrome-storage";
@@ -40,7 +40,7 @@ const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
 const roomData = await loadRoomDetails();
 const url = (await loadRoomUrl())?.url || "";
-const { controlledTabId } = await loadVCStates();
+const controlledTabId = await getControlledTabId();
 
 if (roomData) {
   const { roomId, roomName, participantsCount, host } = roomData;
