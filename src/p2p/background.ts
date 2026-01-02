@@ -142,7 +142,7 @@ async function init() {
       const currPendingUrl = _pendingUrlValue;
       const currPendingChange = _pendingUrlChange;
       const frameId = sender.frameId;
-      pendingVCReplies--;
+      pendingVCReplies = Math.max(0, pendingVCReplies - 1);
 
       if (msg.success) {
         const senderTabId = sender.tab?.id;
@@ -166,6 +166,7 @@ async function init() {
           if (frameId) controlledFrameId = frameId; // TODO: multiple frames may have video
 
           // Only send message after video controller is ready
+          // Drops any outdated VC_STATUS associated to previous outdated URLs
           if (currPendingUrl) {
             sendAckNackMsg(currPendingUrl);
             console.log(`[BG] sent AckNackMsg w url: ${currPendingUrl}`);
@@ -179,15 +180,16 @@ async function init() {
 
         return;
       } else {
-        // Only send message after video controller is ready
-        if (currPendingUrl && !hasReceivedVCSuccess) {
-          console.log(`[BG] VC FAIL from iframe ${sender.frameId}`);
-          sendAckNackMsg(currPendingUrl);
-        }
+        if (pendingVCReplies <= 0 && !hasReceivedVCSuccess) {
+          // Only send message after video controller is ready
+          if (currPendingUrl) {
+            console.log(`[BG] VC FAIL from iframe ${sender.frameId}`);
+            sendAckNackMsg(currPendingUrl);
+          }
 
-        // Notify registration failure
-        if (!controlledTabId && pendingVCReplies <= 0)
-          showVideoStatusNotification(false);
+          // Notify registration failure
+          if (!controlledTabId) showVideoStatusNotification(false);
+        }
 
         return;
       }
@@ -290,51 +292,32 @@ async function init() {
     if (newUrl !== lastObservedUrl) {
       sendLocalUrlChangeMsg(newUrl);
       lastObservedUrl = newUrl;
-      const currentProcessingUrl = newUrl;
 
       if (sendTimeout) {
         clearTimeout(sendTimeout);
         sendTimeout = null;
+        _pendingUrlChange = false;
+        _pendingUrlValue = null;
+        pendingVCReplies = 0;
       }
 
       // Debounce: Filter out quick navigations
       sendTimeout = setTimeout(() => {
-        console.log(
-          `[BG] URLCHANGE sendTImeout ${_pendingUrlValue} !== ${currentProcessingUrl}
-            }`
-        );
-        if (
-          (_pendingUrlValue && _pendingUrlValue !== currentProcessingUrl) ||
-          !controlledTabId
-        ) {
-          console.log(
-            `[BG] DROPPED URLCHANGE sendTImeout ${_pendingUrlValue} !== ${currentProcessingUrl}
-            }`
-          );
-          return;
-        }
-
         // Always check if new url has video element first
         _pendingUrlChange = true;
         _pendingUrlValue = newUrl;
-        console.log(
-          `[BG] CHANGED _pendingUrlValue: ${_pendingUrlValue} -> ${newUrl}`
-        );
         controlledFrameId = undefined;
         _vcReady = false;
         hasReceivedVCSuccess = false;
 
-        console.log(`[BG] CALLED PREPARE VC FROM ONURLCHANGE`);
-        sendPrepareVcMsg(controlledTabId);
+        if (controlledTabId !== null) sendPrepareVcMsg(controlledTabId);
+        else console.log("[ERROR] No tab registered");
       }, 500);
     }
   }
 
   async function maybeSendNextVideo(pendingUrl: string) {
     const shouldSend = _pendingUrlChange && _vcReady && pendingUrl;
-    console.log(
-      `[BG] shouldsend values: ${_pendingUrlChange} ${_vcReady} ${pendingUrl}`
-    );
     if (!shouldSend) return;
 
     const room = await loadRoomUrl();

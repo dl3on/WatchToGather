@@ -39,6 +39,7 @@ function waitForVideo(onFound: (video: HTMLVideoElement) => void) {
 
   const checkIframes = () => {
     const iframes = document.querySelectorAll("iframe");
+
     for (const iframe of iframes) {
       try {
         const iframeDoc =
@@ -112,7 +113,6 @@ function observeVideoRemoval() {
       console.log("[VIDEO] Video element removed");
       currentVideo = null;
       vc = null;
-      // _vcReady = false;
       sendVCStatusMsg(false);
     }
   });

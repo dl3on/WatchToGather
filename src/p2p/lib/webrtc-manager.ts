@@ -316,7 +316,6 @@ export class WebRTCManager {
       const msg = JSON.parse(e.data);
 
       if (msg.type === "HOST_INITIAL_URL") {
-        this._log(`Received initial URL from host: ${msg.url}`);
         this.updateRoomVideoUrl(msg.url);
         sendHostLinkCompleteMsg();
         return;
@@ -526,11 +525,13 @@ export class WebRTCManager {
   }
 
   public sendAckNack(currentUrl: string) {
+    // Ignore outdated URLs
+    if (currentUrl !== this._localVideoUrl) return;
+
     if (this._localVideoUrl === this._roomVideoUrl) {
       this._messageManager.nextVideoAck(currentUrl, this._host);
     } else {
       this._messageManager.nextVideoNack(currentUrl, this._host);
     }
-    console.log(`SENT ACK/NACK in webrtc with url: ${currentUrl}`);
   }
 }
