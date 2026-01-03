@@ -51,7 +51,7 @@ function waitForVideo(onFound: (video: HTMLVideoElement) => void) {
             return true;
           }
         }
-      } catch (e) {
+      } catch (error) {
         // Cross-origin iframe
         console.log("Cross-origin iframe: injecting content script...");
         requestIframeInjection(iframe);

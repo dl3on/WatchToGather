@@ -24,7 +24,6 @@ export async function injectIntoIframe(
     });
 
     if (response?.success) {
-      console.log(`[VIDEO] Injection successful in frame ${response.frameId}`);
       return true;
     } else {
       console.log(
@@ -32,8 +31,17 @@ export async function injectIntoIframe(
       );
       return false;
     }
-  } catch (err) {
-    console.error("[VIDEO] Failed to send injection message:", err);
+  } catch (error) {
+    console.error("[VIDEO] Failed to send injection message:", error);
     return false;
+  }
+}
+
+export async function getMyTabId(): Promise<number | undefined> {
+  try {
+    const response = await sendChromeMsgWithRespone({ type: "GET_MY_TAB_ID" });
+    return response?.tabId;
+  } catch (error) {
+    console.error("[Content Script] Failed to get tab ID:", error);
   }
 }

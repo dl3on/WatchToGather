@@ -102,11 +102,11 @@ async function init() {
             sendPrepareVcMsg(tabId, targetFrame.frameId);
             sendResponse({ success: true, frameId: targetFrame.frameId });
           })
-          .catch((err) => {
+          .catch((error) => {
             sendResponse({
               success: false,
               reason: "Script injection failed",
-              error: err.message,
+              error: error.message,
             });
           });
       });
@@ -239,6 +239,11 @@ async function init() {
         console.log("[ERROR] No tab registered");
       }
       return;
+    }
+
+    if (msg.type === "GET_MY_TAB_ID") {
+      sendResponse({ tabId: sender.tab?.id });
+      return true;
     }
   });
 

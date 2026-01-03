@@ -1,4 +1,6 @@
+import { response } from "express";
 import {
+  getControlledTabId,
   getIsInRoom,
   loadReadinessMap,
   saveReadinessMap,
@@ -13,16 +15,29 @@ import {
   removeParticipantsList,
   updateParticipantsList,
 } from "./ui/participants/participants-list";
+import { getMyTabId } from "./lib/chrome";
 
 console.log("[WatchToGather] Ready to use");
 
 const isMainFrame = window.self === window.top;
 
 if (isMainFrame) {
-  getIsInRoom().then((isInRoom) => {
-    if (isInRoom) {
-      loadReadinessMap().then((cachedMap) => {
-        if (cachedMap) updateParticipantsList(cachedMap);
+  getControlledTabId().then(async (controlledTabId) => {
+    if (!controlledTabId) {
+      removeParticipantsList();
+      return;
+    }
+
+    const myTabId = await getMyTabId();
+    if (myTabId === controlledTabId) {
+      getIsInRoom().then((isInRoom) => {
+        if (isInRoom) {
+          loadReadinessMap().then((cachedMap) => {
+            if (cachedMap) updateParticipantsList(cachedMap);
+          });
+        } else {
+          removeParticipantsList();
+        }
       });
     } else {
       removeParticipantsList();
