@@ -21,6 +21,7 @@ import {
   saveIsInRoom,
   saveRoomUrl,
 } from "../common/chrome-storage";
+import { validateControlledTabId } from "../common/chrome-utils";
 
 async function ensureOffscreen() {
   if (await chrome.offscreen.hasDocument()) return;
@@ -55,7 +56,11 @@ async function init() {
   let hasReceivedVCSuccess = false;
   let pendingVCReplies = 0;
 
-  controlledTabId = await getControlledTabId();
+  controlledTabId = await getControlledTabId().then(async (pendingTabId) => {
+    const validTabId = await validateControlledTabId(pendingTabId ?? null);
+    if (!validTabId) saveControlledTabId(null);
+    return validTabId;
+  });
   isInRoom = await getIsInRoom();
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {

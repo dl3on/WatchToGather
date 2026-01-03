@@ -1,4 +1,3 @@
-import { validateControlledTabId } from "./chrome-utils";
 import { RoomDetails, RoomUrl } from "./types";
 
 export function saveRoomDetails(roomDetails: RoomDetails) {
@@ -36,13 +35,7 @@ export function saveControlledTabId(controlledTabId: number | null) {
 export function getControlledTabId(): Promise<number | null> {
   return new Promise((resolve) => {
     chrome.storage.local.get("controlledTabId", async (res) => {
-      const validTabId = await validateControlledTabId(
-        res.controlledTabId ?? null
-      );
-
-      if (!validTabId) chrome.storage.local.set({ controlledTabId: null });
-
-      resolve(validTabId);
+      resolve(res.controlledTabId);
     });
   });
 }

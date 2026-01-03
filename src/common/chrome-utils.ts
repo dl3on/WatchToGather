@@ -22,15 +22,15 @@ export async function sendTabMsg(tabId: number, msg: any, frameId?: number) {
 }
 
 export async function validateControlledTabId(
-  tabId: number
+  tabId: number | null
 ): Promise<number | null> {
   if (tabId == null) return null;
 
   try {
     await chrome.tabs.get(tabId);
     return tabId;
-  } catch (e) {
-    console.log(`Tab ID ${tabId}: ${e}`);
+  } catch (error) {
+    console.log(`Tab ID ${tabId}: ${error}`);
     return null;
   }
 }
