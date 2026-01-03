@@ -265,11 +265,7 @@ async function init() {
     if (tabId === controlledTabId) {
       if (changeInfo.url) onUrlChange(changeInfo.url);
       if (changeInfo.status === "complete") {
-        console.log(
-          `[BG] CALLED PREPARE VC FROM STATUS COMPLETE: ctid ${controlledTabId} cfid ${controlledFrameId}`
-        );
-        // TODO: Message failed to send on tab reload for some reason
-        sendPrepareVcMsg(controlledTabId, controlledFrameId);
+        sendPrepareVcMsg(controlledTabId);
       }
     }
   });
