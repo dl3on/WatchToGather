@@ -525,6 +525,12 @@ export class WebRTCManager {
   }
 
   public sendAckNack(currentUrl: string) {
+    // No URL means no controlled tab
+    if (currentUrl === "") {
+      this._messageManager.nextVideoNack(currentUrl, this._host);
+      return;
+    }
+
     // Ignore outdated URLs
     if (currentUrl !== this._localVideoUrl) return;
 

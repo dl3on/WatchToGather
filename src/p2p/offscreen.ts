@@ -68,13 +68,23 @@ chrome.runtime.onMessage.addListener(
     } else if (msg.type === "LOCAL_URL_CHANGE") {
       const signalManager = SignalManager.getInstance();
       const webrtc = signalManager && WebRTCManager.getInstance(signalManager);
-      if (!webrtc) return;
+      if (!webrtc) {
+        console.log(
+          "[WARN] Dropped Message: Received LOCAL_URL_CHANGE before initialization"
+        );
+        return;
+      }
 
       webrtc.updateLocalVideoUrl(msg.url);
     } else if (msg.type === "ACK_OR_NACK") {
       const signalManager = SignalManager.getInstance();
       const webrtc = signalManager && WebRTCManager.getInstance(signalManager);
-      if (!webrtc) return;
+      if (!webrtc) {
+        console.log(
+          "[WARN] Dropped Message: Received ACK_OR_NACK before initialization"
+        );
+        return;
+      }
 
       webrtc.sendAckNack(msg.url);
     }

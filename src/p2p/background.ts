@@ -252,6 +252,7 @@ async function init() {
       }
 
       saveControlledTabId(controlledTabId);
+      sendAckNackMsg(""); // Sends Nack
     }
   });
 
