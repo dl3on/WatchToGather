@@ -38,6 +38,7 @@ async function init() {
 
   let sendTimeout: NodeJS.Timeout | null = null;
 
+  let isInRoom = false;
   let cachedRoomDetails: {
     roomName: string;
     participantsCount: number;
@@ -46,7 +47,6 @@ async function init() {
   let controlledTabId: number | null = null;
   let controlledFrameId: number | undefined = undefined;
   let pendingTabId: number | null = null;
-  let isInRoom = false;
 
   let _pendingUrlChange = false;
   let _pendingUrlValue: string | null = null;
@@ -201,7 +201,7 @@ async function init() {
       }
     }
 
-    // TODO: clear storage instead
+    // TODO: clear storage & cachedRoomDetails & reset everything here
     if (msg.type === "LEFT_ROOM") {
       controlledTabId = null;
       isInRoom = false;
@@ -257,17 +257,17 @@ async function init() {
       }
 
       saveControlledTabId(controlledTabId);
+      resetVCStates();
       sendAckNackMsg(""); // Sends Nack
     }
   });
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
-    if (tabId === controlledTabId) {
-      if (changeInfo.url) onUrlChange(changeInfo.url);
-      if (changeInfo.status === "complete") {
-        sendPrepareVcMsg(controlledTabId);
-      }
-    }
+    if (tabId !== controlledTabId) return;
+
+    if (changeInfo.status === "loading") resetVCStates();
+    if (changeInfo.url) onUrlChange(changeInfo.url);
+    if (changeInfo.status === "complete") sendPrepareVcMsg(controlledTabId);
   });
 
   /** Automatically registers current active tab
@@ -291,6 +291,8 @@ async function init() {
       console.log("Validating current tab:", tabId);
       pendingTabId = tabId;
       _pendingUrlValue = tabUrl;
+      _pendingUrlChange = false;
+      resetVCStates();
       sendPrepareVcMsg(tabId);
       sendLocalUrlChangeMsg(tabUrl);
     });
@@ -304,22 +306,17 @@ async function init() {
       if (sendTimeout) {
         clearTimeout(sendTimeout);
         sendTimeout = null;
-        _pendingUrlChange = false;
-        _pendingUrlValue = null;
-        pendingVCReplies = 0;
       }
 
       // Debounce: Filter out quick navigations
       sendTimeout = setTimeout(() => {
         // Always check if new url has video element first
-        _pendingUrlChange = true;
-        _pendingUrlValue = newUrl;
-        controlledFrameId = undefined;
-        _vcReady = false;
-        hasReceivedVCSuccess = false;
-
-        if (controlledTabId !== null) sendPrepareVcMsg(controlledTabId);
-        else console.log("[ERROR] No tab registered");
+        if (controlledTabId !== null) {
+          _pendingUrlChange = true;
+          _pendingUrlValue = newUrl;
+          resetVCStates();
+          sendPrepareVcMsg(controlledTabId);
+        } else console.log("[ERROR] No tab registered");
       }, 500);
     }
   }
@@ -350,6 +347,13 @@ async function init() {
 
     _pendingUrlChange = false;
     _pendingUrlValue = null;
+  }
+
+  function resetVCStates() {
+    controlledFrameId = undefined;
+    _vcReady = false;
+    hasReceivedVCSuccess = false;
+    pendingVCReplies = 0;
   }
 
   function isPeerNextVideoMessage(msg: any): msg is PeerNextVideoMessage {
