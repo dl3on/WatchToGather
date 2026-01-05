@@ -48,12 +48,12 @@ async function init() {
   let controlledFrameId: number | undefined = undefined;
   let pendingTabId: number | null = null;
 
+  let navId = 0; // Identifier for navigation sessions to prevent processing stale VC_STATUS
   let _pendingUrlChange = false;
   let _pendingUrlValue: string | null = null;
   let lastObservedUrl = location.href;
 
   let _vcReady = false;
-  let hasReceivedVCSuccess = false;
   let pendingVCReplies = 0;
 
   controlledTabId = await getControlledTabId().then(async (pendingTabId) => {
@@ -99,7 +99,7 @@ async function init() {
           })
           .then(() => {
             console.log(`[BG] INJECTED TO FRAME ${targetFrame.frameId}`);
-            sendPrepareVcMsg(tabId, targetFrame.frameId);
+            sendPrepareVcMsg(tabId, navId, targetFrame.frameId);
             sendResponse({ success: true, frameId: targetFrame.frameId });
           })
           .catch((error) => {
@@ -145,6 +145,11 @@ async function init() {
     }
 
     if (msg.type === "VC_STATUS") {
+      if (msg.navId !== navId) {
+        console.log(`[BG] Dropped outdated navId: ${msg.navId} !== ${navId}`);
+        return;
+      }
+
       const currPendingUrl = _pendingUrlValue;
       const currPendingChange = _pendingUrlChange;
       const frameId = sender.frameId;
@@ -162,7 +167,6 @@ async function init() {
         if (senderTabId === pendingTabId || senderTabId === controlledTabId) {
           console.log(`[BG] VC SUCCESS from iframe ${sender.frameId}`);
           _vcReady = true;
-          hasReceivedVCSuccess = true;
 
           if (pendingTabId && controlledTabId !== pendingTabId) {
             controlledTabId = pendingTabId;
@@ -186,7 +190,7 @@ async function init() {
 
         return;
       } else {
-        if (pendingVCReplies <= 0 && !hasReceivedVCSuccess) {
+        if (pendingVCReplies <= 0 && !_vcReady) {
           // Only send message after video controller is ready
           if (currPendingUrl) {
             console.log(`[BG] VC FAIL from iframe ${sender.frameId}`);
@@ -222,6 +226,7 @@ async function init() {
       return;
     }
 
+    // TODO: reset _pendingUrl... flags here only if url matches
     if (isPeerNextVideoMessage(msg)) {
       if (controlledTabId !== null) {
         forwardNotifyNextVideo(controlledTabId, msg, 0); // Main frame only
@@ -233,7 +238,6 @@ async function init() {
 
     if (msg.type === "READINESS_UPDATE") {
       if (controlledTabId !== null) {
-        console.log("[BG] Received readiness update");
         forwardUpdatePeerReadinessMsg(controlledTabId, msg, 0); // Main frame only
       } else {
         console.log("[ERROR] No tab registered");
@@ -267,7 +271,8 @@ async function init() {
 
     if (changeInfo.status === "loading") resetVCStates();
     if (changeInfo.url) onUrlChange(changeInfo.url);
-    if (changeInfo.status === "complete") sendPrepareVcMsg(controlledTabId);
+    if (changeInfo.status === "complete")
+      sendPrepareVcMsg(controlledTabId, navId);
   });
 
   /** Automatically registers current active tab
@@ -293,7 +298,9 @@ async function init() {
       _pendingUrlValue = tabUrl;
       _pendingUrlChange = false;
       resetVCStates();
-      sendPrepareVcMsg(tabId);
+      navId++;
+      console.log(navId);
+      sendPrepareVcMsg(tabId, navId);
       sendLocalUrlChangeMsg(tabUrl);
     });
   }
@@ -310,12 +317,12 @@ async function init() {
 
       // Debounce: Filter out quick navigations
       sendTimeout = setTimeout(() => {
-        // Always check if new url has video element first
         if (controlledTabId !== null) {
           _pendingUrlChange = true;
           _pendingUrlValue = newUrl;
           resetVCStates();
-          sendPrepareVcMsg(controlledTabId);
+          navId++; // Takes precedence over the sendPrepareVcMsg() called in changeInfo "complete"
+          sendPrepareVcMsg(controlledTabId, navId);
         } else console.log("[ERROR] No tab registered");
       }, 500);
     }
@@ -352,7 +359,6 @@ async function init() {
   function resetVCStates() {
     controlledFrameId = undefined;
     _vcReady = false;
-    hasReceivedVCSuccess = false;
     pendingVCReplies = 0;
   }
 

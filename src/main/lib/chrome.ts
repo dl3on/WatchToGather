@@ -10,8 +10,8 @@ export function sendVCMsg(msg: LocalVideoEvent) {
 }
 
 /** VideoController instantiation status */
-export function sendVCStatusMsg(success: boolean) {
-  sendChromeMsg({ type: "VC_STATUS", success: success });
+export function sendVCStatusMsg(success: boolean, navId: number) {
+  sendChromeMsg({ type: "VC_STATUS", success: success, navId: navId });
 }
 
 export async function injectIntoIframe(

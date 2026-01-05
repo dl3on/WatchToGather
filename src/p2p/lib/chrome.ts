@@ -48,8 +48,12 @@ export function notifyNextVideo(msg: PeerNextVideoMessage) {
   sendChromeMsg(msg);
 }
 
-export function sendPrepareVcMsg(tabId: number, frameId?: number) {
-  sendTabMsg(tabId, { type: "PREPARE_VC" }, frameId);
+export function sendPrepareVcMsg(
+  tabId: number,
+  navId: number,
+  frameId?: number
+) {
+  sendTabMsg(tabId, { type: "PREPARE_VC", navId: navId }, frameId);
 }
 
 /** Forward PeerTimeMessage to Content Script */

@@ -4,15 +4,23 @@ import { VideoController } from "./video-controller";
 let vc: VideoController | null = null;
 let currentVideo: HTMLVideoElement | null = null;
 let videoFindTimeout: NodeJS.Timeout | null = null;
+let currentNavId = 0;
 
 export function getVC() {
   return vc;
 }
 
-export function startVideoController() {
+export function startVideoController(navId: number) {
+  currentNavId = navId;
+
   videoFindTimeout = setTimeout(() => {
+    if (navId !== currentNavId) {
+      console.warn(`[Video Finder] Dropped outdated navId: ${navId}`);
+      return;
+    }
+
     // Notify popup of failure
-    sendVCStatusMsg(false);
+    sendVCStatusMsg(false, navId);
   }, 5000);
 
   waitForVideo((video) => {
@@ -20,14 +28,14 @@ export function startVideoController() {
       clearTimeout(videoFindTimeout);
       videoFindTimeout = null;
     }
-    setupVideo(video);
+    setupVideo(video, navId);
   });
 
   observeVideoReplacements((newVideo) => {
-    setupVideo(newVideo);
+    setupVideo(newVideo, navId);
   });
 
-  observeVideoRemoval();
+  observeVideoRemoval(navId);
 }
 
 function waitForVideo(onFound: (video: HTMLVideoElement) => void) {
@@ -106,22 +114,22 @@ function observeVideoReplacements(onReplace: (v: HTMLVideoElement) => void) {
   mo.observe(document.body, { childList: true, subtree: true });
 }
 
-function observeVideoRemoval() {
+function observeVideoRemoval(navId: number) {
   const mo = new MutationObserver(() => {
     const video = document.querySelector("video") as HTMLVideoElement | null;
     if (currentVideo && !document.body.contains(currentVideo) && !video) {
       console.log("[VIDEO] Video element removed");
       currentVideo = null;
       vc = null;
-      sendVCStatusMsg(false);
+      sendVCStatusMsg(false, navId);
     }
   });
 
   mo.observe(document.body, { childList: true, subtree: true });
 }
 
-function setupVideo(video: HTMLVideoElement) {
+function setupVideo(video: HTMLVideoElement, navId: number) {
   currentVideo = video;
   vc = new VideoController(video);
-  sendVCStatusMsg(true);
+  sendVCStatusMsg(true, navId);
 }

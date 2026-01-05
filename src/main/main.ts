@@ -47,7 +47,7 @@ if (isMainFrame) {
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "PREPARE_VC") {
-    startVideoController();
+    startVideoController(msg.navId);
   }
 
   if (msg.type === "VIDEO_ACTIONS") {
