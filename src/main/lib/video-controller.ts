@@ -2,6 +2,8 @@ import { PeerMessage, PeerMessageType } from "../../common/sync-messages-types";
 import { sendVCMsg } from "./chrome";
 
 export class VideoController {
+  private _ignoreNextPause = false;
+  private _ignoreNextPlay = false;
   private _ignoreSeekCount = 0;
   _video: HTMLVideoElement;
 
@@ -27,6 +29,11 @@ export class VideoController {
   }
 
   onPause() {
+    if (this._ignoreNextPause) {
+      this._ignoreNextPause = false;
+      return;
+    }
+
     sendVCMsg({
       type: PeerMessageType.Pause,
       time: this._video.currentTime,
@@ -34,6 +41,11 @@ export class VideoController {
   }
 
   onPlay() {
+    if (this._ignoreNextPlay) {
+      this._ignoreNextPlay = false;
+      return;
+    }
+
     sendVCMsg({
       type: PeerMessageType.Play,
       time: this._video.currentTime,
@@ -54,19 +66,22 @@ export class VideoController {
   onRemoteEvent(msg: PeerMessage) {
     switch (msg.type) {
       case PeerMessageType.Pause:
-        console.log("[VC] PAUSE");
+        if (this._video.paused) return;
+
+        this._ignoreNextPause = true;
         this._video.pause();
         break;
 
       case PeerMessageType.Play:
-        console.log("[VC] PLAY");
+        if (!this._video.paused) return;
+
+        this._ignoreNextPlay = true;
         this._video.play();
         break;
 
       case PeerMessageType.Seek:
         if (Math.abs(this._video.currentTime - msg.time) < 0.3) return;
 
-        console.log("[VC] SEEK");
         this._ignoreSeekCount++;
         this._video.currentTime = msg.time;
 
