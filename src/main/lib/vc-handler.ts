@@ -129,6 +129,8 @@ function observeVideoRemoval(navId: number) {
 }
 
 function setupVideo(video: HTMLVideoElement, navId: number) {
+  if (vc) vc.destroy();
+
   currentVideo = video;
   vc = new VideoController(video);
   sendVCStatusMsg(true, navId);
