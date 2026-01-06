@@ -165,7 +165,6 @@ async function init() {
         }
 
         if (senderTabId === pendingTabId || senderTabId === controlledTabId) {
-          console.log(`[BG] VC SUCCESS from iframe ${sender.frameId}`);
           _vcReady = true;
 
           if (pendingTabId && controlledTabId !== pendingTabId) {
@@ -180,7 +179,6 @@ async function init() {
           // Drops any outdated VC_STATUS associated to previous outdated URLs
           if (currPendingUrl) {
             sendAckNackMsg(currPendingUrl);
-            console.log(`[BG] sent AckNackMsg w url: ${currPendingUrl}`);
             if (currPendingChange) maybeSendNextVideo(currPendingUrl);
             else _pendingUrlValue = null;
           }
@@ -193,7 +191,6 @@ async function init() {
         if (pendingVCReplies <= 0 && !_vcReady) {
           // Only send message after video controller is ready
           if (currPendingUrl) {
-            console.log(`[BG] VC FAIL from iframe ${sender.frameId}`);
             sendAckNackMsg(currPendingUrl);
           }
 
@@ -226,8 +223,12 @@ async function init() {
       return;
     }
 
-    // TODO: reset _pendingUrl... flags here only if url matches
     if (isPeerNextVideoMessage(msg)) {
+      if (msg.url === _pendingUrlValue) {
+        _pendingUrlChange = false;
+        _pendingUrlValue = null;
+      }
+
       if (controlledTabId !== null) {
         forwardNotifyNextVideo(controlledTabId, msg, 0); // Main frame only
       } else {
@@ -335,7 +336,7 @@ async function init() {
     const room = await loadRoomUrl();
     const roomUrl = room?.url ?? "";
 
-    // Double check in case the current url is invalid, or has a new value, or same as room url
+    // Double check in case the current url is invalid/new value/same as room url
     if (_pendingUrlValue === roomUrl) {
       console.log(
         `[BG] Dropped sendnextvideo ${_pendingUrlValue} === ${roomUrl}`
@@ -351,9 +352,6 @@ async function init() {
       type: PeerMessageType.NextVideo,
       url: pendingUrl,
     });
-
-    _pendingUrlChange = false;
-    _pendingUrlValue = null;
   }
 
   function resetVCStates() {
