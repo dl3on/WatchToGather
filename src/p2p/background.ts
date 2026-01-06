@@ -16,9 +16,11 @@ import {
 import {
   getControlledTabId,
   getIsInRoom,
+  loadNavStates,
   loadRoomUrl,
   saveControlledTabId,
   saveIsInRoom,
+  saveNavStates,
   saveRoomUrl,
 } from "../common/chrome-storage";
 import { validateControlledTabId } from "../common/chrome-utils";
@@ -62,6 +64,13 @@ async function init() {
     return validTabId;
   });
   isInRoom = await getIsInRoom();
+
+  const navStates = await loadNavStates();
+  if (navStates) {
+    navId = navStates?.navId;
+    _pendingUrlValue = navStates.urlValue;
+    _pendingUrlChange = navStates.urlChange;
+  }
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // Cross-origin iframes
@@ -180,7 +189,10 @@ async function init() {
           if (currPendingUrl) {
             sendAckNackMsg(currPendingUrl);
             if (currPendingChange) maybeSendNextVideo(currPendingUrl);
-            else _pendingUrlValue = null;
+            else {
+              _pendingUrlValue = null;
+              saveNavState();
+            }
           }
 
           showVideoStatusNotification(true);
@@ -207,8 +219,13 @@ async function init() {
       controlledTabId = null;
       isInRoom = false;
 
-      saveControlledTabId(controlledTabId);
-      saveIsInRoom(isInRoom);
+      navId = 0;
+      _pendingUrlChange = false;
+      _pendingUrlValue = null;
+
+      // clear from storage
+      // saveControlledTabId(controlledTabId);
+      // saveIsInRoom(isInRoom);
       return;
     }
 
@@ -227,6 +244,7 @@ async function init() {
       if (msg.url === _pendingUrlValue) {
         _pendingUrlChange = false;
         _pendingUrlValue = null;
+        saveNavState();
       }
 
       if (controlledTabId !== null) {
@@ -300,7 +318,7 @@ async function init() {
       _pendingUrlChange = false;
       resetVCStates();
       navId++;
-      console.log(navId);
+      saveNavState();
       sendPrepareVcMsg(tabId, navId);
       sendLocalUrlChangeMsg(tabUrl);
     });
@@ -321,8 +339,9 @@ async function init() {
         if (controlledTabId !== null) {
           _pendingUrlChange = true;
           _pendingUrlValue = newUrl;
-          resetVCStates();
           navId++; // Takes precedence over the sendPrepareVcMsg() called in changeInfo "complete"
+          resetVCStates();
+          saveNavState();
           sendPrepareVcMsg(controlledTabId, navId);
         } else console.log("[ERROR] No tab registered");
       }, 500);
@@ -343,6 +362,7 @@ async function init() {
       );
       _pendingUrlChange = false;
       _pendingUrlValue = null;
+      saveNavState();
       return;
     }
 
@@ -358,6 +378,14 @@ async function init() {
     controlledFrameId = undefined;
     _vcReady = false;
     pendingVCReplies = 0;
+  }
+
+  function saveNavState() {
+    saveNavStates({
+      navId,
+      urlValue: _pendingUrlValue,
+      urlChange: _pendingUrlChange,
+    });
   }
 
   function isPeerNextVideoMessage(msg: any): msg is PeerNextVideoMessage {

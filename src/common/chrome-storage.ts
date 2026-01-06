@@ -1,3 +1,4 @@
+import { NavStates } from "./sync-messages-types";
 import { RoomDetails, RoomUrl } from "./types";
 
 export function saveRoomDetails(roomDetails: RoomDetails) {
@@ -35,7 +36,7 @@ export function saveControlledTabId(controlledTabId: number | null) {
 export function getControlledTabId(): Promise<number | null> {
   return new Promise((resolve) => {
     chrome.storage.local.get("controlledTabId", async (res) => {
-      resolve(res.controlledTabId);
+      resolve(res.controlledTabId ?? null);
     });
   });
 }
@@ -60,6 +61,18 @@ export function loadReadinessMap(): Promise<Record<string, boolean> | null> {
   return new Promise((resolve) => {
     chrome.storage.local.get("peerReadinessMap", (res) => {
       resolve(res.peerReadinessMap ?? null);
+    });
+  });
+}
+
+export function saveNavStates(navStates: NavStates) {
+  chrome.storage.local.set({ navStates });
+}
+
+export function loadNavStates(): Promise<NavStates | null> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("navStates", (res) => {
+      resolve(res.navStates ?? null);
     });
   });
 }

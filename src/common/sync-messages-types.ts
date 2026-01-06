@@ -97,3 +97,9 @@ export type ReadinessUIUpdate = {
   type: "READINESS_UPDATE";
   readinessMap: Record<string, boolean>;
 };
+
+export type NavStates = {
+  navId: number;
+  urlValue: string | null;
+  urlChange: boolean;
+};
