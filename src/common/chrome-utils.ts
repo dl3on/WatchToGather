@@ -6,6 +6,11 @@ export function sendChromeMsgWithRespone(msg: any): Promise<any> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(msg, (response) => {
       if (chrome.runtime.lastError) {
+        console.warn(
+          "[sendChromeMsgWithResponse] failed:",
+          chrome.runtime.lastError.message,
+          msg
+        );
         reject(chrome.runtime.lastError);
       } else {
         resolve(response);
@@ -17,8 +22,19 @@ export function sendChromeMsgWithRespone(msg: any): Promise<any> {
 /** Send messages to content script */
 export async function sendTabMsg(tabId: number, msg: any, frameId?: number) {
   const validTabId = await validateControlledTabId(tabId);
+  if (!validTabId) return;
+
   const options = frameId ? { frameId } : undefined;
-  if (validTabId) chrome.tabs.sendMessage(validTabId, msg, options);
+  chrome.tabs.sendMessage(validTabId, msg, options, () => {
+    if (chrome.runtime.lastError) {
+      // Log but DO NOT treat as fatal
+      console.warn("[sendTabMsg] dropped:", chrome.runtime.lastError.message, {
+        tabId: validTabId,
+        frameId,
+        msg,
+      });
+    }
+  });
 }
 
 export async function validateControlledTabId(
