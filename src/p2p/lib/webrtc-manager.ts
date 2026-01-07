@@ -15,6 +15,7 @@ import {
 import { SignalManager } from "./signal-manager.js";
 import type { MessageManager } from "./message-manager.js";
 import { sendHostLinkCompleteMsg, sendSaveRoomUrlMsg } from "./chrome.js";
+import { isPlaybackControlMessage } from "../../common/utils.js";
 
 type WebRTCManagerOptions = {
   peerId: string;
@@ -323,9 +324,7 @@ export class WebRTCManager {
 
       if (
         this._localVideoUrl !== this._roomVideoUrl &&
-        (msg.type === PeerMessageType.Pause ||
-          msg.type === PeerMessageType.Play ||
-          msg.type === PeerMessageType.Seek)
+        isPlaybackControlMessage(msg)
       ) {
         console.log(
           `[DC Receiver] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
@@ -433,9 +432,7 @@ export class WebRTCManager {
   public sendMessage(msg: PeerMessage) {
     if (
       this._localVideoUrl !== this._roomVideoUrl &&
-      (msg.type === PeerMessageType.Pause ||
-        msg.type === PeerMessageType.Play ||
-        msg.type === PeerMessageType.Seek)
+      isPlaybackControlMessage(msg)
     ) {
       console.log(
         `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
@@ -470,9 +467,7 @@ export class WebRTCManager {
 
     if (
       this._localVideoUrl !== this._roomVideoUrl &&
-      (msg.type === PeerMessageType.Pause ||
-        msg.type === PeerMessageType.Play ||
-        msg.type === PeerMessageType.Seek)
+      isPlaybackControlMessage(msg)
     ) {
       console.log(
         `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`

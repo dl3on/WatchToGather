@@ -7,6 +7,7 @@ import {
   PeerReadyStateMessage,
   PeerTimeMessage,
 } from "../../common/sync-messages-types";
+import { isPlaybackControlMessage } from "../../common/utils";
 import {
   forwardRemotePeerMsg,
   notifyNextVideo,
@@ -68,7 +69,7 @@ export class MessageManager {
       this._peerReadinessMap = msg.readinessMap;
       console.log(`[MM] Received Map update from host ${msg.fromPeerId}`);
       updatePeerReadinessUI(this.getPeerReadinessMap());
-    } else {
+    } else if (isPlaybackControlMessage(msg)) {
       // Drops late playback messages
       if (msg.lamport < this._lastAppliedLamport) return;
       this._lastAppliedLamport = msg.lamport;
