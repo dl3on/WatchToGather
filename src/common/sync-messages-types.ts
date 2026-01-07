@@ -11,6 +11,7 @@ export enum PeerMessageType {
 type PeerMessageBase = {
   mid: string;
   fromPeerId: string;
+  lamport: number;
 };
 
 export type PeerTimeMessage =

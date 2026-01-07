@@ -18,6 +18,10 @@ export class MessageManager {
   private static _instance: MessageManager | null;
   _peerId: string;
   _webrtcManager!: WebRTCManager;
+
+  _lamportClock = 0;
+  _lastAppliedLamport = 0;
+
   _seenMessages: Set<string>;
   _peerReadinessMap: Record<string, boolean>;
   constructor(peerId: string) {
@@ -46,8 +50,10 @@ export class MessageManager {
 
   public handleMessage(msg: PeerMessage) {
     if (this._seenMessages.has(msg.mid)) return;
-
     this._seenMessages.add(msg.mid);
+
+    this._lamportClock = Math.max(this._lamportClock, msg.lamport) + 1;
+
     if (msg.type === PeerMessageType.NextVideo) {
       notifyNextVideo(msg);
     } else if (msg.type === PeerMessageType.NextVideoAck) {
@@ -63,6 +69,10 @@ export class MessageManager {
       console.log(`[MM] Received Map update from host ${msg.fromPeerId}`);
       updatePeerReadinessUI(this.getPeerReadinessMap());
     } else {
+      // Drops late playback messages
+      if (msg.lamport < this._lastAppliedLamport) return;
+      this._lastAppliedLamport = msg.lamport;
+
       forwardRemotePeerMsg(msg);
     }
 
@@ -70,7 +80,6 @@ export class MessageManager {
     this._webrtcManager.broadcastPeerMessage(msg, true);
   }
 
-  // TODO: Peers send to Host and Host handles ordering & broadcasting
   public sendMessage(
     eventType:
       | PeerMessageType.Pause
@@ -82,6 +91,7 @@ export class MessageManager {
     msg = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
+      lamport: ++this._lamportClock,
       type: eventType,
       time,
     };
@@ -94,6 +104,7 @@ export class MessageManager {
     msg = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
+      lamport: ++this._lamportClock,
       type: eventType,
       url,
     };
@@ -111,6 +122,7 @@ export class MessageManager {
     ackMsg = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
+      lamport: ++this._lamportClock,
       type: PeerMessageType.NextVideoAck,
       url,
     };
@@ -127,6 +139,7 @@ export class MessageManager {
     nackMsg = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
+      lamport: ++this._lamportClock,
       type: PeerMessageType.NextVideoNack,
       url,
     };
@@ -142,6 +155,7 @@ export class MessageManager {
     mapUpdateMsg = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
+      lamport: ++this._lamportClock,
       type: PeerMessageType.ReadyStateUpdate,
       readinessMap: this._peerReadinessMap,
     };
@@ -156,9 +170,8 @@ export class MessageManager {
     }
   }
 
-  // TODO: handle peer leaving room
+  // TODO: (Host) handle peer leaving room and broadcast new map
   public deletePeerFromMap(peerId: string) {}
 
-  // TODO: Implement clearing seen messages
-  clearSeenMessages() {}
+  // TODO: Implement clearing seen messages, LamportClock, peerReadinessMap, on Leave
 }
