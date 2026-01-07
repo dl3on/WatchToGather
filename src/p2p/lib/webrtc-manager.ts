@@ -428,7 +428,6 @@ export class WebRTCManager {
     });
   }
 
-  // TODO: Peers send to Host and Host handles ordering & broadcasting
   public sendMessage(msg: PeerMessage) {
     if (
       this._localVideoUrl !== this._roomVideoUrl &&

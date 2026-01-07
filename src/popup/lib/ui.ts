@@ -168,4 +168,4 @@ async function handleUrlNavigation(
   }
 }
 
-// TODO: function to dynamically update participants count and registered tab text
+// TODO: function to dynamically update participants count, loading register button and registered tab text
