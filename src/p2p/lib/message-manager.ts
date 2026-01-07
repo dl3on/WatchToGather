@@ -71,7 +71,7 @@ export class MessageManager {
   }
 
   // TODO: Peers send to Host and Host handles ordering & broadcasting
-  public sendToAll(
+  public sendMessage(
     eventType:
       | PeerMessageType.Pause
       | PeerMessageType.Play
@@ -86,7 +86,7 @@ export class MessageManager {
       time,
     };
     this._seenMessages.add(msg.mid);
-    this._webrtcManager.broadcastPeerMessage(msg, false);
+    this._webrtcManager.sendMessage(msg);
   }
 
   public sendNextVideo(eventType: PeerMessageType.NextVideo, url: string) {
@@ -114,7 +114,7 @@ export class MessageManager {
       type: PeerMessageType.NextVideoAck,
       url,
     };
-    this._webrtcManager.sendToHost(ackMsg);
+    this._webrtcManager.sendMessage(ackMsg);
   }
 
   public nextVideoNack(url: string, isHost: boolean) {
@@ -130,7 +130,7 @@ export class MessageManager {
       type: PeerMessageType.NextVideoNack,
       url,
     };
-    this._webrtcManager.sendToHost(nackMsg);
+    this._webrtcManager.sendMessage(nackMsg);
   }
 
   private updatePeerReadinessMap(peerId: string, isReady: boolean) {

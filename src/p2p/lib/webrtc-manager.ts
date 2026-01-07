@@ -430,7 +430,7 @@ export class WebRTCManager {
   }
 
   // TODO: Peers send to Host and Host handles ordering & broadcasting
-  public sendToHost(msg: PeerMessage) {
+  public sendMessage(msg: PeerMessage) {
     if (
       this._localVideoUrl !== this._roomVideoUrl &&
       (msg.type === PeerMessageType.Pause ||
@@ -440,6 +440,11 @@ export class WebRTCManager {
       console.log(
         `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
       );
+      return;
+    }
+
+    if (this._host) {
+      this.broadcastPeerMessage(msg, false);
       return;
     }
 
