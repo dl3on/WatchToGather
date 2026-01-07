@@ -25,16 +25,16 @@ export async function sendTabMsg(tabId: number, msg: any, frameId?: number) {
   if (!validTabId) return;
 
   const options = frameId ? { frameId } : undefined;
-  chrome.tabs.sendMessage(validTabId, msg, options, () => {
-    if (chrome.runtime.lastError) {
-      // Log but DO NOT treat as fatal
-      console.warn("[sendTabMsg] dropped:", chrome.runtime.lastError.message, {
-        tabId: validTabId,
-        frameId,
-        msg,
-      });
-    }
-  });
+
+  try {
+    await chrome.tabs.sendMessage(validTabId, msg, options);
+  } catch (error) {
+    console.warn("[sendTabMsg] dropped:", error, {
+      tabId: validTabId,
+      frameId,
+      msg,
+    });
+  }
 }
 
 export async function validateControlledTabId(
