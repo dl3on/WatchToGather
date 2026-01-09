@@ -90,21 +90,55 @@ export class VideoController {
     }
 
     switch (msg.type) {
-      case PeerMessageType.Pause:
+      case PeerMessageType.Pause: {
         if (this._video.paused) return;
+
+        const currentTime = this._video.currentTime;
+        const needsSeek = Math.abs(currentTime - msg.time) >= 2.5;
 
         this._ignoreNextPause = true;
         this._video.pause();
-        break;
 
-      case PeerMessageType.Play:
+        if (needsSeek && this._ignoreSeekCount === 0) {
+          this._ignoreSeekCount++;
+          this._video.currentTime = msg.time;
+
+          this._video.addEventListener(
+            "seeked",
+            () => {
+              this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
+            },
+            { once: true }
+          );
+        }
+        break;
+      }
+
+      case PeerMessageType.Play: {
         if (!this._video.paused) return;
+
+        const currentTime = this._video.currentTime;
+        const needsSeek = Math.abs(currentTime - msg.time) >= 2.5;
+
+        if (needsSeek && this._ignoreSeekCount === 0) {
+          this._ignoreSeekCount++;
+          this._video.currentTime = msg.time;
+
+          this._video.addEventListener(
+            "seeked",
+            () => {
+              this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
+            },
+            { once: true }
+          );
+        }
 
         this._ignoreNextPlay = true;
         this._video.play();
         break;
+      }
 
-      case PeerMessageType.Seek:
+      case PeerMessageType.Seek: {
         if (Math.abs(this._video.currentTime - msg.time) < 0.3) return;
 
         this._ignoreSeekCount++;
@@ -118,6 +152,7 @@ export class VideoController {
           { once: true }
         );
         break;
+      }
     }
   }
 
