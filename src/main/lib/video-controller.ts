@@ -1,4 +1,7 @@
-import { PeerMessage, PeerMessageType } from "../../common/sync-messages-types";
+import {
+  PeerMessageType,
+  PeerTimeMessage,
+} from "../../common/sync-messages-types";
 import { sendVCMsg } from "./chrome";
 
 export class VideoController {
@@ -37,6 +40,7 @@ export class VideoController {
     sendVCMsg({
       type: PeerMessageType.Pause,
       time: this._video.currentTime,
+      duration: this.getDuration(),
     });
   }
 
@@ -49,6 +53,7 @@ export class VideoController {
     sendVCMsg({
       type: PeerMessageType.Play,
       time: this._video.currentTime,
+      duration: this.getDuration(),
     });
   }
 
@@ -58,12 +63,32 @@ export class VideoController {
     sendVCMsg({
       type: PeerMessageType.Seek,
       time: this._video.currentTime,
+      duration: this.getDuration(),
     });
   }
 
   // TODOs: onBuffering & onAds
 
-  onRemoteEvent(msg: PeerMessage) {
+  onRemoteEvent(msg: PeerTimeMessage) {
+    // Check peer's readiness: video.play() could be called before video finishes loading
+    if (
+      msg.type !== PeerMessageType.Pause &&
+      !this.isDurationReady(msg.duration)
+    ) {
+      if (!this._video.paused) {
+        this._ignoreNextPause = true;
+        this._video.pause();
+      }
+
+      sendVCMsg({
+        type: PeerMessageType.Pause,
+        time: this._video.currentTime,
+        duration: this.getDuration(),
+      });
+
+      return;
+    }
+
     switch (msg.type) {
       case PeerMessageType.Pause:
         if (this._video.paused) return;
@@ -94,5 +119,13 @@ export class VideoController {
         );
         break;
     }
+  }
+
+  private getDuration() {
+    return this._video.duration;
+  }
+
+  private isDurationReady(d: number | undefined) {
+    return typeof d === "number" && Number.isFinite(d);
   }
 }

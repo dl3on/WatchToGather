@@ -63,7 +63,7 @@ chrome.runtime.onMessage.addListener(
       if (msg.type === PeerMessageType.NextVideo) {
         messageManager.sendNextVideo(msg.type, msg.url);
       } else {
-        messageManager.sendMessage(msg.type, msg.time);
+        messageManager.sendMessage(msg.type, msg.time, msg.duration);
       }
     } else if (msg.type === "LOCAL_URL_CHANGE") {
       const signalManager = SignalManager.getInstance();

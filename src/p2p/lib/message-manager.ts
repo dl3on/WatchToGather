@@ -86,7 +86,8 @@ export class MessageManager {
       | PeerMessageType.Pause
       | PeerMessageType.Play
       | PeerMessageType.Seek,
-    time: number
+    time: number,
+    duration: number
   ) {
     let msg: PeerTimeMessage;
     msg = {
@@ -95,6 +96,7 @@ export class MessageManager {
       lamport: ++this._lamportClock,
       type: eventType,
       time,
+      duration,
     };
     this._seenMessages.add(msg.mid);
     this._webrtcManager.sendMessage(msg);

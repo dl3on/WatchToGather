@@ -18,14 +18,17 @@ export type PeerTimeMessage =
   | (PeerMessageBase & {
       type: PeerMessageType.Pause;
       time: number;
+      duration: number;
     })
   | (PeerMessageBase & {
       type: PeerMessageType.Play;
       time: number;
+      duration: number;
     })
   | (PeerMessageBase & {
       type: PeerMessageType.Seek;
       time: number;
+      duration: number;
     });
 
 export type PeerNextVideoMessage = PeerMessageBase & {
@@ -60,14 +63,17 @@ export type LocalVideoEvent =
   | {
       type: PeerMessageType.Pause;
       time: number;
+      duration: number;
     }
   | {
       type: PeerMessageType.Play;
       time: number;
+      duration: number;
     }
   | {
       type: PeerMessageType.Seek;
       time: number;
+      duration: number;
     }
   | {
       type: PeerMessageType.NextVideo;
