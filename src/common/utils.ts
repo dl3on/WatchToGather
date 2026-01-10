@@ -19,6 +19,7 @@ export function isPlaybackControlMessage(
 ): msg is PeerTimeMessage {
   return (
     msg.type === PeerMessageType.Pause ||
+    msg.type === PeerMessageType.PauseOnBuffering ||
     msg.type === PeerMessageType.Play ||
     msg.type === PeerMessageType.Seek
   );

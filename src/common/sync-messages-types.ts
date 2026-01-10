@@ -2,6 +2,7 @@ export enum PeerMessageType {
   Pause = "pause",
   Play = "play",
   Seek = "seek",
+  PauseOnBuffering = "buffering_pause",
   NextVideo = "next_video",
   NextVideoAck = "next_video_ack",
   NextVideoNack = "next_video_nack",
@@ -27,6 +28,11 @@ export type PeerTimeMessage =
     })
   | (PeerMessageBase & {
       type: PeerMessageType.Seek;
+      time: number;
+      duration: number;
+    })
+  | (PeerMessageBase & {
+      type: PeerMessageType.PauseOnBuffering;
       time: number;
       duration: number;
     });
@@ -62,6 +68,11 @@ export type PeerMessage =
 export type LocalVideoEvent =
   | {
       type: PeerMessageType.Pause;
+      time: number;
+      duration: number;
+    }
+  | {
+      type: PeerMessageType.PauseOnBuffering;
       time: number;
       duration: number;
     }

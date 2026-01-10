@@ -84,6 +84,7 @@ export class MessageManager {
   public sendMessage(
     eventType:
       | PeerMessageType.Pause
+      | PeerMessageType.PauseOnBuffering
       | PeerMessageType.Play
       | PeerMessageType.Seek,
     time: number,

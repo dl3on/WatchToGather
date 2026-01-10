@@ -98,6 +98,7 @@ function isChromeMsg(msg: any): msg is ChromeMsg {
 function isLocalVideoEvent(msg: any): msg is LocalVideoEvent {
   return (
     msg.type === PeerMessageType.Pause ||
+    msg.type === PeerMessageType.PauseOnBuffering ||
     msg.type === PeerMessageType.Play ||
     msg.type === PeerMessageType.Seek ||
     msg.type === PeerMessageType.NextVideo
