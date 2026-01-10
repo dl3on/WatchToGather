@@ -158,7 +158,6 @@ export class VideoController {
 
         if (needsSeek && this._ignoreSeekCount === 0) {
           this._ignoreSeekCount++;
-          this._video.currentTime = msg.time;
 
           this._video.addEventListener(
             "seeked",
@@ -167,6 +166,8 @@ export class VideoController {
             },
             { once: true }
           );
+
+          this._video.currentTime = msg.time;
         }
 
         // TODO: show UI message depending on Pause type
@@ -183,7 +184,6 @@ export class VideoController {
 
         if (needsSeek && this._ignoreSeekCount === 0) {
           this._ignoreSeekCount++;
-          this._video.currentTime = msg.time;
 
           this._video.addEventListener(
             "seeked",
@@ -192,6 +192,8 @@ export class VideoController {
             },
             { once: true }
           );
+
+          this._video.currentTime = msg.time;
         }
 
         this._ignoreNextPlay = true;
@@ -203,7 +205,6 @@ export class VideoController {
         if (Math.abs(this._video.currentTime - msg.time) < 0.3) return;
 
         this._ignoreSeekCount++;
-        this._video.currentTime = msg.time;
 
         this._video.addEventListener(
           "seeked",
@@ -212,6 +213,8 @@ export class VideoController {
           },
           { once: true }
         );
+
+        this._video.currentTime = msg.time;
         break;
       }
     }
