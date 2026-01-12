@@ -1,4 +1,6 @@
 import {
+  LocalNextVideoEvent,
+  LocalVideoTimeEvent,
   PeerMessage,
   PeerMessageType,
   PeerNextVideoAckMessage,
@@ -81,39 +83,45 @@ export class MessageManager {
     this._webrtcManager.broadcastPeerMessage(msg, true);
   }
 
-  public sendMessage(
-    eventType:
-      | PeerMessageType.Pause
-      | PeerMessageType.PauseOnBuffering
-      | PeerMessageType.Play
-      | PeerMessageType.Seek,
-    time: number,
-    duration: number
-  ) {
-    let msg: PeerTimeMessage;
-    msg = {
-      mid: crypto.randomUUID(),
-      fromPeerId: this._peerId,
-      lamport: ++this._lamportClock,
-      type: eventType,
-      time,
-      duration,
-    };
-    this._seenMessages.add(msg.mid);
-    this._webrtcManager.sendMessage(msg);
+  public sendMessage(msg: LocalVideoTimeEvent) {
+    let msgToSend: PeerTimeMessage;
+
+    if (msg.type === PeerMessageType.SyncBeacon) {
+      msgToSend = {
+        mid: crypto.randomUUID(),
+        fromPeerId: this._peerId,
+        lamport: ++this._lamportClock,
+        type: msg.type,
+        time: msg.time,
+        paused: msg.paused,
+        duration: msg.duration,
+      };
+    } else {
+      msgToSend = {
+        mid: crypto.randomUUID(),
+        fromPeerId: this._peerId,
+        lamport: ++this._lamportClock,
+        type: msg.type,
+        time: msg.time,
+        duration: msg.duration,
+      };
+    }
+
+    this._seenMessages.add(msgToSend.mid);
+    this._webrtcManager.sendMessage(msgToSend);
   }
 
-  public sendNextVideo(eventType: PeerMessageType.NextVideo, url: string) {
-    let msg: PeerNextVideoMessage;
-    msg = {
+  public sendNextVideo(msg: LocalNextVideoEvent) {
+    let msgToSend: PeerNextVideoMessage;
+    msgToSend = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
       lamport: ++this._lamportClock,
-      type: eventType,
-      url,
+      type: msg.type,
+      url: msg.url,
     };
-    this._seenMessages.add(msg.mid);
-    this._webrtcManager.sendNextVideoMessage(msg);
+    this._seenMessages.add(msgToSend.mid);
+    this._webrtcManager.sendNextVideoMessage(msgToSend);
   }
 
   public nextVideoAck(url: string, isHost: boolean) {

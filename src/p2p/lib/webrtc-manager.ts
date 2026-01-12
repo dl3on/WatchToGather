@@ -354,7 +354,12 @@ export class WebRTCManager {
       )
         return;
 
-      if (msg.type === PeerMessageType.ReadyStateUpdate && this._host) return;
+      if (
+        (msg.type === PeerMessageType.ReadyStateUpdate ||
+          msg.type === PeerMessageType.SyncBeacon) &&
+        this._host
+      )
+        return;
 
       console.log(`[DC] Message from ${targetPeerId}:`, e.data);
       this._messageManager.handleMessage(msg);
@@ -441,6 +446,9 @@ export class WebRTCManager {
 
     if (this._host) {
       this.broadcastPeerMessage(msg, false);
+      return;
+    } else if (msg.type === PeerMessageType.SyncBeacon) {
+      // Only host sends SyncBeacon signal
       return;
     }
 

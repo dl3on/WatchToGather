@@ -61,9 +61,9 @@ chrome.runtime.onMessage.addListener(
       const messageManager = MessageManager.getInstance(webrtc._peerId);
 
       if (msg.type === PeerMessageType.NextVideo) {
-        messageManager.sendNextVideo(msg.type, msg.url);
+        messageManager.sendNextVideo(msg);
       } else {
-        messageManager.sendMessage(msg.type, msg.time, msg.duration);
+        messageManager.sendMessage(msg);
       }
     } else if (msg.type === "LOCAL_URL_CHANGE") {
       const signalManager = SignalManager.getInstance();
@@ -101,6 +101,7 @@ function isLocalVideoEvent(msg: any): msg is LocalVideoEvent {
     msg.type === PeerMessageType.PauseOnBuffering ||
     msg.type === PeerMessageType.Play ||
     msg.type === PeerMessageType.Seek ||
+    msg.type === PeerMessageType.SyncBeacon ||
     msg.type === PeerMessageType.NextVideo
   );
 }

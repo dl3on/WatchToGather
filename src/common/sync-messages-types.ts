@@ -3,6 +3,7 @@ export enum PeerMessageType {
   Play = "play",
   Seek = "seek",
   PauseOnBuffering = "buffering_pause",
+  SyncBeacon = "sync_beacon",
   NextVideo = "next_video",
   NextVideoAck = "next_video_ack",
   NextVideoNack = "next_video_nack",
@@ -35,6 +36,12 @@ export type PeerTimeMessage =
       type: PeerMessageType.PauseOnBuffering;
       time: number;
       duration: number;
+    })
+  | (PeerMessageBase & {
+      type: PeerMessageType.SyncBeacon;
+      time: number;
+      paused: boolean;
+      duration: number;
     });
 
 export type PeerNextVideoMessage = PeerMessageBase & {
@@ -65,31 +72,29 @@ export type PeerMessage =
   | PeerNextVideoNackMessage
   | PeerReadyStateMessage;
 
-export type LocalVideoEvent =
+export type LocalVideoTimeEvent =
   | {
-      type: PeerMessageType.Pause;
+      type:
+        | PeerMessageType.Pause
+        | PeerMessageType.PauseOnBuffering
+        | PeerMessageType.Play
+        | PeerMessageType.Seek;
       time: number;
       duration: number;
     }
   | {
-      type: PeerMessageType.PauseOnBuffering;
+      type: PeerMessageType.SyncBeacon;
       time: number;
+      paused: boolean;
       duration: number;
-    }
-  | {
-      type: PeerMessageType.Play;
-      time: number;
-      duration: number;
-    }
-  | {
-      type: PeerMessageType.Seek;
-      time: number;
-      duration: number;
-    }
-  | {
-      type: PeerMessageType.NextVideo;
-      url: string;
     };
+
+export type LocalNextVideoEvent = {
+  type: PeerMessageType.NextVideo;
+  url: string;
+};
+
+export type LocalVideoEvent = LocalVideoTimeEvent | LocalNextVideoEvent;
 
 export type VCActions = {
   type: "VIDEO_ACTIONS";

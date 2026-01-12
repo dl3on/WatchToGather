@@ -21,6 +21,7 @@ export function isPlaybackControlMessage(
     msg.type === PeerMessageType.Pause ||
     msg.type === PeerMessageType.PauseOnBuffering ||
     msg.type === PeerMessageType.Play ||
-    msg.type === PeerMessageType.Seek
+    msg.type === PeerMessageType.Seek ||
+    msg.type === PeerMessageType.SyncBeacon
   );
 }

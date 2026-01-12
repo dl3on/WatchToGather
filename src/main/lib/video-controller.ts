@@ -8,6 +8,9 @@ export class VideoController {
   _video: HTMLVideoElement;
 
   private static readonly BUFFER_GRACE_MS = 1000;
+  private static readonly SYNC_BEACON_INTERVAL_MS = 30_000;
+  private static readonly MIN_DRIFT_THRESHOLD = 0.5;
+  private static readonly MAX_DRIFT_THRESHOLD = 1.5;
 
   private _ignoreNextPause = false;
   private _ignoreNextPlay = false;
@@ -15,6 +18,11 @@ export class VideoController {
   private _isSeeking = false;
   private _isBuffering = false;
   private _bufferingTimer?: number; // Grace window before sending a Pause due to "waiting"
+
+  private _syncBeaconTimer?: number; // Fires at 30s intervals
+  private _rateSmoothTimer?: number;
+  private _rateResetTimer?: number;
+  private _lastSyncBeaconAt = 0;
 
   private _pauseHandler = () => this.onPause();
   private _playHandler = () => this.onPlay();
@@ -35,6 +43,8 @@ export class VideoController {
     this._video.addEventListener("seeked", this._seekedHandler);
     this._video.addEventListener("waiting", this._waitingHandler);
     this._video.addEventListener("playing", this._playingHandler);
+
+    this.startSyncBeacon();
   }
 
   destroy() {
@@ -46,6 +56,21 @@ export class VideoController {
       this._video.removeEventListener("waiting", this._waitingHandler);
       this._video.removeEventListener("playing", this._playingHandler);
       this._video = null as any;
+    }
+
+    if (this._bufferingTimer) {
+      clearTimeout(this._bufferingTimer);
+      this._bufferingTimer = undefined;
+    }
+
+    if (this._rateResetTimer) {
+      clearTimeout(this._rateResetTimer);
+      this._rateResetTimer = undefined;
+    }
+
+    if (this._syncBeaconTimer) {
+      clearInterval(this._syncBeaconTimer);
+      this._syncBeaconTimer = undefined;
     }
   }
 
@@ -150,8 +175,8 @@ export class VideoController {
       case PeerMessageType.PauseOnBuffering: {
         if (this._video.paused || this._isBuffering) return;
 
-        const currentTime = this._video.currentTime;
-        const needsSeek = Math.abs(currentTime - msg.time) >= 2.5;
+        const drift = msg.time - this._video.currentTime;
+        const needsSeek = Math.abs(drift) > VideoController.MAX_DRIFT_THRESHOLD;
 
         this._ignoreNextPause = true;
         this._video.pause();
@@ -179,8 +204,9 @@ export class VideoController {
       case PeerMessageType.Play: {
         if (!this._video.paused) return;
 
-        const currentTime = this._video.currentTime;
-        const needsSeek = Math.abs(currentTime - msg.time) >= 2.5;
+        const drift = msg.time - this._video.currentTime;
+        const absDrift = Math.abs(drift);
+        const needsSeek = absDrift > VideoController.MAX_DRIFT_THRESHOLD;
 
         if (needsSeek && this._ignoreSeekCount === 0) {
           this._ignoreSeekCount++;
@@ -198,6 +224,11 @@ export class VideoController {
 
         this._ignoreNextPlay = true;
         this._video.play();
+
+        if (!needsSeek && absDrift > VideoController.MIN_DRIFT_THRESHOLD) {
+          this.maybeSendSyncBeacon();
+        }
+
         break;
       }
 
@@ -217,6 +248,107 @@ export class VideoController {
         this._video.currentTime = msg.time;
         break;
       }
+
+      case PeerMessageType.SyncBeacon: {
+        const drift = msg.time - this._video.currentTime;
+        const absDrift = Math.abs(drift);
+
+        // Paused state: immediately sync timestamps
+        if (this._video.paused || msg.paused) {
+          if (msg.paused && !this._video.paused) {
+            this._ignoreNextPause = true;
+            this._video.pause();
+          }
+
+          if (absDrift > VideoController.MIN_DRIFT_THRESHOLD) {
+            this._ignoreSeekCount++;
+
+            this._video.addEventListener(
+              "seeked",
+              () => {
+                this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
+              },
+              { once: true }
+            );
+
+            this._video.currentTime = msg.time;
+          }
+
+          if (!msg.paused && this._video.paused) {
+            this._ignoreNextPlay = true;
+            this._video.play();
+          }
+
+          return;
+        }
+
+        // Playing state
+        // Small drift (> 0.5s & <= 1.5s) -> Temporary playbackRate correction
+        if (absDrift <= VideoController.MAX_DRIFT_THRESHOLD) {
+          if (absDrift <= VideoController.MIN_DRIFT_THRESHOLD) return;
+
+          if (this._rateResetTimer) {
+            clearTimeout(this._rateResetTimer);
+            this._rateResetTimer = undefined;
+          }
+
+          if (this._rateSmoothTimer) {
+            clearTimeout(this._rateSmoothTimer);
+            this._rateSmoothTimer = undefined;
+          }
+
+          let slowBurst: number, fastBurst: number;
+          let slowRate: number, fastRate: number;
+          if (absDrift < 0.75) {
+            slowBurst = 0.92;
+            fastBurst = 1.08;
+
+            slowRate = 0.97;
+            fastRate = 1.03;
+          } else if (absDrift < 1.0) {
+            slowBurst = 0.88;
+            fastBurst = 1.12;
+
+            slowRate = 0.95;
+            fastRate = 1.05;
+          } else {
+            // < 1.5s
+            slowBurst = 0.85;
+            fastBurst = 1.15;
+
+            slowRate = 0.92;
+            fastRate = 1.08;
+          }
+
+          // Short aggressive burst then smooth out rate
+          this._video.playbackRate = drift > 0 ? fastBurst : slowBurst;
+
+          this._rateSmoothTimer = window.setTimeout(() => {
+            this._video.playbackRate = drift > 0 ? fastRate : slowRate;
+            this._rateSmoothTimer = undefined;
+          }, 350);
+
+          this._rateResetTimer = window.setTimeout(() => {
+            this._video.playbackRate = 1;
+            this._rateResetTimer = undefined;
+          }, 1500);
+        } else {
+          // Large drift (> 1.5s) -> Hard seek
+          this._ignoreSeekCount++;
+
+          this._video.addEventListener(
+            "seeked",
+            () => {
+              this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
+            },
+            { once: true }
+          );
+
+          this._video.currentTime = msg.time;
+        }
+
+        break;
+      }
     }
   }
 
@@ -226,5 +358,29 @@ export class VideoController {
 
   private isDurationReady(d: number | undefined) {
     return typeof d === "number" && Number.isFinite(d);
+  }
+
+  // Only broadcasted by host
+  private startSyncBeacon() {
+    if (this._syncBeaconTimer) return;
+
+    this._syncBeaconTimer = window.setInterval(() => {
+      this.maybeSendSyncBeacon();
+    }, VideoController.SYNC_BEACON_INTERVAL_MS);
+  }
+
+  private maybeSendSyncBeacon() {
+    // 5s min gap between sync beacon messages
+    const now = Date.now();
+    if (now - this._lastSyncBeaconAt < 5000) return;
+
+    this._lastSyncBeaconAt = now;
+
+    sendVCMsg({
+      type: PeerMessageType.SyncBeacon,
+      time: this._video.currentTime,
+      paused: this._video.paused,
+      duration: this.getDuration(),
+    });
   }
 }
