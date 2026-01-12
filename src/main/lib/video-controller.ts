@@ -182,17 +182,7 @@ export class VideoController {
         this._video.pause();
 
         if (needsSeek && this._ignoreSeekCount === 0) {
-          this._ignoreSeekCount++;
-
-          this._video.addEventListener(
-            "seeked",
-            () => {
-              this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
-            },
-            { once: true }
-          );
-
-          this._video.currentTime = msg.time;
+          this.applySeek(msg.time);
         }
 
         // TODO: show UI message depending on Pause type
@@ -209,17 +199,7 @@ export class VideoController {
         const needsSeek = absDrift > VideoController.MAX_DRIFT_THRESHOLD;
 
         if (needsSeek && this._ignoreSeekCount === 0) {
-          this._ignoreSeekCount++;
-
-          this._video.addEventListener(
-            "seeked",
-            () => {
-              this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
-            },
-            { once: true }
-          );
-
-          this._video.currentTime = msg.time;
+          this.applySeek(msg.time);
         }
 
         this._ignoreNextPlay = true;
@@ -235,17 +215,7 @@ export class VideoController {
       case PeerMessageType.Seek: {
         if (Math.abs(this._video.currentTime - msg.time) < 0.3) return;
 
-        this._ignoreSeekCount++;
-
-        this._video.addEventListener(
-          "seeked",
-          () => {
-            this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
-          },
-          { once: true }
-        );
-
-        this._video.currentTime = msg.time;
+        this.applySeek(msg.time);
         break;
       }
 
@@ -261,17 +231,7 @@ export class VideoController {
           }
 
           if (absDrift > VideoController.MIN_DRIFT_THRESHOLD) {
-            this._ignoreSeekCount++;
-
-            this._video.addEventListener(
-              "seeked",
-              () => {
-                this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
-              },
-              { once: true }
-            );
-
-            this._video.currentTime = msg.time;
+            this.applySeek(msg.time);
           }
 
           if (!msg.paused && this._video.paused) {
@@ -334,22 +294,26 @@ export class VideoController {
           }, 1500);
         } else {
           // Large drift (> 1.5s) -> Hard seek
-          this._ignoreSeekCount++;
-
-          this._video.addEventListener(
-            "seeked",
-            () => {
-              this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
-            },
-            { once: true }
-          );
-
-          this._video.currentTime = msg.time;
+          this.applySeek(msg.time);
         }
 
         break;
       }
     }
+  }
+
+  private applySeek(targetTime: number) {
+    this._ignoreSeekCount++;
+
+    this._video.addEventListener(
+      "seeked",
+      () => {
+        this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
+      },
+      { once: true }
+    );
+
+    this._video.currentTime = targetTime;
   }
 
   private getDuration() {
