@@ -1,27 +1,41 @@
-import { sendVCStatusMsg } from "./chrome";
+import { injectIntoIframe, sendVCStatusMsg } from "./chrome";
 import { VideoController } from "./video-controller";
 
 let vc: VideoController | null = null;
 let currentVideo: HTMLVideoElement | null = null;
+let videoFindTimeout: NodeJS.Timeout | null = null;
+let currentNavId = 0;
 
 export function getVC() {
   return vc;
 }
 
-export function startVideoController() {
-  let timeout = setTimeout(() => {
+export function startVideoController(navId: number) {
+  currentNavId = navId;
+
+  videoFindTimeout = setTimeout(() => {
+    if (navId !== currentNavId) {
+      console.warn(`[Video Finder] Dropped outdated navId: ${navId}`);
+      return;
+    }
+
     // Notify popup of failure
-    sendVCStatusMsg(false);
-  }, 3000);
+    sendVCStatusMsg(false, navId);
+  }, 5000);
 
   waitForVideo((video) => {
-    clearTimeout(timeout);
-    setupVideo(video);
+    if (videoFindTimeout) {
+      clearTimeout(videoFindTimeout);
+      videoFindTimeout = null;
+    }
+    setupVideo(video, navId);
   });
 
   observeVideoReplacements((newVideo) => {
-    setupVideo(newVideo);
+    setupVideo(newVideo, navId);
   });
+
+  observeVideoRemoval(navId);
 }
 
 function waitForVideo(onFound: (video: HTMLVideoElement) => void) {
@@ -31,18 +45,61 @@ function waitForVideo(onFound: (video: HTMLVideoElement) => void) {
     return;
   }
 
+  const checkIframes = () => {
+    const iframes = document.querySelectorAll("iframe");
+
+    for (const iframe of iframes) {
+      try {
+        const iframeDoc =
+          iframe.contentDocument || iframe.contentWindow?.document;
+        if (iframeDoc) {
+          const iframeVideo = iframeDoc.querySelector("video");
+          if (iframeVideo) {
+            onFound(iframeVideo);
+            return true;
+          }
+        }
+      } catch (error) {
+        // Cross-origin iframe
+        console.log("Cross-origin iframe: injecting content script...");
+        requestIframeInjection(iframe);
+      }
+    }
+    return false;
+  };
+
+  if (checkIframes()) return;
+
   const observer = new MutationObserver(() => {
     const video = document.querySelector("video") as HTMLVideoElement | null;
     if (video) {
       observer.disconnect();
       onFound(video);
+      return;
     }
+
+    checkIframes();
   });
 
   observer.observe(document.body, {
     childList: true,
     subtree: true,
   });
+}
+
+async function requestIframeInjection(iframe: HTMLIFrameElement) {
+  const currentSrc = iframe.src;
+
+  if (iframe.dataset.injectedSrc === currentSrc) return;
+  iframe.dataset.injectedSrc = currentSrc;
+
+  const success = await injectIntoIframe(iframe);
+  if (success) {
+    if (videoFindTimeout) {
+      clearTimeout(videoFindTimeout);
+      videoFindTimeout = null;
+    }
+  }
 }
 
 function observeVideoReplacements(onReplace: (v: HTMLVideoElement) => void) {
@@ -57,9 +114,24 @@ function observeVideoReplacements(onReplace: (v: HTMLVideoElement) => void) {
   mo.observe(document.body, { childList: true, subtree: true });
 }
 
-function setupVideo(video: HTMLVideoElement) {
+function observeVideoRemoval(navId: number) {
+  const mo = new MutationObserver(() => {
+    const video = document.querySelector("video") as HTMLVideoElement | null;
+    if (currentVideo && !document.body.contains(currentVideo) && !video) {
+      console.log("[VIDEO] Video element removed");
+      currentVideo = null;
+      vc = null;
+      sendVCStatusMsg(false, navId);
+    }
+  });
+
+  mo.observe(document.body, { childList: true, subtree: true });
+}
+
+function setupVideo(video: HTMLVideoElement, navId: number) {
+  if (vc) vc.destroy();
+
   currentVideo = video;
   vc = new VideoController(video);
-  sendVCStatusMsg(true);
-  // TODO: notify peers ready state
+  sendVCStatusMsg(true, navId);
 }

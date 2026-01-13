@@ -1,4 +1,9 @@
-import { PeerMessage } from "../../common/sync-messages-types.js";
+import {
+  HostInitialUrl,
+  PeerMessage,
+  PeerMessageType,
+  PeerNextVideoMessage,
+} from "../../common/sync-messages-types.js";
 import {
   EClientToServerEvents,
   EServerToClientEvents,
@@ -9,6 +14,8 @@ import {
 } from "../../common/types.js";
 import { SignalManager } from "./signal-manager.js";
 import type { MessageManager } from "./message-manager.js";
+import { sendHostLinkCompleteMsg, sendSaveRoomUrlMsg } from "./chrome.js";
+import { isPlaybackControlMessage } from "../../common/utils.js";
 
 type WebRTCManagerOptions = {
   peerId: string;
@@ -19,6 +26,7 @@ type WebRTCManagerOptions = {
 type PeerConnectionData = {
   [peerId: string]: {
     peerConnection: RTCPeerConnection;
+    isHost: boolean;
     dataChannel?: RTCDataChannel;
   };
 };
@@ -33,6 +41,8 @@ export class WebRTCManager {
   _messageManager!: MessageManager;
   _peerId: string;
   _roomId: string | null = null;
+  _localVideoUrl: string | null = null;
+  _roomVideoUrl: string | null = null;
   _host: boolean = false;
   _verbose: boolean;
   _stunServerUrl: string;
@@ -126,8 +136,16 @@ export class WebRTCManager {
     msg: Response<ResponseType.Join>
   ) {
     if (msg.success) {
+      const hostId = msg.body.peers.find((pd) => pd.host)?.peerId;
+      if (!hostId) {
+        throw new Error(
+          `[WebRTC Manager] No host found in room ${msg.roomId}.`
+        );
+      }
+
       const offers = await this._createOffers(
-        msg.body.peers.map((pd) => pd.peerId)
+        msg.body.peers.map((pd) => pd.peerId),
+        hostId
       );
 
       this._log(`Created offers: ${JSON.stringify(offers, null, 2)}`);
@@ -213,7 +231,10 @@ export class WebRTCManager {
       )}`
     );
 
-    this._connections[msg.fromPeerId] = { peerConnection: pc };
+    this._connections[msg.fromPeerId] = {
+      peerConnection: pc,
+      isHost: false,
+    };
     pc.addEventListener("datachannel", (e) => {
       this._registerDataChannel(msg.fromPeerId, e.channel);
     });
@@ -287,17 +308,71 @@ export class WebRTCManager {
 
     dc.addEventListener("open", () => {
       console.log(`[DC] Open with ${targetPeerId}`);
+
+      if (this._host) {
+        this.sendInitialUrlToPeer(dc);
+      }
     });
-    dc.addEventListener("message", (e) => {
+    dc.addEventListener("message", async (e) => {
+      const msg = JSON.parse(e.data);
+
+      if (msg.type === "HOST_INITIAL_URL") {
+        this.updateRoomVideoUrl(msg.url);
+        sendHostLinkCompleteMsg();
+        return;
+      }
+
+      if (
+        this._localVideoUrl !== this._roomVideoUrl &&
+        isPlaybackControlMessage(msg)
+      ) {
+        console.log(
+          `[DC Receiver] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+        );
+        return;
+      }
+
+      if (msg.type === PeerMessageType.NextVideo && !this._host) {
+        this.updateRoomVideoUrl(msg.url);
+        if (this._localVideoUrl === this._roomVideoUrl) {
+          this._messageManager.nextVideoAck(this._localVideoUrl!, false);
+        }
+      }
+
+      if (
+        (msg.type === PeerMessageType.NextVideoAck ||
+          msg.type === PeerMessageType.NextVideoNack) &&
+        !this._host
+      )
+        return;
+
+      if (
+        (msg.type === PeerMessageType.NextVideoAck &&
+          msg.url !== this._roomVideoUrl) ||
+        (msg.type === PeerMessageType.NextVideoNack &&
+          msg.url === this._roomVideoUrl)
+      )
+        return;
+
+      if (
+        (msg.type === PeerMessageType.ReadyStateUpdate ||
+          msg.type === PeerMessageType.SyncBeacon) &&
+        this._host
+      )
+        return;
+
       console.log(`[DC] Message from ${targetPeerId}:`, e.data);
-      this._messageManager.handleMessage(JSON.parse(e.data));
+      this._messageManager.handleMessage(msg);
     });
     dc.addEventListener("close", () => {
       console.log(`[DC] Channel closed for ${targetPeerId}`);
     });
   }
 
-  private async _createOffers(peers: string[]): Promise<{
+  private async _createOffers(
+    peers: string[],
+    hostId: string
+  ): Promise<{
     [targetPeerId: string]: RTCSessionDescription;
   }> {
     const peerMap: Record<string, RTCSessionDescription> = {};
@@ -319,7 +394,10 @@ export class WebRTCManager {
         }
 
         peerMap[peer] = pc.localDescription;
-        this._connections[peer] = { peerConnection: pc };
+        this._connections[peer] = {
+          peerConnection: pc,
+          isHost: peer === hostId,
+        };
         this._registerDataChannel(peer, dc);
       })
     );
@@ -348,19 +426,146 @@ export class WebRTCManager {
       true
     );
 
+    this._roomVideoUrl = currentUrl;
     this._host = true;
     this._signalManager.emit(EClientToServerEvents.Host, {
       roomName,
-      currentUrl,
     });
   }
 
-  public broadcastPeerMessage(msg: PeerMessage) {
+  public sendMessage(msg: PeerMessage) {
+    if (
+      this._localVideoUrl !== this._roomVideoUrl &&
+      isPlaybackControlMessage(msg)
+    ) {
+      console.log(
+        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+      );
+      return;
+    }
+
+    if (this._host) {
+      this.broadcastPeerMessage(msg, false);
+      return;
+    } else if (msg.type === PeerMessageType.SyncBeacon) {
+      // Only host sends SyncBeacon signal (dropped)
+      return;
+    }
+
+    const msgJson = JSON.stringify(msg);
+    const hostConn = Object.entries(this._connections).find(
+      ([_, conn]) => conn.isHost
+    );
+
+    if (!hostConn || !hostConn[1].dataChannel) {
+      throw new Error(
+        `[WebRTC Manager] No datachannel found with host ${hostConn?.[0]}. MSG: ${msgJson}`
+      );
+    }
+
+    hostConn[1].dataChannel.send(msgJson);
+  }
+
+  public sendMessageToPeer(msg: PeerMessage, peerId: string) {
+    if (
+      this._localVideoUrl !== this._roomVideoUrl &&
+      isPlaybackControlMessage(msg)
+    ) {
+      console.log(
+        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+      );
+      return;
+    }
+
+    const msgJson = JSON.stringify(msg);
+    const targetConn = this._connections[peerId];
+
+    if (!targetConn || !targetConn.dataChannel) {
+      throw new Error(
+        `[WebRTC Manager] No datachannel found with peer ${peerId}. MSG: ${msgJson}`
+      );
+    }
+
+    targetConn.dataChannel.send(msgJson);
+  }
+
+  public async broadcastPeerMessage(msg: PeerMessage, relayed: boolean) {
+    // Host don't relay NextVideo messages
+    if (msg.type === PeerMessageType.NextVideo && this._host && relayed) return;
+
+    if (
+      this._localVideoUrl !== this._roomVideoUrl &&
+      isPlaybackControlMessage(msg)
+    ) {
+      console.log(
+        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+      );
+      return;
+    }
+
     const msgJson = JSON.stringify(msg);
     for (const { dataChannel } of Object.values(this._connections)) {
       if (!dataChannel) continue;
 
       dataChannel.send(msgJson);
+    }
+  }
+
+  public sendNextVideoMessage(msg: PeerNextVideoMessage) {
+    if (this._host) {
+      this.updateRoomVideoUrl(msg.url);
+      this._messageManager.resetPeerReadiness();
+      const stampedMsg = { ...msg, fromHost: true };
+      this.broadcastPeerMessage(stampedMsg, false);
+      this._messageManager.nextVideoAck(msg.url, true);
+    } else {
+      const stampedMsg = { ...msg, fromHost: false };
+      const msgJson = JSON.stringify(stampedMsg);
+      const hostConn = Object.entries(this._connections).find(
+        ([_, conn]) => conn.isHost
+      );
+
+      if (!hostConn || !hostConn[1].dataChannel) {
+        throw new Error(
+          `[WebRTC Manager] No datachannel found with host ${hostConn?.[0]}.`
+        );
+      }
+
+      hostConn[1].dataChannel.send(msgJson);
+    }
+  }
+
+  private sendInitialUrlToPeer(dc: RTCDataChannel) {
+    let initMsg: HostInitialUrl = {
+      type: "HOST_INITIAL_URL",
+      url: this._roomVideoUrl!,
+    };
+    dc.send(JSON.stringify(initMsg));
+  }
+
+  private updateRoomVideoUrl(url: string) {
+    this._roomVideoUrl = url;
+    sendSaveRoomUrlMsg(url);
+  }
+
+  public updateLocalVideoUrl(url: string) {
+    this._localVideoUrl = url;
+  }
+
+  public sendAckNack(currentUrl: string) {
+    // No URL means no controlled tab
+    if (currentUrl === "") {
+      this._messageManager.nextVideoNack(currentUrl, this._host);
+      return;
+    }
+
+    // Ignore outdated URLs
+    if (currentUrl !== this._localVideoUrl) return;
+
+    if (this._localVideoUrl === this._roomVideoUrl) {
+      this._messageManager.nextVideoAck(currentUrl, this._host);
+    } else {
+      this._messageManager.nextVideoNack(currentUrl, this._host);
     }
   }
 }

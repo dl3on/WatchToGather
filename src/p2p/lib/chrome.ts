@@ -1,23 +1,29 @@
-import { PeerMessage, VCActions } from "../../common/sync-messages-types";
+import { sendChromeMsg, sendTabMsg } from "../../common/chrome-utils";
+import {
+  LocalVideoEvent,
+  PeerNextVideoMessage,
+  PeerTimeMessage,
+  ReadinessUIUpdate,
+  VCActions,
+  VideoStateRequest,
+} from "../../common/sync-messages-types";
 
-function sendChromeMsg(msg: any) {
-  chrome.runtime.sendMessage(msg);
-}
-
-function sendTabMsg(tabId: number, msg: any) {
-  chrome.tabs.sendMessage(tabId, msg);
+export function sendRoomDetails(roomName: string, participantsCount: number) {
+  sendChromeMsg({
+    type: "ROOM_DETAILS",
+    roomName: roomName,
+    participantsCount: participantsCount,
+  });
 }
 
 export function sendJoinSuccessMsg(
   roomName: string,
-  participantsCount: number,
-  currentUrl: string
+  participantsCount: number
 ) {
   sendChromeMsg({
     type: "JOIN_SUCCESS",
     roomName: roomName,
     participantsCount: participantsCount,
-    currentUrl: currentUrl,
   });
   // Notify background
   sendChromeMsg({
@@ -25,44 +31,115 @@ export function sendJoinSuccessMsg(
   });
 }
 
-export function sendHostSuccessMsg(roomId: string, currentUrl: string) {
-  sendChromeMsg({ type: "HOST_SUCCESS", roomId, currentUrl });
+export function sendHostSuccessMsg(roomId: string) {
+  sendChromeMsg({ type: "HOST_SUCCESS", roomId });
   sendChromeMsg({ type: "IN_ROOM" });
 }
 
-/** Forward PeerMessage to VideoController */
-export function forwardRemotePeerMsg(msg: PeerMessage) {
+/** Forward PeerTimeMessage to Background */
+export function forwardRemotePeerMsg(msg: PeerTimeMessage) {
   sendChromeMsg({
     type: "VIDEO_ACTIONS",
     payload: msg,
   });
 }
 
-export function sendPrepareVcMsg(tabId: number) {
-  sendTabMsg(tabId, { type: "PREPARE_VC" });
+/** Forward PeerNextVideoMessage to Background */
+export function notifyNextVideo(msg: PeerNextVideoMessage) {
+  sendChromeMsg(msg);
 }
 
-export function forwardVideoActionsMsg(tabId: number, msg: VCActions) {
-  sendTabMsg(tabId, msg);
+export function sendPrepareVcMsg(
+  tabId: number,
+  navId: number,
+  frameId?: number
+) {
+  sendTabMsg(tabId, { type: "PREPARE_VC", navId: navId }, frameId);
 }
 
-export function loadVCStates(): Promise<{
-  controlledTabId: number | null;
-  isInRoom: boolean;
-}> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(["controlledTabId", "isInRoom"], (res) => {
-      resolve({
-        controlledTabId: res.controlledTabId ?? null,
-        isInRoom: !!res.isInRoom,
-      });
-    });
+/** Forward PeerTimeMessage to Content Script */
+export function forwardVideoActionsMsg(
+  tabId: number,
+  msg: VCActions,
+  frameId?: number
+) {
+  sendTabMsg(tabId, msg, frameId);
+}
+
+/** Forward PeerNextVideoMessage to Content Script */
+export function forwardNotifyNextVideo(
+  tabId: number,
+  msg: PeerNextVideoMessage,
+  frameId?: number
+) {
+  sendTabMsg(tabId, msg, frameId);
+}
+
+/** Background -> Offscreen */
+export function sendVCMsg(msg: LocalVideoEvent) {
+  sendChromeMsg(msg);
+}
+
+/** Offscreen -> Background */
+export function sendSaveRoomUrlMsg(url: string) {
+  sendChromeMsg({ type: "SAVE_ROOM_URL", url });
+}
+
+/** Offscreen -> Background */
+export function sendHostLinkCompleteMsg() {
+  sendChromeMsg({ type: "SEND_JOIN_SUCCESS" });
+}
+
+export function sendLocalUrlChangeMsg(url: string) {
+  sendChromeMsg({ type: "LOCAL_URL_CHANGE", url });
+}
+
+export function sendAckNackMsg(url: string) {
+  sendChromeMsg({ type: "ACK_OR_NACK", url });
+}
+
+/** Offscreen -> Background */
+export function updatePeerReadinessUI(readinessMap: Record<string, boolean>) {
+  sendChromeMsg({ type: "READINESS_UPDATE", readinessMap });
+}
+
+/** Background -> Content Script */
+export function forwardUpdatePeerReadinessMsg(
+  tabId: number,
+  msg: ReadinessUIUpdate,
+  frameId?: number
+) {
+  sendTabMsg(tabId, msg, frameId);
+}
+
+export function showVideoStatusNotification(success: boolean) {
+  const title = "WatchToGather";
+  const message = success
+    ? "Video ready to watch!"
+    : "[Video not found] Ensure video exists and keep the tab active. Please try again.";
+
+  const iconUrl = chrome.runtime.getURL("evadr.jpg");
+
+  chrome.notifications.create({
+    type: "basic",
+    iconUrl: iconUrl,
+    title,
+    message,
+    priority: 2,
+    requireInteraction: false,
   });
 }
 
-export function saveVCStates(
-  controlledTabId: number | null,
-  isInRoom: boolean
+/** Offscreen (MessageManager) -> Background */
+export function sendCurrentVideoState(peerId: string) {
+  sendChromeMsg({ type: "SEND_VIDEO_STATE", target: peerId });
+}
+
+/** Background -> Content Script */
+export function forwardSendVideoState(
+  tabId: number,
+  msg: VideoStateRequest,
+  frameId?: number
 ) {
-  chrome.storage.local.set({ controlledTabId, isInRoom });
+  sendTabMsg(tabId, msg, frameId);
 }

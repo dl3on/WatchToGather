@@ -1,6 +1,10 @@
 import { Response } from "../../../common/types.js";
 import { ResponseType } from "../../../common/types.js";
-import { sendJoinSuccessMsg, sendHostSuccessMsg } from "../chrome.js";
+import {
+  sendJoinSuccessMsg,
+  sendHostSuccessMsg,
+  sendRoomDetails,
+} from "../chrome.js";
 
 export function onJoinResponse(
   res: Response<ResponseType.Join>,
@@ -25,12 +29,7 @@ export function onJoinResponse(
 
   if (!res.success) return;
 
-  // TODO: wait until P2P established
-  sendJoinSuccessMsg(
-    res.body.roomName,
-    res.body.peers.length,
-    res.body.currentUrl
-  );
+  sendRoomDetails(res.body.roomName, res.body.peers.length);
 }
 
 export function onHostResponse(
@@ -39,9 +38,7 @@ export function onHostResponse(
 ) {
   if (verbose) {
     if (res.success) {
-      console.log(
-        `[SignalManager] Successfully created Room ${res.roomId} (URL: ${res.body.currentUrl})`
-      );
+      console.log(`[SignalManager] Successfully created Room ${res.roomId}`);
     } else {
       console.log(`[SignalManager] Failed to create room:`, res.errMsg);
     }
@@ -49,7 +46,7 @@ export function onHostResponse(
 
   if (!res.success) return;
 
-  sendHostSuccessMsg(res.roomId, res.body.currentUrl);
+  sendHostSuccessMsg(res.roomId);
 }
 
 export function onConnect(

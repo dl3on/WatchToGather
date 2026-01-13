@@ -1,9 +1,12 @@
+import {
+  getControlledTabId,
+  loadRoomDetails,
+  loadRoomUrl,
+  saveRoomDetails,
+  saveRoomUrl,
+} from "../common/chrome-storage";
 import { isValidUrl } from "../common/utils";
 import {
-  loadRegisteredTabId,
-  loadRoomDetails,
-  registerTabListener,
-  saveRoomDetails,
   sendHostMsg,
   sendJoinMsg,
   waitForHostSuccess,
@@ -36,23 +39,22 @@ const webpageLinkInput = document.getElementById(
 const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
 const roomData = await loadRoomDetails();
-const registeredTabId = await loadRegisteredTabId();
+const url = (await loadRoomUrl())?.url || "";
+const controlledTabId = await getControlledTabId();
+
 if (roomData) {
-  const { roomId, roomName, participantsCount, url, host } = roomData;
-  const hasRegisteredTab = registeredTabId !== null ? true : false;
+  const { roomId, roomName, participantsCount, host } = roomData;
   updateUIForRoom(
     roomId,
     roomName,
     participantsCount,
     url,
     host,
-    hasRegisteredTab
+    controlledTabId
   );
 } else {
   renderInitialView();
 }
-
-registerTabListener();
 
 // Create Room
 confirmCreateBtn.addEventListener("click", async () => {
@@ -61,27 +63,45 @@ confirmCreateBtn.addEventListener("click", async () => {
 
   if (roomName !== "" && webpageLink !== "") {
     if (!isValidUrl(webpageLink)) {
-      alert("Invalid link");
+      alert("[WatchToGather] Invalid link");
       return;
     }
 
-    console.log("Creating room:", roomName);
-    sendHostMsg(roomName, webpageLink);
+    const loadingOverlay = document.getElementById(
+      "loadingOverlay"
+    ) as HTMLDivElement;
+    const loadingText = loadingOverlay.querySelector(
+      "p"
+    ) as HTMLParagraphElement;
+    loadingText.textContent = "Creating room...";
+    loadingOverlay.classList.remove("hidden");
+    createRoomModal.classList.add("hidden");
 
     try {
-      const { roomId } = await waitForHostSuccess();
+      sendHostMsg(roomName, webpageLink);
+
+      const hostPromise = waitForHostSuccess();
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("Host request timed out"));
+        }, 10000); // 10 seconds timeout
+      });
+      const { roomId } = await Promise.race([hostPromise, timeoutPromise]);
+
+      loadingOverlay.classList.add("hidden");
 
       saveRoomDetails({
         roomId,
         roomName,
         participantsCount: 1,
-        url: webpageLink,
         host: true,
       });
-      updateUIForRoom(roomId, roomName, 1, webpageLink, true, false);
-      createRoomModal.classList.add("hidden");
+      saveRoomUrl(webpageLink);
+      updateUIForRoom(roomId, roomName, 1, webpageLink, true, controlledTabId);
     } catch (e) {
+      loadingOverlay.classList.add("hidden");
       console.error("[ERROR] Unable to host:", e);
+      alert(`[WatchToGather] (Failed) ${e}`);
     }
   } else {
     console.log("Fill in all the fields.");
@@ -97,20 +117,37 @@ confirmJoinBtn.addEventListener("click", async () => {
   const roomId = roomIdInput.value.trim();
 
   if (roomId !== "") {
-    console.log("Joining room:", roomId);
-    sendJoinMsg(roomId);
-
+    const loadingOverlay = document.getElementById(
+      "loadingOverlay"
+    ) as HTMLDivElement;
+    const loadingText = loadingOverlay.querySelector(
+      "p"
+    ) as HTMLParagraphElement;
+    loadingText.textContent = "Joining room...";
+    loadingOverlay.classList.remove("hidden");
     joinRoomModal.classList.add("hidden");
 
     try {
-      const { roomName, participantsCount, currentUrl } =
-        await waitForJoinSuccess();
+      sendJoinMsg(roomId);
+
+      const joinPromise = waitForJoinSuccess();
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error("Join request timed out"));
+        }, 10000); // 10 seconds timeout
+      });
+      const { roomName, participantsCount } = await Promise.race([
+        joinPromise,
+        timeoutPromise,
+      ]);
+      const currentUrl = (await loadRoomUrl())?.url || "";
+
+      loadingOverlay.classList.add("hidden");
 
       saveRoomDetails({
         roomId,
         roomName,
         participantsCount: participantsCount + 1,
-        url: currentUrl,
         host: false,
       });
       updateUIForRoom(
@@ -119,10 +156,14 @@ confirmJoinBtn.addEventListener("click", async () => {
         participantsCount + 1,
         currentUrl,
         false,
-        false
+        controlledTabId
       );
     } catch (e) {
+      loadingOverlay.classList.add("hidden");
       console.error(`[ERROR] Unable to join Room ${roomId}:`, e);
+      alert(
+        `[WatchToGather] Unable to join Room ${roomId}. Please check the Room ID and try again.`
+      );
     }
   } else {
     console.log("Room ID required!");
