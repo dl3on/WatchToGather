@@ -2,6 +2,7 @@ import {
   PeerMessageType,
   PeerTimeMessage,
 } from "../../common/sync-messages-types";
+import { hidePausedUI, showUserPaused } from "../ui/notifications/video-paused";
 import { sendVCMsg } from "./chrome";
 
 export class VideoController {
@@ -104,6 +105,8 @@ export class VideoController {
       return;
     }
 
+    hidePausedUI();
+
     sendVCMsg({
       type: PeerMessageType.Play,
       time: this._video.currentTime,
@@ -196,8 +199,7 @@ export class VideoController {
           this.applySeek(msg.time);
         }
 
-        // TODO: show UI message depending on Pause type
-        // eg playbackActionUI(msg.type)
+        showUserPaused(this._video, msg.type, msg.fromPeerId);
 
         break;
       }
@@ -213,6 +215,7 @@ export class VideoController {
           this.applySeek(msg.time);
         }
 
+        hidePausedUI();
         this._ignoreNextPlay = true;
         this._video.play();
 
