@@ -448,7 +448,7 @@ export class WebRTCManager {
       this.broadcastPeerMessage(msg, false);
       return;
     } else if (msg.type === PeerMessageType.SyncBeacon) {
-      // Only host sends SyncBeacon signal
+      // Only host sends SyncBeacon signal (dropped)
       return;
     }
 
@@ -459,13 +459,34 @@ export class WebRTCManager {
 
     if (!hostConn || !hostConn[1].dataChannel) {
       throw new Error(
-        `[WebRTC Manager] No datachannel found with host ${
-          hostConn?.[0]
-        }. MSG: ${JSON.stringify(msg)}`
+        `[WebRTC Manager] No datachannel found with host ${hostConn?.[0]}. MSG: ${msgJson}`
       );
     }
 
     hostConn[1].dataChannel.send(msgJson);
+  }
+
+  public sendMessageToPeer(msg: PeerMessage, peerId: string) {
+    if (
+      this._localVideoUrl !== this._roomVideoUrl &&
+      isPlaybackControlMessage(msg)
+    ) {
+      console.log(
+        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+      );
+      return;
+    }
+
+    const msgJson = JSON.stringify(msg);
+    const targetConn = this._connections[peerId];
+
+    if (!targetConn || !targetConn.dataChannel) {
+      throw new Error(
+        `[WebRTC Manager] No datachannel found with peer ${peerId}. MSG: ${msgJson}`
+      );
+    }
+
+    targetConn.dataChannel.send(msgJson);
   }
 
   public async broadcastPeerMessage(msg: PeerMessage, relayed: boolean) {

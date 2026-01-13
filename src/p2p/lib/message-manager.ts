@@ -13,6 +13,7 @@ import { isPlaybackControlMessage } from "../../common/utils";
 import {
   forwardRemotePeerMsg,
   notifyNextVideo,
+  sendCurrentVideoState,
   updatePeerReadinessUI,
 } from "./chrome";
 import type { WebRTCManager } from "./webrtc-manager";
@@ -61,15 +62,15 @@ export class MessageManager {
       notifyNextVideo(msg);
     } else if (msg.type === PeerMessageType.NextVideoAck) {
       this.updatePeerReadinessMap(msg.fromPeerId, true);
-      console.log(`[MM] Host received Ack from ${msg.fromPeerId}`);
+
+      // Now that peer is ready, send a sync beacon to start syncing
+      sendCurrentVideoState(msg.fromPeerId);
       return;
     } else if (msg.type === PeerMessageType.NextVideoNack) {
       this.updatePeerReadinessMap(msg.fromPeerId, false);
-      console.log(`[MM] Host received Nack from ${msg.fromPeerId}`);
       return;
     } else if (msg.type === PeerMessageType.ReadyStateUpdate) {
       this._peerReadinessMap = msg.readinessMap;
-      console.log(`[MM] Received Map update from host ${msg.fromPeerId}`);
       updatePeerReadinessUI(this.getPeerReadinessMap());
     } else if (isPlaybackControlMessage(msg)) {
       // Drops late playback messages
@@ -77,6 +78,14 @@ export class MessageManager {
       this._lastAppliedLamport = msg.lamport;
 
       forwardRemotePeerMsg(msg);
+
+      if (
+        msg.type === PeerMessageType.SyncBeacon &&
+        msg.target.kind === "peer"
+      ) {
+        // Do not broadcast to other peers
+        return;
+      }
     }
 
     // Relay received msg to ensure every peer receives it
@@ -94,8 +103,15 @@ export class MessageManager {
         type: msg.type,
         time: msg.time,
         paused: msg.paused,
+        target: msg.target,
         duration: msg.duration,
       };
+
+      if (msg.target.kind !== "broadcast") {
+        this._seenMessages.add(msgToSend.mid);
+        this._webrtcManager.sendMessageToPeer(msgToSend, msg.target.peerId);
+        return;
+      }
     } else {
       msgToSend = {
         mid: crypto.randomUUID(),

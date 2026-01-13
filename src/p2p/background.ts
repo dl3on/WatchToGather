@@ -4,6 +4,7 @@ import {
 } from "../common/sync-messages-types";
 import {
   forwardNotifyNextVideo,
+  forwardSendVideoState,
   forwardUpdatePeerReadinessMsg,
   forwardVideoActionsMsg,
   sendAckNackMsg,
@@ -175,6 +176,7 @@ async function init() {
 
         if (senderTabId === pendingTabId || senderTabId === controlledTabId) {
           _vcReady = true;
+          console.log(`[VC READY] frame ID: ${sender.frameId}`);
 
           if (pendingTabId && controlledTabId !== pendingTabId) {
             controlledTabId = pendingTabId;
@@ -229,7 +231,18 @@ async function init() {
       return;
     }
 
-    /* Background -> Content Script */
+    /**
+     * Background -> Content Script
+     */
+
+    if (msg.type === "SEND_VIDEO_STATE") {
+      if (controlledTabId !== null) {
+        forwardSendVideoState(controlledTabId, msg, controlledFrameId);
+      } else {
+        console.log("[ERROR] No tab registered");
+      }
+      return;
+    }
 
     if (msg.type === "VIDEO_ACTIONS") {
       if (controlledTabId !== null) {

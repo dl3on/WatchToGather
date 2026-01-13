@@ -1,4 +1,3 @@
-import { response } from "express";
 import {
   getControlledTabId,
   getIsInRoom,
@@ -48,6 +47,11 @@ if (isMainFrame) {
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === "PREPARE_VC") {
     startVideoController(msg.navId);
+  }
+
+  if (msg.type === "SEND_VIDEO_STATE") {
+    const vc = getVC();
+    if (vc) vc.sendVideoState(msg.target);
   }
 
   if (msg.type === "VIDEO_ACTIONS") {

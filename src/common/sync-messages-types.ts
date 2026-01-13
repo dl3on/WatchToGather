@@ -41,6 +41,7 @@ export type PeerTimeMessage =
       type: PeerMessageType.SyncBeacon;
       time: number;
       paused: boolean;
+      target: SyncBeaconTarget;
       duration: number;
     });
 
@@ -72,6 +73,10 @@ export type PeerMessage =
   | PeerNextVideoNackMessage
   | PeerReadyStateMessage;
 
+type SyncBeaconTarget =
+  | { kind: "peer"; peerId: string }
+  | { kind: "broadcast" };
+
 export type LocalVideoTimeEvent =
   | {
       type:
@@ -86,6 +91,7 @@ export type LocalVideoTimeEvent =
       type: PeerMessageType.SyncBeacon;
       time: number;
       paused: boolean;
+      target: SyncBeaconTarget;
       duration: number;
     };
 
@@ -125,4 +131,9 @@ export type NavStates = {
   navId: number;
   urlValue: string | null;
   urlChange: boolean;
+};
+
+export type VideoStateRequest = {
+  type: "SEND_VIDEO_STATE";
+  target: string;
 };

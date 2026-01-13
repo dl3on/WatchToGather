@@ -5,6 +5,7 @@ import {
   PeerTimeMessage,
   ReadinessUIUpdate,
   VCActions,
+  VideoStateRequest,
 } from "../../common/sync-messages-types";
 
 export function sendRoomDetails(roomName: string, participantsCount: number) {
@@ -127,4 +128,18 @@ export function showVideoStatusNotification(success: boolean) {
     priority: 2,
     requireInteraction: false,
   });
+}
+
+/** Offscreen (MessageManager) -> Background */
+export function sendCurrentVideoState(peerId: string) {
+  sendChromeMsg({ type: "SEND_VIDEO_STATE", target: peerId });
+}
+
+/** Background -> Content Script */
+export function forwardSendVideoState(
+  tabId: number,
+  msg: VideoStateRequest,
+  frameId?: number
+) {
+  sendTabMsg(tabId, msg, frameId);
 }

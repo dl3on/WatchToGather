@@ -47,6 +47,17 @@ export class VideoController {
     this.startSyncBeacon();
   }
 
+  // For initial sync between host and joiner
+  sendVideoState(peerId: string) {
+    sendVCMsg({
+      type: PeerMessageType.SyncBeacon,
+      time: this._video.currentTime,
+      paused: this._video.paused,
+      target: { kind: "peer", peerId },
+      duration: this.getDuration(),
+    });
+  }
+
   destroy() {
     if (this._video) {
       this._video.removeEventListener("pause", this._pauseHandler);
@@ -344,6 +355,7 @@ export class VideoController {
       type: PeerMessageType.SyncBeacon,
       time: this._video.currentTime,
       paused: this._video.paused,
+      target: { kind: "broadcast" },
       duration: this.getDuration(),
     });
   }

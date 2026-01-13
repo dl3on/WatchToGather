@@ -12,9 +12,10 @@ export function sendChromeMsgWithRespone(msg: any): Promise<any> {
           msg
         );
         reject(chrome.runtime.lastError);
-      } else {
-        resolve(response);
+        return;
       }
+
+      resolve(response);
     });
   });
 }
