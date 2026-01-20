@@ -1,14 +1,10 @@
 import { Response } from "../../../common/types.js";
 import { ResponseType } from "../../../common/types.js";
-import {
-  sendJoinSuccessMsg,
-  sendHostSuccessMsg,
-  sendRoomDetails,
-} from "../chrome.js";
+import { sendHostSuccessMsg, sendRoomDetails } from "../chrome.js";
 
 export function onJoinResponse(
   res: Response<ResponseType.Join>,
-  verbose: boolean
+  verbose: boolean,
 ) {
   if (verbose) {
     if (res.success) {
@@ -16,13 +12,13 @@ export function onJoinResponse(
         `[SignalManager] Received join response from server: ${JSON.stringify(
           res.body,
           null,
-          2
-        )}`
+          2,
+        )}`,
       );
     } else {
       console.log(
         `[SignalManager] Failed to join room ${res.roomId}:`,
-        res.errMsg
+        res.errMsg,
       );
     }
   }
@@ -34,7 +30,7 @@ export function onJoinResponse(
 
 export function onHostResponse(
   res: Response<ResponseType.Host>,
-  verbose: boolean
+  verbose: boolean,
 ) {
   if (verbose) {
     if (res.success) {
@@ -52,11 +48,11 @@ export function onHostResponse(
 export function onConnect(
   peerId: string,
   socketId: string | undefined,
-  verbose: boolean
+  verbose: boolean,
 ) {
   if (verbose && socketId) {
     console.log(
-      `[SignalManager] Connected to signalling server.\nPeer ID: ${peerId}\nSocket ID: ${socketId}`
+      `[SignalManager] Connected to signalling server.\nPeer ID: ${peerId}\nSocket ID: ${socketId}`,
     );
   } else if (!socketId) {
     throw new Error("[SignalManager] Socket not defined.");
