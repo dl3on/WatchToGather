@@ -2,14 +2,14 @@ export function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
 }
 
-export function sendChromeMsgWithRespone(msg: any): Promise<any> {
+export function sendChromeMsgWithResponse(msg: any): Promise<any> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(msg, (response) => {
       if (chrome.runtime.lastError) {
         console.warn(
           "[sendChromeMsgWithResponse] failed:",
           chrome.runtime.lastError.message,
-          msg
+          msg,
         );
         reject(chrome.runtime.lastError);
         return;
@@ -39,7 +39,7 @@ export async function sendTabMsg(tabId: number, msg: any, frameId?: number) {
 }
 
 export async function validateControlledTabId(
-  tabId: number | null
+  tabId: number | null,
 ): Promise<number | null> {
   if (tabId == null) return null;
 
