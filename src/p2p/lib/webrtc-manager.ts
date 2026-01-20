@@ -51,7 +51,7 @@ export class WebRTCManager {
   _connectionCount = 0;
   private constructor(
     signalManager: SignalManager,
-    opts: WebRTCManagerOptions
+    opts: WebRTCManagerOptions,
   ) {
     const {
       peerId,
@@ -68,17 +68,17 @@ export class WebRTCManager {
 
   public static getInstance(
     signalManager: SignalManager,
-    opts: WebRTCManagerOptions
+    opts: WebRTCManagerOptions,
   ): WebRTCManager;
 
   public static getInstance(
     signalManager: SignalManager,
-    opts?: undefined
+    opts?: undefined,
   ): WebRTCManager | null;
 
   public static getInstance(
     signalManager: SignalManager,
-    opts?: WebRTCManagerOptions
+    opts?: WebRTCManagerOptions,
   ) {
     if (WebRTCManager._instance) {
       return WebRTCManager._instance;
@@ -101,29 +101,29 @@ export class WebRTCManager {
 
   private _configureSignalManager() {
     this._signalManager.setListener(EServerToClientEvents.ICERelay, (msg) =>
-      this._handleIncomingIce(msg)
+      this._handleIncomingIce(msg),
     );
 
     this._signalManager.setListener(EServerToClientEvents.OfferRelay, (msg) =>
-      this._handleOfferRelay(msg)
+      this._handleOfferRelay(msg),
     );
   }
 
   private async _handleAnswer(msg: Message<MessageType.Answer>) {
     const { fromPeerId, answer } = msg;
     this._log(
-      `Received answer from: ${fromPeerId}: ${JSON.stringify(answer, null, 2)}`
+      `Received answer from: ${fromPeerId}: ${JSON.stringify(answer, null, 2)}`,
     );
 
     if (!(fromPeerId in this._connections)) {
       this._log(
-        `Dropping answer from ${fromPeerId} as it is no longer connected to the client.`
+        `Dropping answer from ${fromPeerId} as it is no longer connected to the client.`,
       );
       return;
     }
 
     await this._connections[fromPeerId].peerConnection.setRemoteDescription(
-      answer
+      answer,
     );
   }
 
@@ -133,37 +133,37 @@ export class WebRTCManager {
 
   private async _handleJoinResponse(
     this: WebRTCManager,
-    msg: Response<ResponseType.Join>
+    msg: Response<ResponseType.Join>,
   ) {
     if (msg.success) {
       const hostId = msg.body.peers.find((pd) => pd.host)?.peerId;
       if (!hostId) {
         throw new Error(
-          `[WebRTC Manager] No host found in room ${msg.roomId}.`
+          `[WebRTC Manager] No host found in room ${msg.roomId}.`,
         );
       }
 
       const offers = await this._createOffers(
         msg.body.peers.map((pd) => pd.peerId),
-        hostId
+        hostId,
       );
 
       this._log(`Created offers: ${JSON.stringify(offers, null, 2)}`);
       this._signalManager.sendOffers(offers);
       this._signalManager.setListener(
         EServerToClientEvents.AnswerRelay,
-        (msg) => this._handleAnswer(msg)
+        (msg) => this._handleAnswer(msg),
       );
     } else {
       throw new Error(
-        `[WebRTC Manager] Failed to receive peer information from server:\n${msg.errMsg}`
+        `[WebRTC Manager] Failed to receive peer information from server:\n${msg.errMsg}`,
       );
     }
   }
 
   private async _handleOutgoingIce(
     e: RTCPeerConnectionIceEvent,
-    targetPeerId: string
+    targetPeerId: string,
   ) {
     if (e.candidate) {
       this._log(`Found ICE candidate: ${JSON.stringify(e.candidate, null, 2)}`);
@@ -187,14 +187,14 @@ export class WebRTCManager {
       `Received ICE candidate from ${fromPeerId}: ${JSON.stringify(
         candidate,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
 
     const connection = this._connections[fromPeerId]?.peerConnection;
     if (!connection) {
       this._log(
-        `Connection to ${fromPeerId} no longer exists. Dropping ICE candidate.`
+        `Connection to ${fromPeerId} no longer exists. Dropping ICE candidate.`,
       );
       return;
     }
@@ -207,28 +207,28 @@ export class WebRTCManager {
       `Received offer from peer ${msg.fromPeerId}: ${JSON.stringify(
         msg,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
 
     const pc = this._createPeerConnection(
       msg.fromPeerId,
-      EConnectionType.Acceptor
+      EConnectionType.Acceptor,
     );
     await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
     if (!pc.localDescription)
       throw new Error(
-        "[WebRTC Manager] Error setting answer as local description."
+        "[WebRTC Manager] Error setting answer as local description.",
       );
 
     this._log(
       `Sent answer to offerer ${msg.fromPeerId}: ${JSON.stringify(
         pc.localDescription,
         null,
-        2
-      )}`
+        2,
+      )}`,
     );
 
     this._connections[msg.fromPeerId] = {
@@ -248,30 +248,30 @@ export class WebRTCManager {
 
   private _createPeerConnection(
     targetPeerId: string,
-    mode: EConnectionType.Offerer
+    mode: EConnectionType.Offerer,
   ): [RTCPeerConnection, RTCDataChannel];
 
   private _createPeerConnection(
     targetPeerId: string,
-    mode: EConnectionType.Acceptor
+    mode: EConnectionType.Acceptor,
   ): RTCPeerConnection;
 
   private _createPeerConnection(
     targetPeerId: string,
-    mode: EConnectionType
+    mode: EConnectionType,
   ): [RTCPeerConnection, RTCDataChannel] | RTCPeerConnection {
     const pc = new RTCPeerConnection({
       iceServers: [{ urls: this._stunServerUrl }],
     });
 
     pc.addEventListener("icecandidate", (e) =>
-      this._handleOutgoingIce(e, targetPeerId)
+      this._handleOutgoingIce(e, targetPeerId),
     );
 
     pc.addEventListener("connectionstatechange", () => {
       if (pc.connectionState === "connected") {
         this._log(
-          `Successfully established connection to peer ${targetPeerId}`
+          `Successfully established connection to peer ${targetPeerId}`,
         );
         this._connectionCount += 1;
 
@@ -310,14 +310,14 @@ export class WebRTCManager {
       console.log(`[DC] Open with ${targetPeerId}`);
 
       if (this._host) {
-        this.sendInitialUrlToPeer(dc);
+        this._sendInitialUrlToPeer(dc);
       }
     });
     dc.addEventListener("message", async (e) => {
       const msg = JSON.parse(e.data);
 
       if (msg.type === "HOST_INITIAL_URL") {
-        this.updateRoomVideoUrl(msg.url);
+        this._updateRoomVideoUrl(msg.url);
         sendHostLinkCompleteMsg();
         return;
       }
@@ -327,13 +327,13 @@ export class WebRTCManager {
         isPlaybackControlMessage(msg)
       ) {
         console.log(
-          `[DC Receiver] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+          `[DC Receiver] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`,
         );
         return;
       }
 
       if (msg.type === PeerMessageType.NextVideo && !this._host) {
-        this.updateRoomVideoUrl(msg.url);
+        this._updateRoomVideoUrl(msg.url);
         if (this._localVideoUrl === this._roomVideoUrl) {
           this._messageManager.nextVideoAck(this._localVideoUrl!, false);
         }
@@ -371,7 +371,7 @@ export class WebRTCManager {
 
   private async _createOffers(
     peers: string[],
-    hostId: string
+    hostId: string,
   ): Promise<{
     [targetPeerId: string]: RTCSessionDescription;
   }> {
@@ -381,7 +381,7 @@ export class WebRTCManager {
       peers.map(async (peer) => {
         const [pc, dc] = this._createPeerConnection(
           peer,
-          EConnectionType.Offerer
+          EConnectionType.Offerer,
         );
 
         const offer = await pc.createOffer();
@@ -399,7 +399,7 @@ export class WebRTCManager {
           isHost: peer === hostId,
         };
         this._registerDataChannel(peer, dc);
-      })
+      }),
     );
 
     return peerMap;
@@ -409,7 +409,7 @@ export class WebRTCManager {
     this._signalManager.setListener(
       EServerToClientEvents.JoinResponse,
       (msg) => this._handleJoinResponse(msg),
-      true
+      true,
     );
 
     this._signalManager.emit(EClientToServerEvents.Join, { roomId });
@@ -423,7 +423,7 @@ export class WebRTCManager {
           this._roomId = msg.roomId;
         }
       },
-      true
+      true,
     );
 
     this._roomVideoUrl = currentUrl;
@@ -439,7 +439,7 @@ export class WebRTCManager {
       isPlaybackControlMessage(msg)
     ) {
       console.log(
-        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`,
       );
       return;
     }
@@ -454,12 +454,12 @@ export class WebRTCManager {
 
     const msgJson = JSON.stringify(msg);
     const hostConn = Object.entries(this._connections).find(
-      ([_, conn]) => conn.isHost
+      ([_, conn]) => conn.isHost,
     );
 
     if (!hostConn || !hostConn[1].dataChannel) {
       throw new Error(
-        `[WebRTC Manager] No datachannel found with host ${hostConn?.[0]}. MSG: ${msgJson}`
+        `[WebRTC Manager] No datachannel found with host ${hostConn?.[0]}. MSG: ${msgJson}`,
       );
     }
 
@@ -472,7 +472,7 @@ export class WebRTCManager {
       isPlaybackControlMessage(msg)
     ) {
       console.log(
-        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`,
       );
       return;
     }
@@ -482,7 +482,7 @@ export class WebRTCManager {
 
     if (!targetConn || !targetConn.dataChannel) {
       throw new Error(
-        `[WebRTC Manager] No datachannel found with peer ${peerId}. MSG: ${msgJson}`
+        `[WebRTC Manager] No datachannel found with peer ${peerId}. MSG: ${msgJson}`,
       );
     }
 
@@ -498,7 +498,7 @@ export class WebRTCManager {
       isPlaybackControlMessage(msg)
     ) {
       console.log(
-        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`
+        `[DC Sender] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`,
       );
       return;
     }
@@ -513,7 +513,7 @@ export class WebRTCManager {
 
   public sendNextVideoMessage(msg: PeerNextVideoMessage) {
     if (this._host) {
-      this.updateRoomVideoUrl(msg.url);
+      this._updateRoomVideoUrl(msg.url);
       this._messageManager.resetPeerReadiness();
       const stampedMsg = { ...msg, fromHost: true };
       this.broadcastPeerMessage(stampedMsg, false);
@@ -522,12 +522,12 @@ export class WebRTCManager {
       const stampedMsg = { ...msg, fromHost: false };
       const msgJson = JSON.stringify(stampedMsg);
       const hostConn = Object.entries(this._connections).find(
-        ([_, conn]) => conn.isHost
+        ([_, conn]) => conn.isHost,
       );
 
       if (!hostConn || !hostConn[1].dataChannel) {
         throw new Error(
-          `[WebRTC Manager] No datachannel found with host ${hostConn?.[0]}.`
+          `[WebRTC Manager] No datachannel found with host ${hostConn?.[0]}.`,
         );
       }
 
@@ -535,7 +535,7 @@ export class WebRTCManager {
     }
   }
 
-  private sendInitialUrlToPeer(dc: RTCDataChannel) {
+  private _sendInitialUrlToPeer(dc: RTCDataChannel) {
     let initMsg: HostInitialUrl = {
       type: "HOST_INITIAL_URL",
       url: this._roomVideoUrl!,
@@ -543,7 +543,7 @@ export class WebRTCManager {
     dc.send(JSON.stringify(initMsg));
   }
 
-  private updateRoomVideoUrl(url: string) {
+  private _updateRoomVideoUrl(url: string) {
     this._roomVideoUrl = url;
     sendSaveRoomUrlMsg(url);
   }
