@@ -30,7 +30,7 @@ io.on("connection", (socket) => {
   const { peerId } = socket.data;
   const socketId = socket.id;
   console.log(
-    `User with peer id ${peerId} connected with socket id ${socketId}`
+    `User with peer id ${peerId} connected with socket id ${socketId}`,
   );
 
   socket.on("disconnect", () => {
@@ -49,9 +49,7 @@ io.on("connection", (socket) => {
     const idx = peerList.indexOf(peer);
     peerList.splice(idx, 1);
 
-    // TODO: If is host, assign new host
     if (peerList.length == 0) delete connections[presentRoomId];
-    if (peer.host) peerList[0].host = true;
     if (peerId in peerMap) delete peerMap[peerId];
   });
 
@@ -151,21 +149,6 @@ io.on("connection", (socket) => {
     if (!c) return;
     c.peers.push({ peerId, host: false });
   });
-
-  // TODO: peer authentication
-  socket.on(EClientToServerEvents.Leave, (msg) => {
-    const { roomId } = msg;
-
-    if (peerId in peerMap) delete peerMap[peerId];
-    if (roomId in connections) {
-      const peerIdx = connections[roomId].peers.indexOf(peerId);
-      if (peerIdx >= 0) {
-        connections[roomId].peers.splice(peerIdx, 1);
-      }
-    }
-  });
-
-  socket.on(EClientToServerEvents.Disband, (msg) => {});
 });
 
 export { httpServer, app, connections };
