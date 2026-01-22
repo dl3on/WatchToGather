@@ -55,6 +55,10 @@ export class WebRTCManager {
   _host: boolean = false;
   _verbose: boolean;
 
+  // ===================================================================
+  // WEBRTC MANAGER LIFECYCLE & SINGLETON
+  // ===================================================================
+
   private constructor(
     signalManager: SignalManager,
     opts: WebRTCManagerOptions,
@@ -115,9 +119,30 @@ export class WebRTCManager {
     this._messageManager = mm;
   }
 
+  // ===================================================================
+  // INTERNAL STATE & UTILITIES
+  // ===================================================================
+
+  private _log(msg: string) {
+    if (this._verbose) console.log(`[WebRTC Manager] ${msg}`);
+  }
+
+  private _updateRoomVideoUrl(url: string) {
+    this._roomVideoUrl = url;
+    sendSaveRoomUrlMsg(url);
+  }
+
+  public updateLocalVideoUrl(url: string) {
+    this._localVideoUrl = url;
+  }
+
   private _checkJoinStatus(): boolean {
     return this._connectionCount === Object.keys(this._connections).length;
   }
+
+  // ===================================================================
+  // SIGNALLING (SERVER ↔ CLIENT)
+  // ===================================================================
 
   private _configureSignalManager() {
     this._signalManager.setListener(EServerToClientEvents.ICERelay, (msg) =>
@@ -155,8 +180,62 @@ export class WebRTCManager {
     await pc.setRemoteDescription(answer);
   }
 
-  private _log(msg: string) {
-    if (this._verbose) console.log(`[WebRTC Manager] ${msg}`);
+  private async _handleOfferRelay(msg: Message<MessageType.OfferRelay>) {
+    this._log(
+      `Received offer from peer ${msg.fromPeerId}: ${JSON.stringify(
+        msg,
+        null,
+        2,
+      )}`,
+    );
+
+    const pc = this._createPeerConnection(
+      msg.fromPeerId,
+      EConnectionType.Acceptor,
+    );
+
+    if (pc.signalingState !== "stable") {
+      console.warn(
+        `[WebRTC Manager] Dropping offer from ${msg.fromPeerId} due to invalid state: ${pc.signalingState}`,
+      );
+      return;
+    }
+
+    await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+    if (!pc.localDescription)
+      throw new Error(
+        "[WebRTC Manager] Error setting answer as local description.",
+      );
+
+    this._log(
+      `Sent answer to offerer ${msg.fromPeerId}: ${JSON.stringify(
+        pc.localDescription,
+        null,
+        2,
+      )}`,
+    );
+
+    this._connections[msg.fromPeerId] = {
+      peerConnection: pc,
+      isHost: false,
+    };
+
+    for (const c of this._pendingIce[msg.fromPeerId] ?? []) {
+      await pc.addIceCandidate(c);
+    }
+    delete this._pendingIce[msg.fromPeerId];
+
+    pc.ondatachannel = (e) => {
+      this._registerDataChannel(msg.fromPeerId, e.channel);
+    };
+
+    this._signalManager.emit(EClientToServerEvents.Answer, {
+      fromPeerId: this._peerId,
+      toPeerId: msg.fromPeerId,
+      answer: pc.localDescription,
+    });
   }
 
   private async _handleJoinResponse(
@@ -232,63 +311,9 @@ export class WebRTCManager {
     await connection.addIceCandidate(candidate);
   }
 
-  private async _handleOfferRelay(msg: Message<MessageType.OfferRelay>) {
-    this._log(
-      `Received offer from peer ${msg.fromPeerId}: ${JSON.stringify(
-        msg,
-        null,
-        2,
-      )}`,
-    );
-
-    const pc = this._createPeerConnection(
-      msg.fromPeerId,
-      EConnectionType.Acceptor,
-    );
-
-    if (pc.signalingState !== "stable") {
-      console.warn(
-        `[WebRTC Manager] Dropping offer from ${msg.fromPeerId} due to invalid state: ${pc.signalingState}`,
-      );
-      return;
-    }
-
-    await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
-    const answer = await pc.createAnswer();
-    await pc.setLocalDescription(answer);
-    if (!pc.localDescription)
-      throw new Error(
-        "[WebRTC Manager] Error setting answer as local description.",
-      );
-
-    this._log(
-      `Sent answer to offerer ${msg.fromPeerId}: ${JSON.stringify(
-        pc.localDescription,
-        null,
-        2,
-      )}`,
-    );
-
-    this._connections[msg.fromPeerId] = {
-      peerConnection: pc,
-      isHost: false,
-    };
-
-    for (const c of this._pendingIce[msg.fromPeerId] ?? []) {
-      await pc.addIceCandidate(c);
-    }
-    delete this._pendingIce[msg.fromPeerId];
-
-    pc.ondatachannel = (e) => {
-      this._registerDataChannel(msg.fromPeerId, e.channel);
-    };
-
-    this._signalManager.emit(EClientToServerEvents.Answer, {
-      fromPeerId: this._peerId,
-      toPeerId: msg.fromPeerId,
-      answer: pc.localDescription,
-    });
-  }
+  // ===================================================================
+  // PEER CONNECTION SETUP (RTC)
+  // ===================================================================
 
   private _createPeerConnection(
     targetPeerId: string,
@@ -475,6 +500,10 @@ export class WebRTCManager {
     return peerMap;
   }
 
+  // ===================================================================
+  // ROOM ACTIONS
+  // ===================================================================
+
   public join(roomId: string) {
     this._signalManager.connect();
     this._signalManager.setListener(
@@ -503,6 +532,18 @@ export class WebRTCManager {
     this._signalManager.emit(EClientToServerEvents.Host, {
       roomName,
     });
+  }
+
+  // ===================================================================
+  // PEER MESSAGING
+  // ===================================================================
+
+  private _sendInitialUrlToPeer(dc: RTCDataChannel) {
+    let initMsg: HostInitialUrl = {
+      type: "HOST_INITIAL_URL",
+      url: this._roomVideoUrl!,
+    };
+    dc.send(JSON.stringify(initMsg));
   }
 
   public sendMessage(msg: PeerMessage) {
@@ -607,23 +648,6 @@ export class WebRTCManager {
     }
   }
 
-  private _sendInitialUrlToPeer(dc: RTCDataChannel) {
-    let initMsg: HostInitialUrl = {
-      type: "HOST_INITIAL_URL",
-      url: this._roomVideoUrl!,
-    };
-    dc.send(JSON.stringify(initMsg));
-  }
-
-  private _updateRoomVideoUrl(url: string) {
-    this._roomVideoUrl = url;
-    sendSaveRoomUrlMsg(url);
-  }
-
-  public updateLocalVideoUrl(url: string) {
-    this._localVideoUrl = url;
-  }
-
   public sendAckNack(currentUrl: string) {
     // No URL means no controlled tab
     if (currentUrl === "") {
@@ -640,6 +664,10 @@ export class WebRTCManager {
       this._messageManager.nextVideoNack(currentUrl, this._host);
     }
   }
+
+  // ===================================================================
+  // CLEANUP & DISCONNECT
+  // ===================================================================
 
   public disconnectAllPeers() {
     this._log("Disconnecting all peers");

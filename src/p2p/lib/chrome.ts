@@ -49,7 +49,7 @@ export function notifyNextVideo(msg: PeerNextVideoMessage) {
 export function sendPrepareVcMsg(
   tabId: number,
   navId: number,
-  frameId?: number
+  frameId?: number,
 ) {
   sendTabMsg(tabId, { type: "PREPARE_VC", navId: navId }, frameId);
 }
@@ -58,7 +58,7 @@ export function sendPrepareVcMsg(
 export function forwardVideoActionsMsg(
   tabId: number,
   msg: VCActions,
-  frameId?: number
+  frameId?: number,
 ) {
   sendTabMsg(tabId, msg, frameId);
 }
@@ -67,7 +67,7 @@ export function forwardVideoActionsMsg(
 export function forwardNotifyNextVideo(
   tabId: number,
   msg: PeerNextVideoMessage,
-  frameId?: number
+  frameId?: number,
 ) {
   sendTabMsg(tabId, msg, frameId);
 }
@@ -104,7 +104,7 @@ export function updatePeerReadinessUI(readinessMap: Record<string, boolean>) {
 export function forwardUpdatePeerReadinessMsg(
   tabId: number,
   msg: ReadinessUIUpdate,
-  frameId?: number
+  frameId?: number,
 ) {
   sendTabMsg(tabId, msg, frameId);
 }
@@ -136,7 +136,7 @@ export function sendCurrentVideoState(peerId: string) {
 export function forwardSendVideoState(
   tabId: number,
   msg: VideoStateRequest,
-  frameId?: number
+  frameId?: number,
 ) {
   sendTabMsg(tabId, msg, frameId);
 }

@@ -120,12 +120,4 @@ export class SignalManager {
       });
     }
   }
-
-  resetListeners() {
-    if (this._socket) {
-      this._socket.off("connect");
-      this._socket.off(EServerToClientEvents.JoinResponse);
-      this._socket.off(EServerToClientEvents.HostResponse);
-    }
-  }
 }

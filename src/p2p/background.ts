@@ -100,7 +100,7 @@ async function init() {
           (f) =>
             f.url === msg.iframeSrc ||
             (f.parentFrameId === sender.frameId &&
-              f.url.includes(msg.iframeSrc))
+              f.url.includes(msg.iframeSrc)),
         );
 
         if (!targetFrame) {
@@ -175,8 +175,8 @@ async function init() {
       if (msg.success) {
         const senderTabId = sender.tab?.id;
         if (!senderTabId) {
-          console.error(
-            `[BG] Ignoring VC_STATUS message from unidentified sender`
+          console.warn(
+            `[BG] Ignoring VC_STATUS message from unidentified sender`,
           );
           return;
         }
@@ -343,6 +343,10 @@ async function init() {
       sendPrepareVcMsg(controlledTabId, navId);
   });
 
+  // ===================================================================
+  // TAB REGISTRATION AND URL TRACKING
+  // ===================================================================
+
   /** Automatically registers current active tab
    * if it has a video element
    * with an option to re-register a new tab */
@@ -397,6 +401,10 @@ async function init() {
     }
   }
 
+  // ===================================================================
+  // VIDEO CONTROL HELPERS
+  // ===================================================================
+
   async function maybeSendNextVideo(pendingUrl: string) {
     const shouldSend = _pendingUrlChange && _vcReady && pendingUrl;
     if (!shouldSend) return;
@@ -406,9 +414,6 @@ async function init() {
 
     // Double check in case the current url is invalid/new value/same as room url
     if (_pendingUrlValue === roomUrl) {
-      console.log(
-        `[BG] Dropped sendnextvideo ${_pendingUrlValue} === ${roomUrl}`
-      );
       _pendingUrlChange = false;
       _pendingUrlValue = null;
       saveNavState();
@@ -422,6 +427,10 @@ async function init() {
       url: pendingUrl,
     });
   }
+
+  // ===================================================================
+  // STATE MANAGEMENT HELPERS
+  // ===================================================================
 
   function resetVCStates() {
     controlledFrameId = undefined;
@@ -451,6 +460,10 @@ async function init() {
     clearRoomSessionStorage();
   }
 
+  // ===================================================================
+  // ROOM / SESSION HELPERS
+  // ===================================================================
+
   function markInRoom() {
     isInRoom = true;
     saveIsInRoom(isInRoom);
@@ -467,6 +480,10 @@ async function init() {
       throw new Error("[Background] No room details found");
     }
   }
+
+  // ===================================================================
+  // TYPE GUARDS
+  // ===================================================================
 
   function isPeerNextVideoMessage(msg: any): msg is PeerNextVideoMessage {
     if (
