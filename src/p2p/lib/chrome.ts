@@ -140,3 +140,23 @@ export function forwardSendVideoState(
 ) {
   sendTabMsg(tabId, msg, frameId);
 }
+
+/** Background -> Popup */
+export function notifyPopupLeftRoom() {
+  sendChromeMsg({ type: "LEFT_ROOM" });
+}
+
+/** Background -> Popup */
+export function sendRoomDisbandMsg() {
+  sendChromeMsg({ type: "DISBANDING_ROOM" });
+}
+
+/** Background -> Popup */
+export function notifyPopupDisband() {
+  sendChromeMsg({ type: "ROOM_DISBANDED" });
+}
+
+/** Background -> Content Script */
+export function notifyCSLeftRoom(tabId: number, frameId?: number) {
+  sendTabMsg(tabId, { type: "LEFT_ROOM" }, frameId);
+}

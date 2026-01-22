@@ -7,14 +7,19 @@ import {
   forwardSendVideoState,
   forwardUpdatePeerReadinessMsg,
   forwardVideoActionsMsg,
+  notifyPopupDisband,
   sendAckNackMsg,
   sendJoinSuccessMsg,
+  notifyPopupLeftRoom,
   sendLocalUrlChangeMsg,
   sendPrepareVcMsg,
+  sendRoomDisbandMsg,
   sendVCMsg,
   showVideoStatusNotification,
+  notifyCSLeftRoom,
 } from "./lib/chrome";
 import {
+  clearRoomSessionStorage,
   getControlledTabId,
   getIsInRoom,
   loadNavStates,
@@ -24,7 +29,11 @@ import {
   saveNavStates,
   saveRoomUrl,
 } from "../common/chrome-storage";
-import { validateControlledTabId } from "../common/chrome-utils";
+import {
+  initiateLeaveRoom,
+  validateControlledTabId,
+} from "../common/chrome-utils";
+import { LeaveType } from "../common/types";
 
 async function ensureOffscreen() {
   if (await chrome.offscreen.hasDocument()) return;
@@ -214,18 +223,47 @@ async function init() {
       }
     }
 
-    // TODO: clear storage & cachedRoomDetails & reset everything here
-    if (msg.type === "LEFT_ROOM") {
-      controlledTabId = null;
-      isInRoom = false;
+    if (msg.type === "REQUEST_LEAVE") {
+      (async () => {
+        try {
+          if (msg.reason === LeaveType.Disband) sendRoomDisbandMsg(); // Notify popup for UI updates
 
+          const success = await initiateLeaveRoom();
+
+          if (success) {
+            const tabId = controlledTabId;
+            const frameId = controlledFrameId;
+
+            resetAll();
+
+            if (msg.reason === LeaveType.Disband) {
+              notifyPopupDisband();
+            } else {
+              notifyPopupLeftRoom();
+            }
+
+            if (tabId) {
+              notifyCSLeftRoom(tabId, frameId);
+            }
+          }
+        } catch (error) {
+          console.error("[BG] Error during leave room:", error);
+        }
+      })();
+      return true;
+    }
+
+    if (msg.type === "LEFT_ROOM") {
+      isInRoom = false;
+      cachedRoomDetails = null;
+      controlledTabId = null;
+      pendingTabId = null;
       navId = 0;
       _pendingUrlChange = false;
       _pendingUrlValue = null;
+      resetVCStates();
 
-      // clear from storage
-      // saveControlledTabId(controlledTabId);
-      // saveIsInRoom(isInRoom);
+      clearRoomSessionStorage();
       return;
     }
 
@@ -399,23 +437,23 @@ async function init() {
     });
   }
 
-  function isPeerNextVideoMessage(msg: any): msg is PeerNextVideoMessage {
-    if (
-      msg.type === PeerMessageType.NextVideo &&
-      typeof msg.mid === "string" &&
-      typeof msg.fromPeerId === "string" &&
-      typeof msg.url === "string"
-    ) {
-      if (typeof msg.fromHost !== "boolean") {
-        console.warn(
-          "[WARN] isPeerNextVideoMessage: fromHost missing or invalid",
-          msg
-        );
-        return false;
-      }
-      return true;
-    }
-    return false;
+  /** Reset all states and clears local chrome storage */
+  function resetAll() {
+    isInRoom = false;
+    cachedRoomDetails = null;
+    controlledTabId = null;
+    pendingTabId = null;
+    navId = 0;
+    _pendingUrlChange = false;
+    _pendingUrlValue = null;
+    resetVCStates();
+
+    clearRoomSessionStorage();
+  }
+
+  function markInRoom() {
+    isInRoom = true;
+    saveIsInRoom(isInRoom);
   }
 
   function sendJoinSuccess() {
@@ -430,9 +468,23 @@ async function init() {
     }
   }
 
-  function markInRoom() {
-    isInRoom = true;
-    saveIsInRoom(isInRoom);
+  function isPeerNextVideoMessage(msg: any): msg is PeerNextVideoMessage {
+    if (
+      msg.type === PeerMessageType.NextVideo &&
+      typeof msg.mid === "string" &&
+      typeof msg.fromPeerId === "string" &&
+      typeof msg.url === "string"
+    ) {
+      if (typeof msg.fromHost !== "boolean") {
+        console.warn(
+          "[WARN] isPeerNextVideoMessage: fromHost missing or invalid",
+          msg,
+        );
+        return false;
+      }
+      return true;
+    }
+    return false;
   }
 }
 

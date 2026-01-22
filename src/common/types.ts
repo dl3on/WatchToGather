@@ -123,3 +123,20 @@ export interface RoomDetails {
 export interface RoomUrl {
   url: string;
 }
+
+export enum LeaveType {
+  Disband = "DISBAND",
+  Leave = "LEAVE",
+}
+
+export type LeaveMsg =
+  | {
+      type: "REQUEST_LEAVE";
+      reason: LeaveType;
+    }
+  | {
+      type: "INITIATE_LEAVE";
+    }
+  | {
+      type: "LEFT_ROOM";
+    };

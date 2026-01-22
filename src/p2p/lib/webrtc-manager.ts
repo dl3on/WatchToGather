@@ -4,6 +4,7 @@ import {
   PeerMessageType,
   PeerNextVideoMessage,
 } from "../../common/sync-messages-types.js";
+import { LeaveType } from "../../common/types.js";
 import {
   EClientToServerEvents,
   EServerToClientEvents,
@@ -16,6 +17,7 @@ import { SignalManager } from "./signal-manager.js";
 import type { MessageManager } from "./message-manager.js";
 import { sendHostLinkCompleteMsg, sendSaveRoomUrlMsg } from "./chrome.js";
 import { isPlaybackControlMessage } from "../../common/utils.js";
+import { requestLeaveRoom } from "../../common/chrome-utils.js";
 
 type WebRTCManagerOptions = {
   peerId: string;
@@ -89,6 +91,16 @@ export class WebRTCManager {
     } else {
       return null;
     }
+  }
+
+  public reset() {
+    this._messageManager = null as any;
+
+    this._connectionCount = 0;
+    this._roomId = null;
+    this._localVideoUrl = null;
+    this._roomVideoUrl = null;
+    this._host = false;
   }
 
   setMessageManager(mm: MessageManager) {
@@ -287,10 +299,10 @@ export class WebRTCManager {
         this._log(`ICE exchange with peer ${targetPeerId} failed.`);
       } else if (pc.connectionState === "disconnected") {
         this._log(`Failed to establish connection to peer ${targetPeerId}`);
-        this._connectionCount -= 1;
+        this._connectionCount = Math.max(0, this._connectionCount - 1);
       } else if (pc.connectionState === "closed") {
         this._log(`Disconnected form peer ${targetPeerId}`);
-        this._connectionCount -= 1;
+        this._connectionCount = Math.max(0, this._connectionCount - 1);
       }
     });
 
@@ -364,8 +376,33 @@ export class WebRTCManager {
       console.log(`[DC] Message from ${targetPeerId}:`, e.data);
       this._messageManager.handleMessage(msg);
     });
-    dc.addEventListener("close", () => {
+    dc.addEventListener("close", async () => {
       console.log(`[DC] Channel closed for ${targetPeerId}`);
+
+      const peerEntry = this._connections[targetPeerId];
+
+      // If entry is already gone -> I was the one leaving
+      if (!peerEntry) {
+        // TODO: remove listeners
+        return;
+      }
+
+      const isHost = peerEntry.isHost;
+
+      // If Host disconnected - disband room
+      if (isHost) {
+        requestLeaveRoom(LeaveType.Disband);
+        this._log(`Host ${targetPeerId} is disbanding room.`);
+      } else {
+        this._removePeer(targetPeerId);
+
+        // Only let host update readiness map
+        if (this._host) this._messageManager.deletePeerFromMap(targetPeerId);
+
+        this._log(`Peer ${targetPeerId} left the room.`);
+      }
+
+      // TODO: remove listeners
     });
   }
 
@@ -569,5 +606,28 @@ export class WebRTCManager {
     } else {
       this._messageManager.nextVideoNack(currentUrl, this._host);
     }
+  }
+
+  public async disconnectAllPeers(): Promise<void> {
+    this._log("Disconnecting all peers");
+
+    for (const [peerId, peer] of Object.entries(this._connections)) {
+      delete this._connections[peerId];
+
+      peer.dataChannel?.close();
+      peer.peerConnection.close();
+    }
+  }
+
+  private _removePeer(peerId: string) {
+    const peerData = this._connections[peerId];
+    if (!peerData) return;
+
+    delete this._connections[peerId];
+
+    peerData.dataChannel?.close();
+    peerData.peerConnection.close();
+
+    this._log(`Removed peer ${peerId}`);
   }
 }

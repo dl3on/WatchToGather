@@ -1,3 +1,5 @@
+import { LeaveType } from "./types";
+
 export function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
 }
@@ -50,4 +52,16 @@ export async function validateControlledTabId(
     console.log(`Tab ID ${tabId}: ${error}`);
     return null;
   }
+}
+
+export function requestLeaveRoom(reason: LeaveType) {
+  sendChromeMsg({ type: "REQUEST_LEAVE", reason });
+}
+
+export async function initiateLeaveRoom(): Promise<boolean> {
+  const response = await sendChromeMsgWithResponse({
+    type: "INITIATE_LEAVE",
+  });
+
+  return response?.success;
 }

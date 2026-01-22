@@ -56,6 +56,16 @@ export class SignalManager {
     }
   }
 
+  public reset() {
+    if (this._socket) {
+      this._socket.removeAllListeners();
+
+      if (this._socket.connected) {
+        this._socket.disconnect();
+      }
+    }
+  }
+
   public connect() {
     this.initalizeListeners();
     this._socket.connect();
@@ -79,7 +89,7 @@ export class SignalManager {
   public setListener<T extends EServerToClientEvents>(
     event: T,
     listener: ServerToClientEvents[T],
-    once: boolean = false
+    once: boolean = false,
   ) {
     if (once) {
       this._socket.once(event, listener as any);
@@ -91,16 +101,16 @@ export class SignalManager {
   private initalizeListeners() {
     if (this._socket) {
       this._socket.on("connect", () =>
-        onConnect(this._peerId, this._socket.id, this._verbose)
+        onConnect(this._peerId, this._socket.id, this._verbose),
       );
       this._socket.on("connect_error", (msg) => {
         if (this._verbose) console.log(`[SignalManager] [ERROR] ${msg}`);
       });
       this._socket.on(EServerToClientEvents.JoinResponse, (res) =>
-        onJoinResponse(res, this._verbose)
+        onJoinResponse(res, this._verbose),
       );
       this._socket.on(EServerToClientEvents.HostResponse, (res) =>
-        onHostResponse(res, this._verbose)
+        onHostResponse(res, this._verbose),
       );
       this._socket.on(EServerToClientEvents.OfferRelay, (res) => {
         console.log(`[SignalManager] ${JSON.stringify(res, null, 2)}`);

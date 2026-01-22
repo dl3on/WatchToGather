@@ -45,8 +45,18 @@ export class MessageManager {
       return newInstance;
     }
 
-      return MessageManager._instance;
-    }
+    return MessageManager._instance;
+  }
+
+  public destroy() {
+    this._webrtcManager = null as any;
+
+    this._seenMessages.clear();
+    this._peerReadinessMap = {};
+    this._lamportClock = 0;
+    this._lastAppliedLamport = 0;
+
+    MessageManager._instance = null;
   }
 
   public setWebRTCManager(wrtcm: WebRTCManager) {
@@ -179,9 +189,27 @@ export class MessageManager {
     this._webrtcManager.sendMessage(nackMsg);
   }
 
+  /**
+   * Host-only functions
+   */
+
   private updatePeerReadinessMap(peerId: string, isReady: boolean) {
-    // Host-only function
     this._peerReadinessMap[peerId] = isReady;
+    this.sendPeerReadinessUpdate();
+  }
+
+  public resetPeerReadiness() {
+    for (const peerId in this._peerReadinessMap) {
+      this._peerReadinessMap[peerId] = false;
+    }
+  }
+
+  public deletePeerFromMap(peerId: string) {
+    delete this._peerReadinessMap[peerId];
+    this.sendPeerReadinessUpdate();
+  }
+
+  private sendPeerReadinessUpdate() {
     updatePeerReadinessUI(this.getPeerReadinessMap());
 
     let mapUpdateMsg: PeerReadyStateMessage;
@@ -195,16 +223,4 @@ export class MessageManager {
 
     this._webrtcManager.broadcastPeerMessage(mapUpdateMsg, false);
   }
-
-  public resetPeerReadiness() {
-    // Host-only function
-    for (const peerId in this._peerReadinessMap) {
-      this._peerReadinessMap[peerId] = false;
-    }
-  }
-
-  // TODO: (Host) handle peer leaving room and broadcast new map
-  public deletePeerFromMap(peerId: string) {}
-
-  // TODO: Implement clearing seen messages, LamportClock, peerReadinessMap, on Leave
 }
