@@ -40,17 +40,21 @@ enum EConnectionType {
 
 export class WebRTCManager {
   private static _instance: WebRTCManager | null;
+  _signalManager: SignalManager;
   _messageManager!: MessageManager;
+
   _peerId: string;
+  _stunServerUrl: string;
+  _pendingIce: Record<string, RTCIceCandidate[]> = {};
+
+  _connections: PeerConnectionData = {};
+  _connectionCount = 0;
   _roomId: string | null = null;
   _localVideoUrl: string | null = null;
   _roomVideoUrl: string | null = null;
   _host: boolean = false;
   _verbose: boolean;
-  _stunServerUrl: string;
-  _connections: PeerConnectionData = {};
-  _signalManager: SignalManager;
-  _connectionCount = 0;
+
   private constructor(
     signalManager: SignalManager,
     opts: WebRTCManagerOptions,
@@ -134,9 +138,17 @@ export class WebRTCManager {
       return;
     }
 
-    await this._connections[fromPeerId].peerConnection.setRemoteDescription(
-      answer,
-    );
+    const pc = this._connections[fromPeerId].peerConnection;
+
+    if (pc.signalingState !== "have-local-offer") {
+      console.warn(
+        "[WebRTC Manager] Dropping answer: invalid state",
+        pc.signalingState,
+      );
+      return;
+    }
+
+    await pc.setRemoteDescription(answer);
   }
 
   private _log(msg: string) {
@@ -206,8 +218,10 @@ export class WebRTCManager {
     const connection = this._connections[fromPeerId]?.peerConnection;
     if (!connection) {
       this._log(
-        `Connection to ${fromPeerId} no longer exists. Dropping ICE candidate.`,
+        `Connection to ${fromPeerId} does not exist. ICE candidate added to buffer.`,
       );
+      this._pendingIce[fromPeerId] ??= [];
+      this._pendingIce[fromPeerId].push(candidate);
       return;
     }
 
@@ -227,6 +241,14 @@ export class WebRTCManager {
       msg.fromPeerId,
       EConnectionType.Acceptor,
     );
+
+    if (pc.signalingState !== "stable") {
+      console.warn(
+        `[WebRTC Manager] Dropping offer from ${msg.fromPeerId} due to invalid state: ${pc.signalingState}`,
+      );
+      return;
+    }
+
     await pc.setRemoteDescription(new RTCSessionDescription(msg.offer));
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
@@ -247,6 +269,12 @@ export class WebRTCManager {
       peerConnection: pc,
       isHost: false,
     };
+
+    for (const c of this._pendingIce[msg.fromPeerId] ?? []) {
+      await pc.addIceCandidate(c);
+    }
+    delete this._pendingIce[msg.fromPeerId];
+
     pc.ondatachannel = (e) => {
       this._registerDataChannel(msg.fromPeerId, e.channel);
     };
@@ -430,6 +458,12 @@ export class WebRTCManager {
           peerConnection: pc,
           isHost: peer === hostId,
         };
+
+        for (const c of this._pendingIce[peer] ?? []) {
+          await pc.addIceCandidate(c);
+        }
+        delete this._pendingIce[peer];
+
         this._registerDataChannel(peer, dc);
       }),
     );
