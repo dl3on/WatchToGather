@@ -27,7 +27,7 @@ export async function sendTabMsg(tabId: number, msg: any, frameId?: number) {
   const validTabId = await validateControlledTabId(tabId);
   if (!validTabId) return;
 
-  const options = frameId ? { frameId } : undefined;
+  const options = frameId !== undefined ? { frameId } : undefined;
 
   try {
     await chrome.tabs.sendMessage(validTabId, msg, options);
