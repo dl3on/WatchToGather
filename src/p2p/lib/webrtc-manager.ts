@@ -247,9 +247,9 @@ export class WebRTCManager {
       peerConnection: pc,
       isHost: false,
     };
-    pc.addEventListener("datachannel", (e) => {
+    pc.ondatachannel = (e) => {
       this._registerDataChannel(msg.fromPeerId, e.channel);
-    });
+    };
 
     this._signalManager.emit(EClientToServerEvents.Answer, {
       fromPeerId: this._peerId,
@@ -276,11 +276,9 @@ export class WebRTCManager {
       iceServers: [{ urls: this._stunServerUrl }],
     });
 
-    pc.addEventListener("icecandidate", (e) =>
-      this._handleOutgoingIce(e, targetPeerId),
-    );
+    pc.onicecandidate = (e) => this._handleOutgoingIce(e, targetPeerId);
 
-    pc.addEventListener("connectionstatechange", () => {
+    pc.onconnectionstatechange = () => {
       if (pc.connectionState === "connected") {
         this._log(
           `Successfully established connection to peer ${targetPeerId}`,
@@ -304,7 +302,7 @@ export class WebRTCManager {
         this._log(`Disconnected form peer ${targetPeerId}`);
         this._connectionCount = Math.max(0, this._connectionCount - 1);
       }
-    });
+    };
 
     if (mode === EConnectionType.Offerer) {
       const dc = pc.createDataChannel(`data-${targetPeerId}`);
@@ -318,14 +316,14 @@ export class WebRTCManager {
     this._log(`Registered data channel from peer ${targetPeerId}`);
     this._connections[targetPeerId].dataChannel = dc;
 
-    dc.addEventListener("open", () => {
+    dc.onopen = () => {
       console.log(`[DC] Open with ${targetPeerId}`);
 
       if (this._host) {
         this._sendInitialUrlToPeer(dc);
       }
-    });
-    dc.addEventListener("message", async (e) => {
+    };
+    dc.onmessage = async (e) => {
       const msg = JSON.parse(e.data);
 
       if (msg.type === "HOST_INITIAL_URL") {
@@ -375,15 +373,14 @@ export class WebRTCManager {
 
       console.log(`[DC] Message from ${targetPeerId}:`, e.data);
       this._messageManager.handleMessage(msg);
-    });
-    dc.addEventListener("close", async () => {
+    };
+    dc.onclose = async () => {
       console.log(`[DC] Channel closed for ${targetPeerId}`);
 
       const peerEntry = this._connections[targetPeerId];
 
       // If entry is already gone -> I was the one leaving
       if (!peerEntry) {
-        // TODO: remove listeners
         return;
       }
 
@@ -401,9 +398,7 @@ export class WebRTCManager {
 
         this._log(`Peer ${targetPeerId} left the room.`);
       }
-
-      // TODO: remove listeners
-    });
+    };
   }
 
   private async _createOffers(
@@ -614,8 +609,20 @@ export class WebRTCManager {
     for (const [peerId, peer] of Object.entries(this._connections)) {
       delete this._connections[peerId];
 
-      peer.dataChannel?.close();
-      peer.peerConnection.close();
+      const pc = peer.peerConnection;
+      const dc = peer.dataChannel;
+
+      if (dc) {
+        dc.close();
+        dc.onopen = null;
+        dc.onmessage = null;
+        dc.onclose = null;
+      }
+
+      pc.close();
+      pc.onicecandidate = null;
+      pc.onconnectionstatechange = null;
+      pc.ondatachannel = null;
     }
   }
 
@@ -625,8 +632,20 @@ export class WebRTCManager {
 
     delete this._connections[peerId];
 
-    peerData.dataChannel?.close();
-    peerData.peerConnection.close();
+    const pc = peerData.peerConnection;
+    const dc = peerData.dataChannel;
+
+    if (dc) {
+      dc.close();
+      dc.onopen = null;
+      dc.onmessage = null;
+      dc.onclose = null;
+    }
+
+    pc.close();
+    pc.onicecandidate = null;
+    pc.onconnectionstatechange = null;
+    pc.ondatachannel = null;
 
     this._log(`Removed peer ${peerId}`);
   }
