@@ -56,7 +56,9 @@ export class MessageManager {
     this._lamportClock = 0;
     this._lastAppliedLamport = 0;
 
-    MessageManager._instance = null;
+    if (MessageManager._instance === this) {
+      MessageManager._instance = null;
+    }
   }
 
   public setWebRTCManager(wrtcm: WebRTCManager) {
