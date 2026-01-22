@@ -97,14 +97,18 @@ export class WebRTCManager {
     }
   }
 
-  public reset() {
-    this._messageManager = null as any;
-
+  public destroy() {
     this._connectionCount = 0;
     this._roomId = null;
     this._localVideoUrl = null;
     this._roomVideoUrl = null;
     this._host = false;
+
+    this._messageManager = null as any;
+    this._signalManager = null as any;
+    if (WebRTCManager._instance === this) {
+      WebRTCManager._instance = null;
+    }
   }
 
   setMessageManager(mm: MessageManager) {
@@ -637,7 +641,7 @@ export class WebRTCManager {
     }
   }
 
-  public async disconnectAllPeers(): Promise<void> {
+  public disconnectAllPeers() {
     this._log("Disconnecting all peers");
 
     for (const [peerId, peer] of Object.entries(this._connections)) {
@@ -647,16 +651,16 @@ export class WebRTCManager {
       const dc = peer.dataChannel;
 
       if (dc) {
-        dc.close();
         dc.onopen = null;
         dc.onmessage = null;
         dc.onclose = null;
+        dc.close();
       }
 
-      pc.close();
       pc.onicecandidate = null;
       pc.onconnectionstatechange = null;
       pc.ondatachannel = null;
+      pc.close();
     }
   }
 

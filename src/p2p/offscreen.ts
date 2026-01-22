@@ -114,19 +114,17 @@ chrome.runtime.onMessage.addListener(
         return true;
       }
 
-      (async () => {
-        try {
-          await webrtc.disconnectAllPeers();
-        } catch (e) {
-          console.warn("disconnectAllPeers failed", e);
-        } finally {
-          messageManager.destroy();
-          webrtc.reset();
-          signalManager.reset();
-        }
+      try {
+        webrtc.disconnectAllPeers();
+      } catch (e) {
+        console.warn("disconnectAllPeers failed", e);
+      } finally {
+        messageManager.destroy();
+        webrtc.destroy();
+        signalManager.reset(); // Reuse SignalManager instance
+      }
 
-        sendResponse({ success: true });
-      })();
+      sendResponse({ success: true });
 
       return true;
     }
