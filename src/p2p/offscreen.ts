@@ -57,7 +57,13 @@ chrome.runtime.onMessage.addListener(
         return;
       }
 
-      const messageManager = MessageManager.getInstance(webrtc._peerId);
+      const messageManager = MessageManager.getInstance();
+      if (!messageManager) {
+        console.log(
+          "[WARN] Dropped Message: Received LocalVideoEvent before initialization",
+        );
+        return;
+      }
 
       if (msg.type === PeerMessageType.NextVideo) {
         messageManager.sendNextVideo(msg);

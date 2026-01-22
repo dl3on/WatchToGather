@@ -34,12 +34,17 @@ export class MessageManager {
     this._peerReadinessMap = {};
   }
 
-  public static getInstance(peerId: string): MessageManager {
-    if (!MessageManager._instance) {
+  public static getInstance(peerId: string): MessageManager;
+
+  public static getInstance(): MessageManager | null;
+
+  public static getInstance(peerId?: string): MessageManager | null {
+    if (!MessageManager._instance && peerId) {
       const newInstance = new MessageManager(peerId);
       MessageManager._instance = newInstance;
       return newInstance;
-    } else {
+    }
+
       return MessageManager._instance;
     }
   }
