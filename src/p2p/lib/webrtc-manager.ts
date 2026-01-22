@@ -406,6 +406,7 @@ export class WebRTCManager {
   }
 
   public join(roomId: string) {
+    this._signalManager.connect();
     this._signalManager.setListener(
       EServerToClientEvents.JoinResponse,
       (msg) => this._handleJoinResponse(msg),
@@ -416,6 +417,7 @@ export class WebRTCManager {
   }
 
   public host(roomName: string, currentUrl: string) {
+    this._signalManager.connect();
     this._signalManager.setListener(
       EServerToClientEvents.HostResponse,
       (msg) => {

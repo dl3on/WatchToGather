@@ -34,7 +34,6 @@ chrome.runtime.onMessage.addListener(
 
       if (type === "JOIN") {
         const roomId = msg.roomId;
-        signalManager.connect();
         webrtc.join(roomId);
       } else if (type === "HOST") {
         const roomName = msg.roomName;
