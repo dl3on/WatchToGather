@@ -18,22 +18,19 @@ export function sendRoomDetails(roomName: string, participantsCount: number) {
 
 export function sendJoinSuccessMsg(
   roomName: string,
-  participantsCount: number
+  participantsCount: number,
 ) {
+  // Background -> Popup
   sendChromeMsg({
     type: "JOIN_SUCCESS",
     roomName: roomName,
     participantsCount: participantsCount,
   });
-  // Notify background
-  sendChromeMsg({
-    type: "IN_ROOM",
-  });
 }
 
 export function sendHostSuccessMsg(roomId: string) {
-  sendChromeMsg({ type: "HOST_SUCCESS", roomId });
-  sendChromeMsg({ type: "IN_ROOM" });
+  sendChromeMsg({ type: "HOST_SUCCESS", roomId }); // Offscreen -> Popup
+  sendChromeMsg({ type: "IN_ROOM" }); // Offscreen -> Background
 }
 
 /** Forward PeerTimeMessage to Background */

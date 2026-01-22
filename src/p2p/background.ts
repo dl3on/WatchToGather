@@ -125,9 +125,7 @@ async function init() {
     }
 
     if (msg.type === "IN_ROOM") {
-      isInRoom = true;
-
-      saveIsInRoom(isInRoom);
+      markInRoom();
       return;
     }
 
@@ -424,11 +422,17 @@ async function init() {
     if (cachedRoomDetails) {
       sendJoinSuccessMsg(
         cachedRoomDetails.roomName,
-        cachedRoomDetails.participantsCount
+        cachedRoomDetails.participantsCount,
       );
+      markInRoom();
     } else {
       throw new Error("[Background] No room details found");
     }
+  }
+
+  function markInRoom() {
+    isInRoom = true;
+    saveIsInRoom(isInRoom);
   }
 }
 
