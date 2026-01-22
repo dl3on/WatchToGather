@@ -12,29 +12,34 @@ import {
   waitForHostSuccess,
   waitForJoinSuccess,
 } from "./lib/chrome";
-import { renderInitialView, updateUIForRoom } from "./lib/ui";
+import {
+  hideLoadingUI,
+  renderInitialView,
+  showLoadingUI,
+  updateUIForRoom,
+} from "./lib/ui";
 
 const createRoomModal = document.getElementById(
-  "createRoomModal"
+  "createRoomModal",
 ) as HTMLDivElement;
 const confirmCreateBtn = document.getElementById(
-  "confirmCreateBtn"
+  "confirmCreateBtn",
 ) as HTMLButtonElement;
 const cancelCreateBtn = document.getElementById(
-  "cancelCreateBtn"
+  "cancelCreateBtn",
 ) as HTMLButtonElement;
 const joinRoomModal = document.getElementById(
-  "joinRoomModal"
+  "joinRoomModal",
 ) as HTMLDivElement;
 const confirmJoinBtn = document.getElementById(
-  "confirmJoinBtn"
+  "confirmJoinBtn",
 ) as HTMLButtonElement;
 const cancelJoinBtn = document.getElementById(
-  "cancelJoinBtn"
+  "cancelJoinBtn",
 ) as HTMLButtonElement;
 const roomNameInput = document.getElementById("roomName") as HTMLInputElement;
 const webpageLinkInput = document.getElementById(
-  "webpageLink"
+  "webpageLink",
 ) as HTMLInputElement;
 const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
@@ -50,11 +55,23 @@ if (roomData) {
     participantsCount,
     url,
     host,
-    controlledTabId
+    controlledTabId,
   );
 } else {
   renderInitialView();
 }
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "DISBANDING_ROOM") {
+    showLoadingUI("Room is being disbanded...");
+    return;
+  }
+  if (msg.type === "ROOM_DISBANDED" || msg.type === "LEFT_ROOM") {
+    hideLoadingUI();
+    renderInitialView();
+    return;
+  }
+});
 
 // Create Room
 confirmCreateBtn.addEventListener("click", async () => {
@@ -67,14 +84,7 @@ confirmCreateBtn.addEventListener("click", async () => {
       return;
     }
 
-    const loadingOverlay = document.getElementById(
-      "loadingOverlay"
-    ) as HTMLDivElement;
-    const loadingText = loadingOverlay.querySelector(
-      "p"
-    ) as HTMLParagraphElement;
-    loadingText.textContent = "Creating room...";
-    loadingOverlay.classList.remove("hidden");
+    showLoadingUI("Creating room...");
     createRoomModal.classList.add("hidden");
 
     try {
@@ -88,7 +98,7 @@ confirmCreateBtn.addEventListener("click", async () => {
       });
       const { roomId } = await Promise.race([hostPromise, timeoutPromise]);
 
-      loadingOverlay.classList.add("hidden");
+      hideLoadingUI();
 
       saveRoomDetails({
         roomId,
@@ -98,10 +108,10 @@ confirmCreateBtn.addEventListener("click", async () => {
       });
       saveRoomUrl(webpageLink);
       updateUIForRoom(roomId, roomName, 1, webpageLink, true, controlledTabId);
-    } catch (e) {
-      loadingOverlay.classList.add("hidden");
-      console.error("[ERROR] Unable to host:", e);
-      alert(`[WatchToGather] (Failed) ${e}`);
+    } catch (error) {
+      hideLoadingUI();
+      console.error("[ERROR] Unable to host:", error);
+      alert(`[WatchToGather] (Failed) ${error}`);
     }
   } else {
     console.log("Fill in all the fields.");
@@ -117,14 +127,7 @@ confirmJoinBtn.addEventListener("click", async () => {
   const roomId = roomIdInput.value.trim();
 
   if (roomId !== "") {
-    const loadingOverlay = document.getElementById(
-      "loadingOverlay"
-    ) as HTMLDivElement;
-    const loadingText = loadingOverlay.querySelector(
-      "p"
-    ) as HTMLParagraphElement;
-    loadingText.textContent = "Joining room...";
-    loadingOverlay.classList.remove("hidden");
+    showLoadingUI("Joining room...");
     joinRoomModal.classList.add("hidden");
 
     try {
@@ -142,7 +145,7 @@ confirmJoinBtn.addEventListener("click", async () => {
       ]);
       const currentUrl = (await loadRoomUrl())?.url || "";
 
-      loadingOverlay.classList.add("hidden");
+      hideLoadingUI();
 
       saveRoomDetails({
         roomId,
@@ -156,13 +159,13 @@ confirmJoinBtn.addEventListener("click", async () => {
         participantsCount + 1,
         currentUrl,
         false,
-        controlledTabId
+        controlledTabId,
       );
-    } catch (e) {
-      loadingOverlay.classList.add("hidden");
-      console.error(`[ERROR] Unable to join Room ${roomId}:`, e);
+    } catch (error) {
+      hideLoadingUI();
+      console.error(`[ERROR] Unable to join Room ${roomId}:`, error);
       alert(
-        `[WatchToGather] Unable to join Room ${roomId}. Please check the Room ID and try again.`
+        `[WatchToGather] Unable to join Room ${roomId}. Please check the Room ID and try again.`,
       );
     }
   } else {

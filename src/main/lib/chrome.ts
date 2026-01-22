@@ -1,6 +1,6 @@
 import {
   sendChromeMsg,
-  sendChromeMsgWithRespone,
+  sendChromeMsgWithResponse,
 } from "../../common/chrome-utils";
 import { LocalVideoEvent } from "../../common/sync-messages-types";
 
@@ -15,10 +15,10 @@ export function sendVCStatusMsg(success: boolean, navId: number) {
 }
 
 export async function injectIntoIframe(
-  iframe: HTMLIFrameElement
+  iframe: HTMLIFrameElement,
 ): Promise<boolean> {
   try {
-    const response = await sendChromeMsgWithRespone({
+    const response = await sendChromeMsgWithResponse({
       type: "INJECT_INTO_IFRAME",
       iframeSrc: iframe.src,
     });
@@ -27,7 +27,7 @@ export async function injectIntoIframe(
       return true;
     } else {
       console.log(
-        `[VIDEO] Injection failed: ${response?.reason || "Unknown error"}`
+        `[VIDEO] Injection failed: ${response?.reason || "Unknown error"}`,
       );
       return false;
     }
@@ -39,7 +39,7 @@ export async function injectIntoIframe(
 
 export async function getMyTabId(): Promise<number | undefined> {
   try {
-    const response = await sendChromeMsgWithRespone({ type: "GET_MY_TAB_ID" });
+    const response = await sendChromeMsgWithResponse({ type: "GET_MY_TAB_ID" });
     return response?.tabId;
   } catch (error) {
     console.error("[Content Script] Failed to get tab ID:", error);

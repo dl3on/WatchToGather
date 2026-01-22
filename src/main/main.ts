@@ -69,7 +69,10 @@ chrome.runtime.onMessage.addListener((msg) => {
       saveReadinessMap(msg.readinessMap);
     }
 
-    if (msg.type === "LEFT_ROOM") {
+    if (msg.type === "ROOM_DISBANDED" || msg.type === "LEFT_ROOM") {
+      const vc = getVC();
+      if (vc) vc.destroy();
+
       removeParticipantsList();
     }
   } else {
@@ -87,7 +90,7 @@ function isPeerNextVideoMessage(msg: any): msg is PeerNextVideoMessage {
     if (typeof msg.fromHost !== "boolean") {
       console.warn(
         "[WARN] isPeerNextVideoMessage: fromHost missing or invalid",
-        msg
+        msg,
       );
       return false;
     }

@@ -1,15 +1,17 @@
+import { LeaveType } from "./types";
+
 export function sendChromeMsg(msg: any) {
   chrome.runtime.sendMessage(msg);
 }
 
-export function sendChromeMsgWithRespone(msg: any): Promise<any> {
+export function sendChromeMsgWithResponse(msg: any): Promise<any> {
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(msg, (response) => {
       if (chrome.runtime.lastError) {
         console.warn(
           "[sendChromeMsgWithResponse] failed:",
           chrome.runtime.lastError.message,
-          msg
+          msg,
         );
         reject(chrome.runtime.lastError);
         return;
@@ -25,7 +27,7 @@ export async function sendTabMsg(tabId: number, msg: any, frameId?: number) {
   const validTabId = await validateControlledTabId(tabId);
   if (!validTabId) return;
 
-  const options = frameId ? { frameId } : undefined;
+  const options = frameId !== undefined ? { frameId } : undefined;
 
   try {
     await chrome.tabs.sendMessage(validTabId, msg, options);
@@ -39,7 +41,7 @@ export async function sendTabMsg(tabId: number, msg: any, frameId?: number) {
 }
 
 export async function validateControlledTabId(
-  tabId: number | null
+  tabId: number | null,
 ): Promise<number | null> {
   if (tabId == null) return null;
 
@@ -50,4 +52,16 @@ export async function validateControlledTabId(
     console.log(`Tab ID ${tabId}: ${error}`);
     return null;
   }
+}
+
+export function requestLeaveRoom(reason: LeaveType) {
+  sendChromeMsg({ type: "REQUEST_LEAVE", reason });
+}
+
+export async function initiateLeaveRoom(): Promise<boolean> {
+  const response = await sendChromeMsgWithResponse({
+    type: "INITIATE_LEAVE",
+  });
+
+  return response?.success;
 }

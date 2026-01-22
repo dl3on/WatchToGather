@@ -77,4 +77,13 @@ export function loadNavStates(): Promise<NavStates | null> {
   });
 }
 
-// TODO: clear other storages
+export function clearRoomSessionStorage() {
+  chrome.storage.local.remove([
+    "roomDetails",
+    "roomUrl",
+    "controlledTabId",
+    "isInRoom",
+    "peerReadinessMap",
+    "navStates",
+  ]);
+}

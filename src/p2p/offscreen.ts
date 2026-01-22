@@ -4,13 +4,22 @@ import {
   NotifyAckNack,
   PeerMessageType,
 } from "../common/sync-messages-types";
-import { ChromeMsg } from "../common/types";
+import { ChromeMsg, LeaveMsg } from "../common/types";
 import { MessageManager } from "./lib/message-manager";
 import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";
 
 chrome.runtime.onMessage.addListener(
-  (msg: ChromeMsg | LocalVideoEvent | LocalUrlChange | NotifyAckNack) => {
+  (
+    msg:
+      | ChromeMsg
+      | LocalVideoEvent
+      | LocalUrlChange
+      | NotifyAckNack
+      | LeaveMsg,
+    sender,
+    sendResponse,
+  ) => {
     if (isChromeMsg(msg)) {
       const { type, id, email } = msg;
 
@@ -34,7 +43,6 @@ chrome.runtime.onMessage.addListener(
 
       if (type === "JOIN") {
         const roomId = msg.roomId;
-        signalManager.connect();
         webrtc.join(roomId);
       } else if (type === "HOST") {
         const roomName = msg.roomName;
@@ -45,7 +53,7 @@ chrome.runtime.onMessage.addListener(
       const signalManager = SignalManager.getInstance();
       if (!signalManager) {
         console.log(
-          "[WARN] Dropped Message: Received LocalVideoEvent before initialization"
+          "[WARN] Dropped Message: Received LocalVideoEvent before initialization",
         );
         return;
       }
@@ -53,12 +61,18 @@ chrome.runtime.onMessage.addListener(
       const webrtc = WebRTCManager.getInstance(signalManager);
       if (!webrtc) {
         console.log(
-          "[WARN] Dropped Message: Received LocalVideoEvent before initialization"
+          "[WARN] Dropped Message: Received LocalVideoEvent before initialization",
         );
         return;
       }
 
-      const messageManager = MessageManager.getInstance(webrtc._peerId);
+      const messageManager = MessageManager.getInstance();
+      if (!messageManager) {
+        console.log(
+          "[WARN] Dropped Message: Received LocalVideoEvent before initialization",
+        );
+        return;
+      }
 
       if (msg.type === PeerMessageType.NextVideo) {
         messageManager.sendNextVideo(msg);
@@ -70,7 +84,7 @@ chrome.runtime.onMessage.addListener(
       const webrtc = signalManager && WebRTCManager.getInstance(signalManager);
       if (!webrtc) {
         console.log(
-          "[WARN] Dropped Message: Received LOCAL_URL_CHANGE before initialization"
+          "[WARN] Dropped Message: Received LOCAL_URL_CHANGE before initialization",
         );
         return;
       }
@@ -81,14 +95,40 @@ chrome.runtime.onMessage.addListener(
       const webrtc = signalManager && WebRTCManager.getInstance(signalManager);
       if (!webrtc) {
         console.log(
-          "[WARN] Dropped Message: Received ACK_OR_NACK before initialization"
+          "[WARN] Dropped Message: Received ACK_OR_NACK before initialization",
         );
         return;
       }
 
       webrtc.sendAckNack(msg.url);
+    } else if (msg.type === "INITIATE_LEAVE") {
+      const signalManager = SignalManager.getInstance();
+      const webrtc = signalManager && WebRTCManager.getInstance(signalManager);
+      const messageManager = webrtc && MessageManager.getInstance();
+
+      if (!messageManager || !webrtc || !signalManager) {
+        console.log(
+          "[INFO] Leave requested but already not in room — acknowledging",
+        );
+        sendResponse({ success: true });
+        return true;
+      }
+
+      try {
+        webrtc.disconnectAllPeers();
+      } catch (e) {
+        console.warn("disconnectAllPeers failed", e);
+      } finally {
+        messageManager.destroy();
+        webrtc.destroy();
+        signalManager.reset(); // Reuse SignalManager instance
+      }
+
+      sendResponse({ success: true });
+
+      return true;
     }
-  }
+  },
 );
 
 function isChromeMsg(msg: any): msg is ChromeMsg {

@@ -1,18 +1,20 @@
 import { clearRoomDetails } from "../../common/chrome-storage";
+import { requestLeaveRoom } from "../../common/chrome-utils";
+import { LeaveType } from "../../common/types";
 import { registerCurrentTab } from "./chrome";
 
 const roomIdContainer = document.getElementById(
-  "roomIdContainer"
+  "roomIdContainer",
 ) as HTMLDivElement;
 const roomIdTextElement = document.getElementById(
-  "roomIdText"
+  "roomIdText",
 ) as HTMLParagraphElement;
 const mainView = document.getElementById("mainView") as HTMLDivElement;
 const createRoomModal = document.getElementById(
-  "createRoomModal"
+  "createRoomModal",
 ) as HTMLDivElement;
 const joinRoomModal = document.getElementById(
-  "joinRoomModal"
+  "joinRoomModal",
 ) as HTMLDivElement;
 
 export function renderInitialView() {
@@ -27,10 +29,10 @@ export function renderInitialView() {
   `;
 
   const createRoomBtn = document.getElementById(
-    "createRoomBtn"
+    "createRoomBtn",
   ) as HTMLButtonElement;
   const joinRoomBtn = document.getElementById(
-    "joinRoomBtn"
+    "joinRoomBtn",
   ) as HTMLButtonElement;
 
   createRoomBtn.addEventListener("click", () => {
@@ -48,7 +50,7 @@ export function updateUIForRoom(
   participantsCount: number,
   url: string,
   isHost: boolean,
-  registeredTabId: number | null
+  registeredTabId: number | null,
 ) {
   roomIdTextElement.textContent = `Room ID: ${roomId}`;
   roomIdContainer.classList.remove("hidden");
@@ -64,8 +66,7 @@ export function updateUIForRoom(
         ${
           isHost
             ? `
-          <button id="disbandRoomBtn">Disband Room</button>
-          <button id="leaveRoomBtn">Leave Room</button>
+          <button id="leaveRoomBtn">Disband Room</button>
           `
             : `
           <button id="leaveRoomBtn">Leave Room</button>
@@ -82,19 +83,16 @@ export function updateUIForRoom(
   `;
 
   const copyRoomIdBtn = document.getElementById(
-    "copyRoomIdBtn"
+    "copyRoomIdBtn",
   ) as HTMLButtonElement;
   const copyFeedback = document.getElementById(
-    "copyFeedback"
+    "copyFeedback",
   ) as HTMLSpanElement;
-  const disbandRoomBtn = document.getElementById(
-    "disbandRoomBtn"
-  ) as HTMLButtonElement;
   const leaveRoomBtn = document.getElementById(
-    "leaveRoomBtn"
+    "leaveRoomBtn",
   ) as HTMLButtonElement;
   const registerTabBtn = document.getElementById(
-    "registerTabBtn"
+    "registerTabBtn",
   ) as HTMLButtonElement;
   const urlTextElement = document.getElementById("urlText") as HTMLSpanElement;
 
@@ -110,26 +108,11 @@ export function updateUIForRoom(
     });
   }
 
-  if (disbandRoomBtn) {
-    disbandRoomBtn.addEventListener("click", () => {
-      console.log("Disbanding room...");
-      // TODO: handle disband room logic
-      // emit disband event and disconnects everyone (optionally show disbanded message)
-
-      renderInitialView();
-    });
-  }
-
   if (leaveRoomBtn) {
     leaveRoomBtn.addEventListener("click", () => {
-      console.log("Leaving room...");
-      // TODO: handle leaving room + change host logic
-      if (isHost) {
-        // reassign host: emit event to socket.ts and update new host's UI
-      }
-      // emit disconnect event
-
-      renderInitialView();
+      const text = isHost ? "Disbanding room..." : "Leaving room...";
+      showLoadingUI(text);
+      requestLeaveRoom(LeaveType.Leave);
     });
   }
 
@@ -148,7 +131,7 @@ export function updateUIForRoom(
 
 async function handleUrlNavigation(
   url: string,
-  registeredTabId: number | null
+  registeredTabId: number | null,
 ) {
   try {
     if (registeredTabId !== null) {
@@ -166,6 +149,24 @@ async function handleUrlNavigation(
   } catch (error) {
     console.error("Failed to navigate to URL:", error);
   }
+}
+
+export function showLoadingUI(text: string) {
+  const loadingOverlay = document.getElementById(
+    "loadingOverlay",
+  ) as HTMLDivElement;
+  const loadingText = loadingOverlay.querySelector("p") as HTMLParagraphElement;
+
+  loadingText.textContent = text;
+  loadingOverlay.classList.remove("hidden");
+}
+
+export function hideLoadingUI() {
+  const loadingOverlay = document.getElementById(
+    "loadingOverlay",
+  ) as HTMLDivElement;
+
+  loadingOverlay.classList.add("hidden");
 }
 
 // TODO: function to dynamically update participants count, loading register button and registered tab text

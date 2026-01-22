@@ -34,13 +34,30 @@ export class MessageManager {
     this._peerReadinessMap = {};
   }
 
-  public static getInstance(peerId: string): MessageManager {
-    if (!MessageManager._instance) {
+  public static getInstance(peerId: string): MessageManager;
+
+  public static getInstance(): MessageManager | null;
+
+  public static getInstance(peerId?: string): MessageManager | null {
+    if (!MessageManager._instance && peerId) {
       const newInstance = new MessageManager(peerId);
       MessageManager._instance = newInstance;
       return newInstance;
-    } else {
-      return MessageManager._instance;
+    }
+
+    return MessageManager._instance;
+  }
+
+  public destroy() {
+    this._webrtcManager = null as any;
+
+    this._seenMessages.clear();
+    this._peerReadinessMap = {};
+    this._lamportClock = 0;
+    this._lastAppliedLamport = 0;
+
+    if (MessageManager._instance === this) {
+      MessageManager._instance = null;
     }
   }
 
@@ -174,9 +191,27 @@ export class MessageManager {
     this._webrtcManager.sendMessage(nackMsg);
   }
 
+  /**
+   * Host-only functions
+   */
+
   private updatePeerReadinessMap(peerId: string, isReady: boolean) {
-    // Host-only function
     this._peerReadinessMap[peerId] = isReady;
+    this.sendPeerReadinessUpdate();
+  }
+
+  public resetPeerReadiness() {
+    for (const peerId in this._peerReadinessMap) {
+      this._peerReadinessMap[peerId] = false;
+    }
+  }
+
+  public deletePeerFromMap(peerId: string) {
+    delete this._peerReadinessMap[peerId];
+    this.sendPeerReadinessUpdate();
+  }
+
+  private sendPeerReadinessUpdate() {
     updatePeerReadinessUI(this.getPeerReadinessMap());
 
     let mapUpdateMsg: PeerReadyStateMessage;
@@ -190,16 +225,4 @@ export class MessageManager {
 
     this._webrtcManager.broadcastPeerMessage(mapUpdateMsg, false);
   }
-
-  public resetPeerReadiness() {
-    // Host-only function
-    for (const peerId in this._peerReadinessMap) {
-      this._peerReadinessMap[peerId] = false;
-    }
-  }
-
-  // TODO: (Host) handle peer leaving room and broadcast new map
-  public deletePeerFromMap(peerId: string) {}
-
-  // TODO: Implement clearing seen messages, LamportClock, peerReadinessMap, on Leave
 }
