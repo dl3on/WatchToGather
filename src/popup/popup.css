@@ -11,7 +11,8 @@ h2 {
 
 body {
   width: 220px;
-  padding: 10px;
+  min-height: 120px;
+  padding: 6px;
   font-family: sans-serif;
   background: #88caff;
   display: flex;
@@ -142,6 +143,11 @@ body {
   border-radius: 10px;
   width: 80%;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.modal-content h3 {
+  margin-top: 3px;
+  margin-bottom: 7px;
 }
 
 /* Room Header */

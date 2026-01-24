@@ -5,6 +5,7 @@ export type RoomInfo = {
 
 export type PeerData = {
   peerId: string;
+  username: string;
   host: boolean;
 };
 
@@ -99,7 +100,7 @@ export interface ServerToClientEvents {
   error: (msg: Message<MessageType.Error>) => void;
 }
 
-type ChromeMsgBase = { id: string; email: string };
+type ChromeMsgBase = { peerId: string; username: string };
 
 export type ChromeMsg =
   | ({

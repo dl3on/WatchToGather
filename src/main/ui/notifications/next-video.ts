@@ -2,7 +2,7 @@ import { PeerNextVideoMessage } from "../../../common/sync-messages-types";
 
 function getNotifContainer() {
   let container = document.getElementById(
-    "watchtogather-next-video-notif-container"
+    "watchtogather-next-video-notif-container",
   );
   if (!container) {
     console.log("Creating notification container");
@@ -21,8 +21,16 @@ function getNotifContainer() {
   return container;
 }
 
+export function destroyNotifContainer() {
+  const container = document.getElementById(
+    "watchtogather-next-video-notif-container",
+  );
+
+  container?.remove();
+}
+
 export function showNextVideoNotif(msg: PeerNextVideoMessage) {
-  const { fromPeerId, fromHost, url } = msg;
+  const { fromPeerId, username, fromHost, url } = msg;
 
   const container = getNotifContainer();
   container.querySelector(`[data-peer-id="${fromPeerId}"]`)?.remove();
@@ -42,9 +50,7 @@ export function showNextVideoNotif(msg: PeerNextVideoMessage) {
   notif.innerHTML = `
     <div style="font-weight:600; margin-bottom:4px;">
       ${
-        fromHost
-          ? "Host updated next video:"
-          : `${fromPeerId} suggested a video:`
+        fromHost ? "Host updated next video:" : `${username} suggested a video:`
       }
     </div>
     <a

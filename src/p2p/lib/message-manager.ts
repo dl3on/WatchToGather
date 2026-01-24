@@ -6,6 +6,7 @@ import {
   PeerNextVideoAckMessage,
   PeerNextVideoMessage,
   PeerNextVideoNackMessage,
+  PeerReadinessMap,
   PeerReadyStateMessage,
   PeerTimeMessage,
 } from "../../common/sync-messages-types";
@@ -21,26 +22,31 @@ import type { WebRTCManager } from "./webrtc-manager";
 export class MessageManager {
   private static _instance: MessageManager | null;
   _peerId: string;
+  _username: string;
   _webrtcManager!: WebRTCManager;
 
   _lamportClock = 0;
   _lastAppliedLamport = 0;
 
   _seenMessages: Set<string>;
-  _peerReadinessMap: Record<string, boolean>;
-  constructor(peerId: string) {
+  _peerReadinessMap: PeerReadinessMap;
+  constructor(peerId: string, username: string) {
     this._peerId = peerId;
+    this._username = username;
     this._seenMessages = new Set();
     this._peerReadinessMap = {};
   }
 
-  public static getInstance(peerId: string): MessageManager;
+  public static getInstance(peerId: string, username: string): MessageManager;
 
   public static getInstance(): MessageManager | null;
 
-  public static getInstance(peerId?: string): MessageManager | null {
-    if (!MessageManager._instance && peerId) {
-      const newInstance = new MessageManager(peerId);
+  public static getInstance(
+    peerId?: string,
+    username?: string,
+  ): MessageManager | null {
+    if (!MessageManager._instance && peerId && username) {
+      const newInstance = new MessageManager(peerId, username);
       MessageManager._instance = newInstance;
       return newInstance;
     }
@@ -65,7 +71,7 @@ export class MessageManager {
     this._webrtcManager = wrtcm;
   }
 
-  public getPeerReadinessMap(): Record<string, boolean> {
+  public getPeerReadinessMap(): PeerReadinessMap {
     return this._peerReadinessMap;
   }
 
@@ -78,13 +84,13 @@ export class MessageManager {
     if (msg.type === PeerMessageType.NextVideo) {
       notifyNextVideo(msg);
     } else if (msg.type === PeerMessageType.NextVideoAck) {
-      this.updatePeerReadinessMap(msg.fromPeerId, true);
+      this.updatePeerReadinessMap(msg.fromPeerId, msg.username, true);
 
       // Now that peer is ready, send a sync beacon to start syncing
       sendCurrentVideoState(msg.fromPeerId);
       return;
     } else if (msg.type === PeerMessageType.NextVideoNack) {
-      this.updatePeerReadinessMap(msg.fromPeerId, false);
+      this.updatePeerReadinessMap(msg.fromPeerId, msg.username, false);
       return;
     } else if (msg.type === PeerMessageType.ReadyStateUpdate) {
       this._peerReadinessMap = msg.readinessMap;
@@ -116,6 +122,7 @@ export class MessageManager {
       msgToSend = {
         mid: crypto.randomUUID(),
         fromPeerId: this._peerId,
+        username: this._username,
         lamport: ++this._lamportClock,
         type: msg.type,
         time: msg.time,
@@ -133,6 +140,7 @@ export class MessageManager {
       msgToSend = {
         mid: crypto.randomUUID(),
         fromPeerId: this._peerId,
+        username: this._username,
         lamport: ++this._lamportClock,
         type: msg.type,
         time: msg.time,
@@ -149,6 +157,7 @@ export class MessageManager {
     msgToSend = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
+      username: this._username,
       lamport: ++this._lamportClock,
       type: msg.type,
       url: msg.url,
@@ -159,7 +168,7 @@ export class MessageManager {
 
   public nextVideoAck(url: string, isHost: boolean) {
     if (isHost) {
-      this.updatePeerReadinessMap(this._peerId, true);
+      this.updatePeerReadinessMap(this._peerId, this._username, true);
       return;
     }
 
@@ -167,6 +176,7 @@ export class MessageManager {
     ackMsg = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
+      username: this._username,
       lamport: ++this._lamportClock,
       type: PeerMessageType.NextVideoAck,
       url,
@@ -176,7 +186,7 @@ export class MessageManager {
 
   public nextVideoNack(url: string, isHost: boolean) {
     if (isHost) {
-      this.updatePeerReadinessMap(this._peerId, false);
+      this.updatePeerReadinessMap(this._peerId, this._username, false);
       return;
     }
 
@@ -184,6 +194,7 @@ export class MessageManager {
     nackMsg = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
+      username: this._username,
       lamport: ++this._lamportClock,
       type: PeerMessageType.NextVideoNack,
       url,
@@ -195,14 +206,28 @@ export class MessageManager {
    * Host-only functions
    */
 
-  private updatePeerReadinessMap(peerId: string, isReady: boolean) {
-    this._peerReadinessMap[peerId] = isReady;
+  private getOrCreateReadinessMapEntry(
+    peerId: string,
+    username: string,
+  ): PeerReadinessMap[string] {
+    if (!this._peerReadinessMap[peerId]) {
+      this._peerReadinessMap[peerId] = { username, ready: false };
+    }
+    return this._peerReadinessMap[peerId];
+  }
+
+  private updatePeerReadinessMap(
+    peerId: string,
+    username: string,
+    isReady: boolean,
+  ) {
+    this.getOrCreateReadinessMapEntry(peerId, username).ready = isReady;
     this.sendPeerReadinessUpdate();
   }
 
   public resetPeerReadiness() {
     for (const peerId in this._peerReadinessMap) {
-      this._peerReadinessMap[peerId] = false;
+      this._peerReadinessMap[peerId].ready = false;
     }
   }
 
@@ -218,6 +243,7 @@ export class MessageManager {
     mapUpdateMsg = {
       mid: crypto.randomUUID(),
       fromPeerId: this._peerId,
+      username: this._username,
       lamport: ++this._lamportClock,
       type: PeerMessageType.ReadyStateUpdate,
       readinessMap: this._peerReadinessMap,

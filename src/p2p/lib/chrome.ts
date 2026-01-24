@@ -2,6 +2,7 @@ import { sendChromeMsg, sendTabMsg } from "../../common/chrome-utils";
 import {
   LocalVideoEvent,
   PeerNextVideoMessage,
+  PeerReadinessMap,
   PeerTimeMessage,
   ReadinessUIUpdate,
   VCActions,
@@ -96,7 +97,7 @@ export function sendAckNackMsg(url: string) {
 }
 
 /** Offscreen -> Background */
-export function updatePeerReadinessUI(readinessMap: Record<string, boolean>) {
+export function updatePeerReadinessUI(readinessMap: PeerReadinessMap) {
   sendChromeMsg({ type: "READINESS_UPDATE", readinessMap });
 }
 

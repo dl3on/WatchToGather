@@ -1,89 +1,102 @@
-import { NavStates } from "./sync-messages-types";
+import { NavStates, PeerReadinessMap } from "./sync-messages-types";
 import { RoomDetails, RoomUrl } from "./types";
 
+const STORAGE_KEY_HEADER = "watchtogather";
+
+function getKey<T>(key: string): Promise<T | null> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(key, (res) => resolve(res[key] ?? null));
+  });
+}
+
+function saveKey<T>(key: string, value: T) {
+  chrome.storage.local.set({ [key]: value });
+}
+
+export function getPeerId(): Promise<string> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(`${STORAGE_KEY_HEADER}_peerId`, (res) => {
+      if (res[`${STORAGE_KEY_HEADER}_peerId`]) {
+        resolve(res[`${STORAGE_KEY_HEADER}_peerId`]);
+        return;
+      }
+
+      const peerId = crypto.randomUUID();
+      chrome.storage.local.set(
+        { [`${STORAGE_KEY_HEADER}_peerId`]: peerId },
+        () => {
+          resolve(peerId);
+        },
+      );
+    });
+  });
+}
+
 export function saveRoomDetails(roomDetails: RoomDetails) {
-  chrome.storage.local.set({ roomDetails });
+  saveKey<RoomDetails>(`${STORAGE_KEY_HEADER}_roomDetails`, roomDetails);
 }
 
 export function loadRoomDetails(): Promise<RoomDetails | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get("roomDetails", (res) => {
-      resolve(res.roomDetails ?? null);
-    });
-  });
+  return getKey<RoomDetails>(`${STORAGE_KEY_HEADER}_roomDetails`);
 }
 
 export function clearRoomDetails() {
-  chrome.storage.local.remove("roomDetails");
+  chrome.storage.local.remove(`${STORAGE_KEY_HEADER}_roomDetails`);
 }
 
 export function saveRoomUrl(url: string) {
-  chrome.storage.local.set({ roomUrl: { url } });
+  saveKey<RoomUrl>(`${STORAGE_KEY_HEADER}_roomUrl`, { url });
 }
 
 export function loadRoomUrl(): Promise<RoomUrl | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get("roomUrl", (res) => {
-      resolve(res.roomUrl ?? null);
-    });
-  });
+  return getKey<RoomUrl>(`${STORAGE_KEY_HEADER}_roomUrl`);
 }
 
 export function saveControlledTabId(controlledTabId: number | null) {
-  chrome.storage.local.set({ controlledTabId });
+  saveKey<number | null>(
+    `${STORAGE_KEY_HEADER}_controlledTabId`,
+    controlledTabId,
+  );
 }
 
 export function getControlledTabId(): Promise<number | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get("controlledTabId", async (res) => {
-      resolve(res.controlledTabId ?? null);
-    });
-  });
+  return getKey<number | null>(`${STORAGE_KEY_HEADER}_controlledTabId`);
 }
 
 export function saveIsInRoom(isInRoom: boolean) {
-  chrome.storage.local.set({ isInRoom });
+  saveKey<boolean>(`${STORAGE_KEY_HEADER}_isInRoom`, isInRoom);
 }
 
-export function getIsInRoom(): Promise<boolean> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get("isInRoom", async (res) => {
-      resolve(!!res.isInRoom);
-    });
-  });
+export async function getIsInRoom(): Promise<boolean> {
+  return !!(await getKey<boolean>(`${STORAGE_KEY_HEADER}_isInRoom`));
 }
 
-export function saveReadinessMap(peerReadinessMap: Record<string, boolean>) {
-  chrome.storage.local.set({ peerReadinessMap });
+export function saveReadinessMap(peerReadinessMap: PeerReadinessMap) {
+  saveKey<PeerReadinessMap>(
+    `${STORAGE_KEY_HEADER}_peerReadinessMap`,
+    peerReadinessMap,
+  );
 }
 
-export function loadReadinessMap(): Promise<Record<string, boolean> | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get("peerReadinessMap", (res) => {
-      resolve(res.peerReadinessMap ?? null);
-    });
-  });
+export function loadReadinessMap(): Promise<PeerReadinessMap | null> {
+  return getKey<PeerReadinessMap>(`${STORAGE_KEY_HEADER}_peerReadinessMap`);
 }
 
 export function saveNavStates(navStates: NavStates) {
-  chrome.storage.local.set({ navStates });
+  saveKey<NavStates>(`${STORAGE_KEY_HEADER}_navStates`, navStates);
 }
 
 export function loadNavStates(): Promise<NavStates | null> {
-  return new Promise((resolve) => {
-    chrome.storage.local.get("navStates", (res) => {
-      resolve(res.navStates ?? null);
-    });
-  });
+  return getKey<NavStates>(`${STORAGE_KEY_HEADER}_navStates`);
 }
 
 export function clearRoomSessionStorage() {
   chrome.storage.local.remove([
-    "roomDetails",
-    "roomUrl",
-    "controlledTabId",
-    "isInRoom",
-    "peerReadinessMap",
-    "navStates",
+    `${STORAGE_KEY_HEADER}_roomDetails`,
+    `${STORAGE_KEY_HEADER}_roomUrl`,
+    `${STORAGE_KEY_HEADER}_controlledTabId`,
+    `${STORAGE_KEY_HEADER}_isInRoom`,
+    `${STORAGE_KEY_HEADER}_peerReadinessMap`,
+    `${STORAGE_KEY_HEADER}_navStates`,
   ]);
 }

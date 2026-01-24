@@ -1,4 +1,5 @@
 let overlayEl: HTMLDivElement | null = null;
+let unbindReposition: (() => void) | null = null;
 
 function getOverlayRoot() {
   return document.fullscreenElement ?? document.documentElement;
@@ -84,6 +85,11 @@ function bindReposition(video: HTMLVideoElement) {
   window.addEventListener("resize", reposition);
   document.addEventListener("fullscreenchange", reposition);
 
+  unbindReposition = () => {
+    window.removeEventListener("resize", reposition);
+    document.removeEventListener("fullscreenchange", reposition);
+  };
+
   reposition();
 }
 
@@ -102,4 +108,14 @@ export function showVideoOverlay(video: HTMLVideoElement, text: string) {
 export function hideVideoOverlay() {
   if (!overlayEl) return;
   overlayEl.style.opacity = "0";
+}
+
+export function destroyVideoOverlay() {
+  if (!overlayEl) return;
+
+  unbindReposition?.();
+  unbindReposition = null;
+
+  overlayEl.remove();
+  overlayEl = null;
 }

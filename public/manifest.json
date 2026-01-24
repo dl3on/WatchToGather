@@ -20,15 +20,11 @@
     "tabs",
     "storage",
     "offscreen",
-    "identity",
-    "identity.email",
     "webNavigation",
     "scripting",
     "notifications"
   ],
   "host_permissions": [
-    "http://localhost:6767/*",
-    "ws://localhost:6767/*",
     "https://signal.coronne.io/*",
     "ws://signal.coronne.io/*",
     "<all_urls>"

@@ -5,7 +5,7 @@ import {
   saveRoomDetails,
   saveRoomUrl,
 } from "../common/chrome-storage";
-import { isValidUrl } from "../common/utils";
+import { isValidUrl, withTimeout } from "../common/utils";
 import {
   sendHostMsg,
   sendJoinMsg,
@@ -37,6 +37,12 @@ const confirmJoinBtn = document.getElementById(
 const cancelJoinBtn = document.getElementById(
   "cancelJoinBtn",
 ) as HTMLButtonElement;
+const hostUsernameInput = document.getElementById(
+  "hostUsername",
+) as HTMLInputElement;
+const joinerUsernameInput = document.getElementById(
+  "joinerUsername",
+) as HTMLInputElement;
 const roomNameInput = document.getElementById("roomName") as HTMLInputElement;
 const webpageLinkInput = document.getElementById(
   "webpageLink",
@@ -75,6 +81,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 // Create Room
 confirmCreateBtn.addEventListener("click", async () => {
+  const username = hostUsernameInput.value.trim();
   const roomName = roomNameInput.value.trim();
   const webpageLink = webpageLinkInput.value.trim();
 
@@ -88,15 +95,8 @@ confirmCreateBtn.addEventListener("click", async () => {
     createRoomModal.classList.add("hidden");
 
     try {
-      sendHostMsg(roomName, webpageLink);
-
-      const hostPromise = waitForHostSuccess();
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error("Host request timed out"));
-        }, 10000); // 10 seconds timeout
-      });
-      const { roomId } = await Promise.race([hostPromise, timeoutPromise]);
+      sendHostMsg(username, roomName, webpageLink);
+      const { roomId } = await withTimeout(waitForHostSuccess(), 10000);
 
       hideLoadingUI();
 
@@ -124,6 +124,7 @@ cancelCreateBtn.addEventListener("click", () => {
 
 // Join Room
 confirmJoinBtn.addEventListener("click", async () => {
+  const username = joinerUsernameInput.value.trim();
   const roomId = roomIdInput.value.trim();
 
   if (roomId !== "") {
@@ -131,18 +132,11 @@ confirmJoinBtn.addEventListener("click", async () => {
     joinRoomModal.classList.add("hidden");
 
     try {
-      sendJoinMsg(roomId);
-
-      const joinPromise = waitForJoinSuccess();
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error("Join request timed out"));
-        }, 10000); // 10 seconds timeout
-      });
-      const { roomName, participantsCount } = await Promise.race([
-        joinPromise,
-        timeoutPromise,
-      ]);
+      sendJoinMsg(roomId, username);
+      const { roomName, participantsCount } = await withTimeout(
+        waitForJoinSuccess(),
+        10000,
+      );
       const currentUrl = (await loadRoomUrl())?.url || "";
 
       hideLoadingUI();

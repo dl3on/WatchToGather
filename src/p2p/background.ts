@@ -83,9 +83,92 @@ async function init() {
   }
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    // ===================================================================
+    // ROOM / LIFECYCLE COORDINATION
+    // ===================================================================
+
+    if (msg.type === "SEND_JOIN_SUCCESS") {
+      sendJoinSuccess();
+      return;
+    }
+
+    if (msg.type === "REGISTER_TAB") {
+      registerActiveTab();
+      return;
+    }
+
+    if (msg.type === "REQUEST_LEAVE") {
+      (async () => {
+        try {
+          if (msg.reason === LeaveType.Disband) sendRoomDisbandMsg(); // Notify popup for UI updates
+
+          const success = await initiateLeaveRoom();
+
+          if (success) {
+            const tabId = controlledTabId;
+            const frameId = controlledFrameId;
+
+            resetAll();
+
+            if (msg.reason === LeaveType.Disband) {
+              notifyPopupDisband();
+            } else {
+              notifyPopupLeftRoom();
+            }
+
+            if (tabId) {
+              notifyCSLeftRoom(tabId, frameId);
+            }
+          }
+        } catch (error) {
+          console.error("[BG] Error during leave room:", error);
+        }
+      })();
+      return true;
+    }
+
+    // ===================================================================
+    // STORAGE MUTATION HELPERS
+    // ===================================================================
+
+    if (msg.type === "IN_ROOM") {
+      markInRoom();
+      return;
+    }
+
+    if (msg.type === "ROOM_DETAILS") {
+      cachedRoomDetails = {
+        roomName: msg.roomName,
+        participantsCount: msg.participantsCount,
+      };
+      return;
+    }
+
+    if (msg.type === "SAVE_ROOM_URL") {
+      saveRoomUrl(msg.url);
+      return;
+    }
+
+    if (msg.type === "LEFT_ROOM") {
+      isInRoom = false;
+      cachedRoomDetails = null;
+      controlledTabId = null;
+      pendingTabId = null;
+      navId = 0;
+      _pendingUrlChange = false;
+      _pendingUrlValue = null;
+      resetVCStates();
+
+      clearRoomSessionStorage();
+      return;
+    }
+
+    // ===================================================================
+    // FRAME INJECTION AND VIDEO CONTROLLER STATUS HANDLERS
+    // ===================================================================
+
     // Cross-origin iframes
     if (msg.type === "INJECT_INTO_IFRAME") {
-      console.log("[BG] INJECTION REQUESTED");
       pendingVCReplies++;
 
       const tabId = controlledTabId ?? sender.tab?.id;
@@ -117,7 +200,7 @@ async function init() {
             files: ["content/main.js"],
           })
           .then(() => {
-            console.log(`[BG] INJECTED TO FRAME ${targetFrame.frameId}`);
+            console.log(`[BG] Injected to frame ${targetFrame.frameId}`);
             sendPrepareVcMsg(tabId, navId, targetFrame.frameId);
             sendResponse({ success: true, frameId: targetFrame.frameId });
           })
@@ -131,34 +214,6 @@ async function init() {
       });
 
       return true;
-    }
-
-    if (msg.type === "IN_ROOM") {
-      markInRoom();
-      return;
-    }
-
-    if (msg.type === "ROOM_DETAILS") {
-      cachedRoomDetails = {
-        roomName: msg.roomName,
-        participantsCount: msg.participantsCount,
-      };
-      return;
-    }
-
-    if (msg.type === "SAVE_ROOM_URL") {
-      saveRoomUrl(msg.url);
-      return;
-    }
-
-    if (msg.type === "SEND_JOIN_SUCCESS") {
-      sendJoinSuccess();
-      return;
-    }
-
-    if (msg.type === "REGISTER_TAB") {
-      registerActiveTab();
-      return;
     }
 
     if (msg.type === "VC_STATUS") {
@@ -223,53 +278,9 @@ async function init() {
       }
     }
 
-    if (msg.type === "REQUEST_LEAVE") {
-      (async () => {
-        try {
-          if (msg.reason === LeaveType.Disband) sendRoomDisbandMsg(); // Notify popup for UI updates
-
-          const success = await initiateLeaveRoom();
-
-          if (success) {
-            const tabId = controlledTabId;
-            const frameId = controlledFrameId;
-
-            resetAll();
-
-            if (msg.reason === LeaveType.Disband) {
-              notifyPopupDisband();
-            } else {
-              notifyPopupLeftRoom();
-            }
-
-            if (tabId) {
-              notifyCSLeftRoom(tabId, frameId);
-            }
-          }
-        } catch (error) {
-          console.error("[BG] Error during leave room:", error);
-        }
-      })();
-      return true;
-    }
-
-    if (msg.type === "LEFT_ROOM") {
-      isInRoom = false;
-      cachedRoomDetails = null;
-      controlledTabId = null;
-      pendingTabId = null;
-      navId = 0;
-      _pendingUrlChange = false;
-      _pendingUrlValue = null;
-      resetVCStates();
-
-      clearRoomSessionStorage();
-      return;
-    }
-
-    /**
-     * Background -> Content Script
-     */
+    // ===================================================================
+    // BACKGROUND -> CONTENT SCRIPT FORWARDING
+    // ===================================================================
 
     if (msg.type === "SEND_VIDEO_STATE") {
       if (controlledTabId !== null) {

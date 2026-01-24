@@ -20,14 +20,14 @@ const connections: { [roomId: string]: RoomInfo } = {};
 const peerMap: { [peerId: string]: { roomId?: string; socketId: string } } = {};
 
 io.use((socket, next) => {
-  const { peerId } = socket.handshake.query;
-  if (!peerId) next(new Error("Missing peerId."));
-  socket.data = { peerId };
+  const { peerId, username } = socket.handshake.query;
+  if (!peerId && !username) next(new Error("Missing peerId or username."));
+  socket.data = { peerId, username };
   next();
 });
 
 io.on("connection", (socket) => {
-  const { peerId } = socket.data;
+  const { peerId, username } = socket.data;
   const socketId = socket.id;
   console.log(
     `User with peer id ${peerId} connected with socket id ${socketId}`,
@@ -82,7 +82,7 @@ io.on("connection", (socket) => {
     console.log(`Peer with id ${peerId} hosting new room: ${roomId}`);
     connections[roomId] = {
       roomName,
-      peers: [{ peerId, host: true }],
+      peers: [{ peerId, username, host: true }],
     };
     const roomInfo = connections[roomId];
     peerMap[peerId] = { socketId, roomId };
@@ -147,7 +147,7 @@ io.on("connection", (socket) => {
     const { roomId } = msg;
     const c = connections[roomId];
     if (!c) return;
-    c.peers.push({ peerId, host: false });
+    c.peers.push({ peerId, username, host: false });
   });
 });
 

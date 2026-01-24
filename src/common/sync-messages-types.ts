@@ -13,6 +13,7 @@ export enum PeerMessageType {
 type PeerMessageBase = {
   mid: string;
   fromPeerId: string;
+  username: string;
   lamport: number;
 };
 
@@ -61,9 +62,14 @@ export type PeerNextVideoNackMessage = PeerMessageBase & {
   url: string;
 };
 
+export type PeerReadinessMap = Record<
+  string,
+  { username: string; ready: boolean }
+>;
+
 export type PeerReadyStateMessage = PeerMessageBase & {
   type: PeerMessageType.ReadyStateUpdate;
-  readinessMap: Record<string, boolean>;
+  readinessMap: PeerReadinessMap;
 };
 
 export type PeerMessage =
@@ -124,7 +130,7 @@ export type NotifyAckNack = {
 
 export type ReadinessUIUpdate = {
   type: "READINESS_UPDATE";
-  readinessMap: Record<string, boolean>;
+  readinessMap: PeerReadinessMap;
 };
 
 export type NavStates = {
