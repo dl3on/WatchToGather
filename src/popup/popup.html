@@ -34,12 +34,14 @@
       <div class="modal-content">
         <h3>Create a Room</h3>
         <div>
-          <input id="roomName" type="text" placeholder="Enter room title" />
           <input
-            id="webpageLink"
+            id="hostUsername"
             type="text"
-            placeholder="Enter website link"
+            placeholder="Username"
+            maxlength="20"
           />
+          <input id="roomName" type="text" placeholder="Room name" />
+          <input id="webpageLink" type="text" placeholder="Website link" />
         </div>
         <div>
           <button id="confirmCreateBtn">Create</button>
@@ -53,7 +55,13 @@
       <div class="modal-content">
         <h3>Join a Room</h3>
         <div>
-          <input id="roomId" type="text" placeholder="Enter Room ID" />
+          <input
+            id="joinerUsername"
+            type="text"
+            placeholder="Username"
+            maxlength="20"
+          />
+          <input id="roomId" type="text" placeholder="Room ID" />
         </div>
         <div>
           <button id="confirmJoinBtn">Join</button>

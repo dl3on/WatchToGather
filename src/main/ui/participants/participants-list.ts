@@ -1,6 +1,8 @@
+import { PeerReadinessMap } from "../../../common/sync-messages-types";
+
 function getParticipantsListContainer() {
   let container = document.getElementById(
-    "watchtogather-participants-list-container"
+    "watchtogather-participants-list-container",
   );
   if (!container) {
     container = document.createElement("div");
@@ -107,20 +109,20 @@ function getParticipantsListContainer() {
   return container;
 }
 
-export function updateParticipantsList(readinessMap: Record<string, boolean>) {
+export function updateParticipantsList(readinessMap: PeerReadinessMap) {
   const container = getParticipantsListContainer();
   const list = container.querySelector(
-    "#watchtogather-participants-list"
+    "#watchtogather-participants-list",
   ) as HTMLDivElement;
 
   const rows = new Map(
     Array.from(list.children).map((row) => [
       (row as HTMLElement).dataset.peerId!,
       row as HTMLElement,
-    ])
+    ]),
   );
 
-  for (const [peerId, ready] of Object.entries(readinessMap)) {
+  for (const [peerId, { username, ready }] of Object.entries(readinessMap)) {
     let row = rows.get(peerId);
 
     if (!row) {
@@ -133,7 +135,7 @@ export function updateParticipantsList(readinessMap: Record<string, boolean>) {
       row.style.fontSize = "12px";
 
       const name = document.createElement("div");
-      name.textContent = peerId;
+      name.textContent = username;
       name.style.flex = "1";
 
       const status = document.createElement("div");
@@ -147,7 +149,7 @@ export function updateParticipantsList(readinessMap: Record<string, boolean>) {
     }
 
     const status = row.querySelector(
-      ".watchtogather-ready-text"
+      ".watchtogather-ready-text",
     ) as HTMLDivElement;
 
     status.textContent = ready ? "Ready" : "Not Ready";
@@ -163,7 +165,7 @@ export function updateParticipantsList(readinessMap: Record<string, boolean>) {
 
 export function removeParticipantsList() {
   let container = document.getElementById(
-    "watchtogather-participants-list-container"
+    "watchtogather-participants-list-container",
   );
   if (container) container.remove();
 }

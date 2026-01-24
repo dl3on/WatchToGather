@@ -21,10 +21,10 @@ chrome.runtime.onMessage.addListener(
     sendResponse,
   ) => {
     if (isChromeMsg(msg)) {
-      const { type, id, email } = msg;
+      const { type, peerId, username } = msg;
 
       const signalManager = SignalManager.getInstance({
-        peerId: email,
+        peerId,
         serverUrl: "wss://signal.coronne.io/",
         verbose: true,
         socketOptions: {
@@ -33,11 +33,11 @@ chrome.runtime.onMessage.addListener(
       });
 
       const webrtc = WebRTCManager.getInstance(signalManager, {
-        peerId: email,
+        peerId,
         verbose: true,
       });
 
-      const messageManager = MessageManager.getInstance(webrtc._peerId);
+      const messageManager = MessageManager.getInstance(peerId, username);
       webrtc.setMessageManager(messageManager);
       messageManager.setWebRTCManager(webrtc);
 

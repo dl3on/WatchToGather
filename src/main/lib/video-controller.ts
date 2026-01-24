@@ -199,7 +199,7 @@ export class VideoController {
           this.applySeek(msg.time);
         }
 
-        showUserPaused(this._video, msg.type, msg.fromPeerId);
+        showUserPaused(this._video, msg.type, msg.username);
 
         break;
       }
@@ -324,7 +324,7 @@ export class VideoController {
       () => {
         this._ignoreSeekCount = Math.max(0, this._ignoreSeekCount - 1);
       },
-      { once: true }
+      { once: true },
     );
 
     this._video.currentTime = targetTime;

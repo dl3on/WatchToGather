@@ -1,5 +1,21 @@
-import { NavStates } from "./sync-messages-types";
+import { NavStates, PeerReadinessMap } from "./sync-messages-types";
 import { RoomDetails, RoomUrl } from "./types";
+
+export function getPeerId(): Promise<string> {
+  return new Promise((resolve) => {
+    chrome.storage.local.get("peerId", (res) => {
+      if (res.peerId) {
+        resolve(res.peerId);
+        return;
+      }
+
+      const peerId = crypto.randomUUID();
+      chrome.storage.local.set({ peerId }, () => {
+        resolve(peerId);
+      });
+    });
+  });
+}
 
 export function saveRoomDetails(roomDetails: RoomDetails) {
   chrome.storage.local.set({ roomDetails });
@@ -53,11 +69,11 @@ export function getIsInRoom(): Promise<boolean> {
   });
 }
 
-export function saveReadinessMap(peerReadinessMap: Record<string, boolean>) {
+export function saveReadinessMap(peerReadinessMap: PeerReadinessMap) {
   chrome.storage.local.set({ peerReadinessMap });
 }
 
-export function loadReadinessMap(): Promise<Record<string, boolean> | null> {
+export function loadReadinessMap(): Promise<PeerReadinessMap | null> {
   return new Promise((resolve) => {
     chrome.storage.local.get("peerReadinessMap", (res) => {
       resolve(res.peerReadinessMap ?? null);

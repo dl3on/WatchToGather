@@ -37,6 +37,12 @@ const confirmJoinBtn = document.getElementById(
 const cancelJoinBtn = document.getElementById(
   "cancelJoinBtn",
 ) as HTMLButtonElement;
+const hostUsernameInput = document.getElementById(
+  "hostUsername",
+) as HTMLInputElement;
+const joinerUsernameInput = document.getElementById(
+  "joinerUsername",
+) as HTMLInputElement;
 const roomNameInput = document.getElementById("roomName") as HTMLInputElement;
 const webpageLinkInput = document.getElementById(
   "webpageLink",
@@ -75,6 +81,7 @@ chrome.runtime.onMessage.addListener((msg) => {
 
 // Create Room
 confirmCreateBtn.addEventListener("click", async () => {
+  const username = hostUsernameInput.value.trim();
   const roomName = roomNameInput.value.trim();
   const webpageLink = webpageLinkInput.value.trim();
 
@@ -88,7 +95,7 @@ confirmCreateBtn.addEventListener("click", async () => {
     createRoomModal.classList.add("hidden");
 
     try {
-      sendHostMsg(roomName, webpageLink);
+      sendHostMsg(username, roomName, webpageLink);
       const { roomId } = await withTimeout(waitForHostSuccess(), 10000);
 
       hideLoadingUI();
@@ -117,6 +124,7 @@ cancelCreateBtn.addEventListener("click", () => {
 
 // Join Room
 confirmJoinBtn.addEventListener("click", async () => {
+  const username = joinerUsernameInput.value.trim();
   const roomId = roomIdInput.value.trim();
 
   if (roomId !== "") {
@@ -124,7 +132,7 @@ confirmJoinBtn.addEventListener("click", async () => {
     joinRoomModal.classList.add("hidden");
 
     try {
-      sendJoinMsg(roomId);
+      sendJoinMsg(roomId, username);
       const { roomName, participantsCount } = await withTimeout(
         waitForJoinSuccess(),
         10000,
