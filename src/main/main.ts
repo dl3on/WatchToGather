@@ -9,12 +9,16 @@ import {
   PeerNextVideoMessage,
 } from "../common/sync-messages-types";
 import { getVC, startVideoController } from "./lib/vc-handler";
-import { showNextVideoNotif } from "./ui/notifications/next-video";
+import {
+  destroyNotifContainer,
+  showNextVideoNotif,
+} from "./ui/notifications/next-video";
 import {
   removeParticipantsList,
   updateParticipantsList,
 } from "./ui/participants/participants-list";
 import { getMyTabId } from "./lib/chrome";
+import { destroyVideoOverlay } from "./ui/overlays/video-overlay";
 
 console.log("[WatchToGather] Ready to use");
 
@@ -74,6 +78,8 @@ chrome.runtime.onMessage.addListener((msg) => {
       if (vc) vc.destroy();
 
       removeParticipantsList();
+      destroyVideoOverlay();
+      destroyNotifContainer();
     }
   } else {
     console.log("[Iframe] Dropping UI-related messages");

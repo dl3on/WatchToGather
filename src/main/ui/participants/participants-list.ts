@@ -167,5 +167,6 @@ export function removeParticipantsList() {
   let container = document.getElementById(
     "watchtogather-participants-list-container",
   );
-  if (container) container.remove();
+
+  container?.remove();
 }

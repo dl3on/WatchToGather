@@ -21,6 +21,14 @@ function getNotifContainer() {
   return container;
 }
 
+export function destroyNotifContainer() {
+  const container = document.getElementById(
+    "watchtogather-next-video-notif-container",
+  );
+
+  container?.remove();
+}
+
 export function showNextVideoNotif(msg: PeerNextVideoMessage) {
   const { fromPeerId, username, fromHost, url } = msg;
 
