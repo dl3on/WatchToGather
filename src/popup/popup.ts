@@ -5,7 +5,7 @@ import {
   saveRoomDetails,
   saveRoomUrl,
 } from "../common/chrome-storage";
-import { isValidUrl } from "../common/utils";
+import { isValidUrl, withTimeout } from "../common/utils";
 import {
   sendHostMsg,
   sendJoinMsg,
@@ -89,14 +89,7 @@ confirmCreateBtn.addEventListener("click", async () => {
 
     try {
       sendHostMsg(roomName, webpageLink);
-
-      const hostPromise = waitForHostSuccess();
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error("Host request timed out"));
-        }, 10000); // 10 seconds timeout
-      });
-      const { roomId } = await Promise.race([hostPromise, timeoutPromise]);
+      const { roomId } = await withTimeout(waitForHostSuccess(), 10000);
 
       hideLoadingUI();
 
@@ -132,17 +125,10 @@ confirmJoinBtn.addEventListener("click", async () => {
 
     try {
       sendJoinMsg(roomId);
-
-      const joinPromise = waitForJoinSuccess();
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error("Join request timed out"));
-        }, 10000); // 10 seconds timeout
-      });
-      const { roomName, participantsCount } = await Promise.race([
-        joinPromise,
-        timeoutPromise,
-      ]);
+      const { roomName, participantsCount } = await withTimeout(
+        waitForJoinSuccess(),
+        10000,
+      );
       const currentUrl = (await loadRoomUrl())?.url || "";
 
       hideLoadingUI();
