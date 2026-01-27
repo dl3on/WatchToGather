@@ -117,7 +117,6 @@ export type ChromeMsg =
 export interface RoomDetails {
   roomId: string;
   roomName: string;
-  participantsCount: number;
   host: boolean;
 }
 

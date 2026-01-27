@@ -1,5 +1,6 @@
 import { clearRoomDetails } from "../../common/chrome-storage";
 import { requestLeaveRoom } from "../../common/chrome-utils";
+import { PeerReadinessMap } from "../../common/sync-messages-types";
 import { LeaveType } from "../../common/types";
 import { registerCurrentTab } from "./chrome";
 
@@ -57,7 +58,7 @@ export function updateUIForRoom(
   mainView.innerHTML = `
     <div id="roomHeader">
       <p id="roomNameText"><strong>${roomName}</strong></p>
-      <span id="roomParticipants">${participantsCount} (i)</span>
+      <span id="roomParticipants">${participantsCount}👤</span>
       <span id="urlText" class="sub-text" data-url="${url}">${url}</span>
     </div>
 
@@ -169,4 +170,14 @@ export function hideLoadingUI() {
   loadingOverlay.classList.add("hidden");
 }
 
-// TODO: function to dynamically update participants count, loading register button and registered tab text
+export function updateParticipantsCount(peerStateMap: PeerReadinessMap) {
+  const participantCount = Object.keys(peerStateMap).length;
+
+  const participantsElem = document.getElementById(
+    "roomParticipants",
+  ) as HTMLSpanElement | null;
+
+  if (!participantsElem) return;
+
+  participantsElem.textContent = `${participantCount}👤`;
+}

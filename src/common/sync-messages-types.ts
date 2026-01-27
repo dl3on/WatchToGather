@@ -62,6 +62,13 @@ export type PeerNextVideoNackMessage = PeerMessageBase & {
   url: string;
 };
 
+/**
+ * NOTE:
+ * This map is the authoritative source for:
+ * - current room participants (presence)
+ * - usernames
+ * - ready / not ready state
+ */
 export type PeerReadinessMap = Record<
   string,
   { username: string; ready: boolean }

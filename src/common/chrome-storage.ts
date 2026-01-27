@@ -44,6 +44,14 @@ export function clearRoomDetails() {
   chrome.storage.local.remove(`${STORAGE_KEY_HEADER}_roomDetails`);
 }
 
+export function saveParticipantsCount(participantsCount: number) {
+  saveKey<number>(`${STORAGE_KEY_HEADER}_participantsCount`, participantsCount);
+}
+
+export function getParticipantsCount(): Promise<number | null> {
+  return getKey<number>(`${STORAGE_KEY_HEADER}_participantsCount`);
+}
+
 export function saveRoomUrl(url: string) {
   saveKey<RoomUrl>(`${STORAGE_KEY_HEADER}_roomUrl`, { url });
 }
@@ -93,6 +101,7 @@ export function loadNavStates(): Promise<NavStates | null> {
 export function clearRoomSessionStorage() {
   chrome.storage.local.remove([
     `${STORAGE_KEY_HEADER}_roomDetails`,
+    `${STORAGE_KEY_HEADER}_participantsCount`,
     `${STORAGE_KEY_HEADER}_roomUrl`,
     `${STORAGE_KEY_HEADER}_controlledTabId`,
     `${STORAGE_KEY_HEADER}_isInRoom`,

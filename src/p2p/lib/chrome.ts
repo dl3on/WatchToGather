@@ -96,9 +96,14 @@ export function sendAckNackMsg(url: string) {
   sendChromeMsg({ type: "ACK_OR_NACK", url });
 }
 
-/** Offscreen -> Background */
+/** Offscreen -> Background & Popup */
 export function updatePeerReadinessUI(readinessMap: PeerReadinessMap) {
   sendChromeMsg({ type: "READINESS_UPDATE", readinessMap });
+}
+
+/** Offscreen -> Background */
+export function sendSaveParticipantsCount(participantsCount: number) {
+  sendChromeMsg({ type: "SAVE_PARTICIPANTS_COUNT", count: participantsCount });
 }
 
 /** Background -> Content Script */

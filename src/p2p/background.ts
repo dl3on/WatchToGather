@@ -149,18 +149,8 @@ async function init() {
       return;
     }
 
-    if (msg.type === "LEFT_ROOM") {
-      isInRoom = false;
-      cachedRoomDetails = null;
-      controlledTabId = null;
-      pendingTabId = null;
-      navId = 0;
-      _pendingUrlChange = false;
-      _pendingUrlValue = null;
-      resetVCStates();
-
-      clearRoomSessionStorage();
-      return;
+    if (msg.type === "SAVE_PARTICIPANTS_COUNT") {
+      saveParticipantsCount(msg.count);
     }
 
     // ===================================================================
