@@ -226,7 +226,10 @@ async function init() {
           return;
         }
 
-        if (senderTabId === pendingTabId || senderTabId === controlledTabId) {
+        if (
+          !_vcReady &&
+          (senderTabId === pendingTabId || senderTabId === controlledTabId)
+        ) {
           _vcReady = true;
           console.log(`[VC READY] frame ID: ${sender.frameId}`);
 
