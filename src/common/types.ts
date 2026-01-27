@@ -140,3 +140,7 @@ export type LeaveMsg =
   | {
       type: "LEFT_ROOM";
     };
+
+export type ManagerLiveCheck = {
+  type: "MANAGERS_ALIVE";
+};

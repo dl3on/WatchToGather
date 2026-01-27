@@ -4,7 +4,7 @@ import {
   NotifyAckNack,
   PeerMessageType,
 } from "../common/sync-messages-types";
-import { ChromeMsg, LeaveMsg } from "../common/types";
+import { ChromeMsg, LeaveMsg, ManagerLiveCheck } from "../common/types";
 import { MessageManager } from "./lib/message-manager";
 import { SignalManager } from "./lib/signal-manager";
 import { WebRTCManager } from "./lib/webrtc-manager";
@@ -16,7 +16,8 @@ chrome.runtime.onMessage.addListener(
       | LocalVideoEvent
       | LocalUrlChange
       | NotifyAckNack
-      | LeaveMsg,
+      | LeaveMsg
+      | ManagerLiveCheck,
     sender,
     sendResponse,
   ) => {
@@ -127,6 +128,12 @@ chrome.runtime.onMessage.addListener(
       sendResponse({ success: true });
 
       return true;
+    } else if (msg.type === "MANAGERS_ALIVE") {
+      const signalManager = SignalManager.getInstance();
+      const webrtc = signalManager && WebRTCManager.getInstance(signalManager);
+      const messageManager = webrtc && MessageManager.getInstance();
+
+      sendResponse({ result: !!messageManager });
     }
   },
 );

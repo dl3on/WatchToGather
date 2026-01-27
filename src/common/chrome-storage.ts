@@ -75,7 +75,7 @@ export function saveIsInRoom(isInRoom: boolean) {
   saveKey<boolean>(`${STORAGE_KEY_HEADER}_isInRoom`, isInRoom);
 }
 
-export async function getIsInRoom(): Promise<boolean> {
+export async function checkInRoom(): Promise<boolean> {
   return !!(await getKey<boolean>(`${STORAGE_KEY_HEADER}_isInRoom`));
 }
 

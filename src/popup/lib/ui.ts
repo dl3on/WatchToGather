@@ -2,7 +2,7 @@ import { clearRoomDetails } from "../../common/chrome-storage";
 import { requestLeaveRoom } from "../../common/chrome-utils";
 import { PeerReadinessMap } from "../../common/sync-messages-types";
 import { LeaveType } from "../../common/types";
-import { registerCurrentTab } from "./chrome";
+import { registerCurrentTab, waitForRegisterComplete } from "./chrome";
 
 const roomIdContainer = document.getElementById(
   "roomIdContainer",
@@ -77,7 +77,9 @@ export function updateUIForRoom(
       <div id="registerTab">
         <button id="registerTabBtn">Register Current Tab</button>
         ${
-          registeredTabId !== null ? `` : `<p>No registered tab for syncing</p>`
+          registeredTabId !== null
+            ? ``
+            : `<p id="registerTabDetails">No registered tab for syncing</p>`
         }
       </div>
     </div>
@@ -118,8 +120,40 @@ export function updateUIForRoom(
   }
 
   if (registerTabBtn) {
-    registerTabBtn.addEventListener("click", () => {
+    registerTabBtn.addEventListener("click", async () => {
+      if (registerTabBtn.disabled) return;
+
+      registerTabBtn.disabled = true;
+      registerTabBtn.textContent = "Registering...";
+      registerTabBtn.classList.add("disabled");
+
       registerCurrentTab();
+      const isRoomValid = await waitForRegisterComplete();
+
+      const detailsText = document.getElementById("registerTabDetails");
+
+      if (isRoomValid) {
+        detailsText?.remove();
+
+        registerTabBtn.disabled = false;
+        registerTabBtn.textContent = "Register Current Tab";
+        registerTabBtn.classList.remove("disabled");
+      } else {
+        registerTabBtn.textContent = "Unable to register";
+        if (!detailsText) {
+          const registerTabDiv = document.getElementById(
+            "registerTab",
+          ) as HTMLDivElement;
+
+          const p = document.createElement("p");
+          p.id = "registerTabDetails";
+          p.textContent = "Current room is invalid, please leave.";
+
+          registerTabDiv.appendChild(p);
+        } else {
+          detailsText.textContent = "Current room is invalid, please leave.";
+        }
+      }
     });
   }
 

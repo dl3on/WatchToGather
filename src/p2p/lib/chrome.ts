@@ -1,4 +1,8 @@
-import { sendChromeMsg, sendTabMsg } from "../../common/chrome-utils";
+import {
+  sendChromeMsg,
+  sendChromeMsgWithResponse,
+  sendTabMsg,
+} from "../../common/chrome-utils";
 import {
   LocalVideoEvent,
   PeerNextVideoMessage,
@@ -47,12 +51,17 @@ export function notifyNextVideo(msg: PeerNextVideoMessage) {
   sendChromeMsg(msg);
 }
 
-export function sendPrepareVcMsg(
+export async function sendPrepareVcMsg(
   tabId: number,
   navId: number,
   frameId?: number,
-) {
-  sendTabMsg(tabId, { type: "PREPARE_VC", navId: navId }, frameId);
+): Promise<boolean> {
+  const success = await sendTabMsg(
+    tabId,
+    { type: "PREPARE_VC", navId: navId },
+    frameId,
+  );
+  return success;
 }
 
 /** Forward PeerTimeMessage to Content Script */
@@ -113,6 +122,28 @@ export function forwardUpdatePeerReadinessMsg(
   frameId?: number,
 ) {
   sendTabMsg(tabId, msg, frameId);
+}
+
+/** Background -> Offscreen */
+export async function checkManagersAlive(): Promise<boolean> {
+  const response = await sendChromeMsgWithResponse({ type: "MANAGERS_ALIVE" });
+  return response.result;
+}
+
+/** Background -> Popup
+ *
+ * note: tab registration would be disabled if room no longer exists
+ */
+export function finishTabRegistration(isRoomValid: boolean) {
+  sendChromeMsg({ type: "REGISTER_DONE", isRoomValid });
+}
+
+export function alertRefreshPage() {
+  // Content script might not exist, notify popup to show alert
+  sendChromeMsg({
+    type: "REFRESH_PAGE_ALERT",
+    text: "[WatchToGather] Please refresh the page and try again.",
+  });
 }
 
 export function showVideoStatusNotification(success: boolean) {

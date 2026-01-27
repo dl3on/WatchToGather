@@ -72,6 +72,10 @@ if (roomData && participantsCount) {
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "REFRESH_PAGE_ALERT") {
+    alert(msg.text);
+  }
+
   if (msg.type === "READINESS_UPDATE") {
     updateParticipantsCount(msg.readinessMap);
     return;
