@@ -23,20 +23,28 @@ export function sendChromeMsgWithResponse(msg: any): Promise<any> {
 }
 
 /** Send messages to content script */
-export async function sendTabMsg(tabId: number, msg: any, frameId?: number) {
+export async function sendTabMsg(
+  tabId: number,
+  msg: any,
+  frameId?: number,
+): Promise<boolean> {
   const validTabId = await validateControlledTabId(tabId);
-  if (!validTabId) return;
+  if (!validTabId) return false;
 
   const options = frameId !== undefined ? { frameId } : undefined;
 
   try {
     await chrome.tabs.sendMessage(validTabId, msg, options);
+    return true;
   } catch (error) {
     console.warn("[sendTabMsg] dropped:", error, {
       tabId: validTabId,
       frameId,
       msg,
     });
+
+    // Content script might not have been injected
+    return false;
   }
 }
 

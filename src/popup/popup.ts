@@ -1,7 +1,9 @@
 import {
   getControlledTabId,
+  getParticipantsCount,
   loadRoomDetails,
   loadRoomUrl,
+  saveParticipantsCount,
   saveRoomDetails,
   saveRoomUrl,
 } from "../common/chrome-storage";
@@ -16,6 +18,7 @@ import {
   hideLoadingUI,
   renderInitialView,
   showLoadingUI,
+  updateParticipantsCount,
   updateUIForRoom,
 } from "./lib/ui";
 
@@ -50,11 +53,12 @@ const webpageLinkInput = document.getElementById(
 const roomIdInput = document.getElementById("roomId") as HTMLInputElement;
 
 const roomData = await loadRoomDetails();
+const participantsCount = await getParticipantsCount();
 const url = (await loadRoomUrl())?.url || "";
 const controlledTabId = await getControlledTabId();
 
-if (roomData) {
-  const { roomId, roomName, participantsCount, host } = roomData;
+if (roomData && participantsCount) {
+  const { roomId, roomName, host } = roomData;
   updateUIForRoom(
     roomId,
     roomName,
@@ -68,6 +72,15 @@ if (roomData) {
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === "REFRESH_PAGE_ALERT") {
+    alert(msg.text);
+  }
+
+  if (msg.type === "READINESS_UPDATE") {
+    updateParticipantsCount(msg.readinessMap);
+    return;
+  }
+
   if (msg.type === "DISBANDING_ROOM") {
     showLoadingUI("Room is being disbanded...");
     return;
@@ -103,15 +116,15 @@ confirmCreateBtn.addEventListener("click", async () => {
       saveRoomDetails({
         roomId,
         roomName,
-        participantsCount: 1,
         host: true,
       });
+      saveParticipantsCount(1);
       saveRoomUrl(webpageLink);
       updateUIForRoom(roomId, roomName, 1, webpageLink, true, controlledTabId);
     } catch (error) {
       hideLoadingUI();
       console.error("[ERROR] Unable to host:", error);
-      alert(`[WatchToGather] (Failed) ${error}`);
+      alert(`[WatchToGather] ${error}`);
     }
   } else {
     console.log("Fill in all the fields.");
@@ -144,9 +157,9 @@ confirmJoinBtn.addEventListener("click", async () => {
       saveRoomDetails({
         roomId,
         roomName,
-        participantsCount: participantsCount + 1,
         host: false,
       });
+      saveParticipantsCount(participantsCount + 1);
       updateUIForRoom(
         roomId,
         roomName,

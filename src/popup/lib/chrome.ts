@@ -50,3 +50,16 @@ export function waitForHostSuccess(): Promise<{ roomId: string }> {
 export function registerCurrentTab() {
   sendChromeMsg({ type: "REGISTER_TAB" });
 }
+
+export function waitForRegisterComplete(): Promise<boolean> {
+  return new Promise((resolve) => {
+    function handler(msg: any) {
+      if (msg.type === "REGISTER_DONE") {
+        // Only listens to one VC_STATUS success
+        chrome.runtime.onMessage.removeListener(handler);
+        resolve(msg.isRoomValid);
+      }
+    }
+    chrome.runtime.onMessage.addListener(handler);
+  });
+}

@@ -1,6 +1,6 @@
 import {
   getControlledTabId,
-  getIsInRoom,
+  checkInRoom,
   loadReadinessMap,
   saveReadinessMap,
 } from "../common/chrome-storage";
@@ -33,7 +33,7 @@ if (isMainFrame) {
 
     const myTabId = await getMyTabId();
     if (myTabId === controlledTabId) {
-      getIsInRoom().then((isInRoom) => {
+      checkInRoom().then((isInRoom) => {
         if (isInRoom) {
           loadReadinessMap().then((cachedMap) => {
             if (cachedMap) updateParticipantsList(cachedMap);

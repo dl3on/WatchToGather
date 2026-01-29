@@ -15,6 +15,7 @@ import {
   forwardRemotePeerMsg,
   notifyNextVideo,
   sendCurrentVideoState,
+  sendSaveParticipantsCount,
   updatePeerReadinessUI,
 } from "./chrome";
 import type { WebRTCManager } from "./webrtc-manager";
@@ -94,7 +95,7 @@ export class MessageManager {
       return;
     } else if (msg.type === PeerMessageType.ReadyStateUpdate) {
       this._peerReadinessMap = msg.readinessMap;
-      updatePeerReadinessUI(this.getPeerReadinessMap());
+      this.onPeerReadinessStateChanged();
     } else if (isPlaybackControlMessage(msg)) {
       // Drops late playback messages
       if (msg.lamport < this._lastAppliedLamport) return;
@@ -202,6 +203,15 @@ export class MessageManager {
     this._webrtcManager.sendMessage(nackMsg);
   }
 
+  /** Local UI update */
+  private onPeerReadinessStateChanged() {
+    const readinessMap = this.getPeerReadinessMap();
+    const participantsCount = Object.keys(readinessMap).length;
+
+    sendSaveParticipantsCount(participantsCount);
+    updatePeerReadinessUI(readinessMap);
+  }
+
   /**
    * Host-only functions
    */
@@ -222,6 +232,7 @@ export class MessageManager {
     isReady: boolean,
   ) {
     this.getOrCreateReadinessMapEntry(peerId, username).ready = isReady;
+    this.onPeerReadinessStateChanged();
     this.sendPeerReadinessUpdate();
   }
 
@@ -233,12 +244,11 @@ export class MessageManager {
 
   public deletePeerFromMap(peerId: string) {
     delete this._peerReadinessMap[peerId];
+    this.onPeerReadinessStateChanged();
     this.sendPeerReadinessUpdate();
   }
 
   private sendPeerReadinessUpdate() {
-    updatePeerReadinessUI(this.getPeerReadinessMap());
-
     let mapUpdateMsg: PeerReadyStateMessage;
     mapUpdateMsg = {
       mid: crypto.randomUUID(),

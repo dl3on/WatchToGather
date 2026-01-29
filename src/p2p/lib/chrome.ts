@@ -1,4 +1,8 @@
-import { sendChromeMsg, sendTabMsg } from "../../common/chrome-utils";
+import {
+  sendChromeMsg,
+  sendChromeMsgWithResponse,
+  sendTabMsg,
+} from "../../common/chrome-utils";
 import {
   LocalVideoEvent,
   PeerNextVideoMessage,
@@ -47,12 +51,17 @@ export function notifyNextVideo(msg: PeerNextVideoMessage) {
   sendChromeMsg(msg);
 }
 
-export function sendPrepareVcMsg(
+export async function sendPrepareVcMsg(
   tabId: number,
   navId: number,
   frameId?: number,
-) {
-  sendTabMsg(tabId, { type: "PREPARE_VC", navId: navId }, frameId);
+): Promise<boolean> {
+  const success = await sendTabMsg(
+    tabId,
+    { type: "PREPARE_VC", navId: navId },
+    frameId,
+  );
+  return success;
 }
 
 /** Forward PeerTimeMessage to Content Script */
@@ -96,9 +105,14 @@ export function sendAckNackMsg(url: string) {
   sendChromeMsg({ type: "ACK_OR_NACK", url });
 }
 
-/** Offscreen -> Background */
+/** Offscreen -> Background & Popup */
 export function updatePeerReadinessUI(readinessMap: PeerReadinessMap) {
   sendChromeMsg({ type: "READINESS_UPDATE", readinessMap });
+}
+
+/** Offscreen -> Background */
+export function sendSaveParticipantsCount(participantsCount: number) {
+  sendChromeMsg({ type: "SAVE_PARTICIPANTS_COUNT", count: participantsCount });
 }
 
 /** Background -> Content Script */
@@ -110,13 +124,35 @@ export function forwardUpdatePeerReadinessMsg(
   sendTabMsg(tabId, msg, frameId);
 }
 
+/** Background -> Offscreen */
+export async function checkManagersAlive(): Promise<boolean> {
+  const response = await sendChromeMsgWithResponse({ type: "MANAGERS_ALIVE" });
+  return response.result;
+}
+
+/** Background -> Popup
+ *
+ * note: tab registration would be disabled if room no longer exists
+ */
+export function finishTabRegistration(isRoomValid: boolean) {
+  sendChromeMsg({ type: "REGISTER_DONE", isRoomValid });
+}
+
+export function alertRefreshPage() {
+  // Content script might not exist, notify popup to show alert
+  sendChromeMsg({
+    type: "REFRESH_PAGE_ALERT",
+    text: "[WatchToGather] Please refresh the page and try again.",
+  });
+}
+
 export function showVideoStatusNotification(success: boolean) {
   const title = "WatchToGather";
   const message = success
     ? "Video ready to watch!"
     : "[Video not found] Ensure video exists and keep the tab active. Please try again.";
 
-  const iconUrl = chrome.runtime.getURL("evadr.jpg");
+  const iconUrl = chrome.runtime.getURL("watchtogather_icon.png");
 
   chrome.notifications.create({
     type: "basic",

@@ -210,3 +210,8 @@ body {
 #registerTab p {
   margin: 0;
 }
+
+#registerTab.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

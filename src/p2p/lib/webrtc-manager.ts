@@ -354,9 +354,11 @@ export class WebRTCManager {
         this._log(`ICE exchange with peer ${targetPeerId} failed.`);
       } else if (pc.connectionState === "disconnected") {
         this._log(`Failed to establish connection to peer ${targetPeerId}`);
+        this._handlePeerDisconnect(targetPeerId);
         this._connectionCount = Math.max(0, this._connectionCount - 1);
       } else if (pc.connectionState === "closed") {
-        this._log(`Disconnected form peer ${targetPeerId}`);
+        this._log(`Disconnected from peer ${targetPeerId}`);
+        this._handlePeerDisconnect(targetPeerId);
         this._connectionCount = Math.max(0, this._connectionCount - 1);
       }
     };
@@ -376,86 +378,10 @@ export class WebRTCManager {
     dc.onopen = () => {
       console.log(`[DC] Open with ${targetPeerId}`);
 
-      if (this._host) {
-        this._sendInitialUrlToPeer(dc);
-      }
+      if (this._host) this._sendInitialUrlToPeer(dc);
     };
-    dc.onmessage = async (e) => {
-      const msg = JSON.parse(e.data);
-
-      if (msg.type === "HOST_INITIAL_URL") {
-        this._updateRoomVideoUrl(msg.url);
-        sendHostLinkCompleteMsg();
-        return;
-      }
-
-      if (
-        this._localVideoUrl !== this._roomVideoUrl &&
-        isPlaybackControlMessage(msg)
-      ) {
-        console.log(
-          `[DC Receiver] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`,
-        );
-        return;
-      }
-
-      if (msg.type === PeerMessageType.NextVideo && !this._host) {
-        this._updateRoomVideoUrl(msg.url);
-        if (this._localVideoUrl === this._roomVideoUrl) {
-          this._messageManager.nextVideoAck(this._localVideoUrl!, false);
-        }
-      }
-
-      if (
-        (msg.type === PeerMessageType.NextVideoAck ||
-          msg.type === PeerMessageType.NextVideoNack) &&
-        !this._host
-      )
-        return;
-
-      if (
-        (msg.type === PeerMessageType.NextVideoAck &&
-          msg.url !== this._roomVideoUrl) ||
-        (msg.type === PeerMessageType.NextVideoNack &&
-          msg.url === this._roomVideoUrl)
-      )
-        return;
-
-      if (
-        (msg.type === PeerMessageType.ReadyStateUpdate ||
-          msg.type === PeerMessageType.SyncBeacon) &&
-        this._host
-      )
-        return;
-
-      console.log(`[DC] Message from ${targetPeerId}:`, e.data);
-      this._messageManager.handleMessage(msg);
-    };
-    dc.onclose = async () => {
-      console.log(`[DC] Channel closed for ${targetPeerId}`);
-
-      const peerEntry = this._connections[targetPeerId];
-
-      // If entry is already gone -> I was the one leaving
-      if (!peerEntry) {
-        return;
-      }
-
-      const isHost = peerEntry.isHost;
-
-      // If Host disconnected - disband room
-      if (isHost) {
-        requestLeaveRoom(LeaveType.Disband);
-        this._log(`Host ${targetPeerId} is disbanding room.`);
-      } else {
-        this._removePeer(targetPeerId);
-
-        // Only let host update readiness map
-        if (this._host) this._messageManager.deletePeerFromMap(targetPeerId);
-
-        this._log(`Peer ${targetPeerId} left the room.`);
-      }
-    };
+    dc.onmessage = (e) => this._handleDCMessage(targetPeerId, e);
+    dc.onclose = () => console.log(`[DC] Channel closed for ${targetPeerId}`);
   }
 
   private async _createOffers(
@@ -544,6 +470,58 @@ export class WebRTCManager {
       url: this._roomVideoUrl!,
     };
     dc.send(JSON.stringify(initMsg));
+  }
+
+  private async _handleDCMessage(targetPeerId: string, e: MessageEvent) {
+    const msg = JSON.parse(e.data);
+
+    if (msg.type === "HOST_INITIAL_URL") {
+      this._updateRoomVideoUrl(msg.url);
+      sendHostLinkCompleteMsg();
+      return;
+    }
+
+    if (
+      this._localVideoUrl !== this._roomVideoUrl &&
+      isPlaybackControlMessage(msg)
+    ) {
+      console.log(
+        `[DC Receiver] Current URL mismatch. Dropping message. ${this._localVideoUrl} != ${this._roomVideoUrl}`,
+      );
+      return;
+    }
+
+    if (msg.type === PeerMessageType.NextVideo && !this._host) {
+      this._updateRoomVideoUrl(msg.url);
+      if (this._localVideoUrl === this._roomVideoUrl) {
+        this._messageManager.nextVideoAck(this._localVideoUrl!, false);
+      }
+    }
+
+    if (
+      (msg.type === PeerMessageType.NextVideoAck ||
+        msg.type === PeerMessageType.NextVideoNack) &&
+      !this._host
+    )
+      return;
+
+    if (
+      (msg.type === PeerMessageType.NextVideoAck &&
+        msg.url !== this._roomVideoUrl) ||
+      (msg.type === PeerMessageType.NextVideoNack &&
+        msg.url === this._roomVideoUrl)
+    )
+      return;
+
+    if (
+      (msg.type === PeerMessageType.ReadyStateUpdate ||
+        msg.type === PeerMessageType.SyncBeacon) &&
+      this._host
+    )
+      return;
+
+    console.log(`[DC] Message from ${targetPeerId}:`, e.data);
+    this._messageManager.handleMessage(msg);
   }
 
   public sendMessage(msg: PeerMessage) {
@@ -689,6 +667,30 @@ export class WebRTCManager {
       pc.onconnectionstatechange = null;
       pc.ondatachannel = null;
       pc.close();
+    }
+  }
+
+  private _handlePeerDisconnect(targetPeerId: string) {
+    const peerEntry = this._connections[targetPeerId];
+
+    // If entry is already gone -> I was the one leaving
+    if (!peerEntry) {
+      return;
+    }
+
+    const isHost = peerEntry.isHost;
+
+    // If Host disconnected - disband room
+    if (isHost) {
+      requestLeaveRoom(LeaveType.Disband);
+      this._log(`Host ${targetPeerId} is disbanding room.`);
+    } else {
+      this._removePeer(targetPeerId);
+
+      // Only let host update readiness map
+      if (this._host) this._messageManager.deletePeerFromMap(targetPeerId);
+
+      this._log(`Peer ${targetPeerId} left the room.`);
     }
   }
 

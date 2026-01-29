@@ -9,23 +9,24 @@ function getParticipantsListContainer() {
     container.id = "watchtogather-participants-list-container";
 
     container.style.position = "fixed";
-    container.style.top = "20px";
-    container.style.left = "20px";
+    container.style.height = "fit-content";
+    container.style.top = "50%";
+    container.style.left = "0px";
+    container.style.transform = "translateY(-50%)";
     container.style.zIndex = "2147483647";
-    container.style.background = "#a7a7ffff";
+    container.style.background = "transparent";
     container.style.color = "#e6e6e6";
-    container.style.borderRadius = "12px";
-    container.style.boxShadow = "0 10px 25px rgba(0,0,0,0.4)";
-    container.style.padding = "10px";
+    container.style.padding = "0px";
     container.style.fontFamily = "system-ui, sans-serif";
-    container.style.display = "block";
-    container.style.minWidth = "220px";
+    container.style.display = "flex";
+    container.style.alignItems = "stretch";
+    // container.style.overflow = "visible";
 
-    const header = document.createElement("div");
-    header.style.display = "flex";
-    header.style.justifyContent = "space-between";
-    header.style.alignItems = "center";
-    header.style.marginBottom = "6px";
+    const panel = document.createElement("div");
+    panel.style.display = "flex";
+    panel.style.alignItems = "center";
+    panel.style.position = "relative";
+    panel.style.overflow = "visible";
 
     const title = document.createElement("div");
     title.textContent = "Participants";
@@ -33,28 +34,18 @@ function getParticipantsListContainer() {
     title.style.fontWeight = "600";
     title.style.fontSize = "13px";
 
-    const toggleBtn = document.createElement("button");
-    toggleBtn.textContent = "x";
-    toggleBtn.style.all = "unset";
-    toggleBtn.style.cursor = "pointer";
-    toggleBtn.style.font = "inherit";
-    toggleBtn.style.fontSize = "14px";
-    toggleBtn.style.fontWeight = "600";
-    toggleBtn.style.color = "inherit";
-    toggleBtn.style.padding = "0";
-    toggleBtn.style.margin = "0";
-    toggleBtn.style.background = "none";
-    toggleBtn.style.border = "none";
-
-    header.append(title, toggleBtn);
-    container.appendChild(header);
-
     const divider = document.createElement("div");
     divider.style.height = "1px";
     divider.style.background = "rgba(255,255,255,0.25)";
     divider.style.margin = "6px 0";
 
-    container.appendChild(divider);
+    const content = document.createElement("div");
+    content.style.display = "block";
+    content.style.background = "#a7a7ffff";
+    content.style.borderRadius = "0 12px 12px 0";
+    content.style.boxShadow = "0 10px 25px rgba(0,0,0,0.4)";
+    content.style.padding = "10px";
+    content.style.minWidth = "220px";
 
     const list = document.createElement("div");
     list.id = "watchtogather-participants-list";
@@ -62,35 +53,37 @@ function getParticipantsListContainer() {
     list.style.flexDirection = "column";
     list.style.gap = "6px";
 
-    container.appendChild(list);
+    const toggleBtn = document.createElement("button");
+    toggleBtn.style.zIndex = "1";
 
-    const OPEN_PADDING = "10px";
-    const CLOSED_PADDING = "6px 8px";
+    toggleBtn.textContent = "<";
+    toggleBtn.style.all = "unset";
+    toggleBtn.style.cursor = "pointer";
+    toggleBtn.style.width = "14px";
+    toggleBtn.style.height = "35px";
+    toggleBtn.style.fontSize = "14px";
+    toggleBtn.style.fontWeight = "600";
+    toggleBtn.style.display = "flex";
+    toggleBtn.style.alignItems = "center";
+    toggleBtn.style.justifyContent = "center";
+    toggleBtn.style.background = "#a7a7ffff";
+    toggleBtn.style.borderRadius = "0 8px 8px 0";
+
+    content.append(title, divider, list);
+    panel.append(content, toggleBtn);
+    container.append(panel);
+
     let open = true;
 
-    toggleBtn.onmouseenter = () => {
-      toggleBtn.style.color = "black";
-    };
-    toggleBtn.onmouseleave = () => {
-      toggleBtn.style.color = "inherit";
-    };
     toggleBtn.onclick = () => {
       open = !open;
 
       if (open) {
-        title.style.display = "block";
-        toggleBtn.textContent = "X";
-        divider.style.display = "block";
-        list.style.display = "flex";
-        container!.style.padding = OPEN_PADDING;
-        container!.style.minWidth = "220px";
+        toggleBtn.textContent = "<";
+        content.style.display = "block";
       } else {
-        title.style.display = "none";
-        toggleBtn.textContent = "Show Participants";
-        divider.style.display = "none";
-        list.style.display = "none";
-        container!.style.padding = CLOSED_PADDING;
-        container!.style.minWidth = "unset";
+        toggleBtn.textContent = ">";
+        content.style.display = "none";
       }
     };
 

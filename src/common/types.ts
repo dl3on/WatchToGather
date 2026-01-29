@@ -117,7 +117,6 @@ export type ChromeMsg =
 export interface RoomDetails {
   roomId: string;
   roomName: string;
-  participantsCount: number;
   host: boolean;
 }
 
@@ -141,3 +140,7 @@ export type LeaveMsg =
   | {
       type: "LEFT_ROOM";
     };
+
+export type ManagerLiveCheck = {
+  type: "MANAGERS_ALIVE";
+};

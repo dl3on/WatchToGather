@@ -17,17 +17,21 @@ import {
   sendVCMsg,
   showVideoStatusNotification,
   notifyCSLeftRoom,
+  finishTabRegistration,
+  checkManagersAlive,
+  alertRefreshPage,
 } from "./lib/chrome";
 import {
   clearRoomSessionStorage,
   getControlledTabId,
-  getIsInRoom,
+  checkInRoom,
   loadNavStates,
   loadRoomUrl,
   saveControlledTabId,
   saveIsInRoom,
   saveNavStates,
   saveRoomUrl,
+  saveParticipantsCount,
 } from "../common/chrome-storage";
 import {
   initiateLeaveRoom,
@@ -73,7 +77,7 @@ async function init() {
     if (!validTabId) saveControlledTabId(null);
     return validTabId;
   });
-  isInRoom = await getIsInRoom();
+  isInRoom = await checkInRoom();
 
   const navStates = await loadNavStates();
   if (navStates) {
@@ -149,18 +153,8 @@ async function init() {
       return;
     }
 
-    if (msg.type === "LEFT_ROOM") {
-      isInRoom = false;
-      cachedRoomDetails = null;
-      controlledTabId = null;
-      pendingTabId = null;
-      navId = 0;
-      _pendingUrlChange = false;
-      _pendingUrlValue = null;
-      resetVCStates();
-
-      clearRoomSessionStorage();
-      return;
+    if (msg.type === "SAVE_PARTICIPANTS_COUNT") {
+      saveParticipantsCount(msg.count);
     }
 
     // ===================================================================
@@ -236,7 +230,10 @@ async function init() {
           return;
         }
 
-        if (senderTabId === pendingTabId || senderTabId === controlledTabId) {
+        if (
+          !_vcReady &&
+          (senderTabId === pendingTabId || senderTabId === controlledTabId)
+        ) {
           _vcReady = true;
           console.log(`[VC READY] frame ID: ${sender.frameId}`);
 
@@ -259,6 +256,7 @@ async function init() {
             }
           }
 
+          finishTabRegistration(true);
           showVideoStatusNotification(true);
         }
 
@@ -271,7 +269,10 @@ async function init() {
           }
 
           // Notify registration failure
-          if (!controlledTabId) showVideoStatusNotification(false);
+          if (!controlledTabId) {
+            finishTabRegistration(true);
+            showVideoStatusNotification(false);
+          }
         }
 
         return;
@@ -361,18 +362,24 @@ async function init() {
   /** Automatically registers current active tab
    * if it has a video element
    * with an option to re-register a new tab */
-  function registerActiveTab() {
-    if (!isInRoom) return;
+  async function registerActiveTab() {
+    if (!(await isInActiveRoom())) {
+      console.log("Not in a room");
+      finishTabRegistration(false);
+      return;
+    }
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
       const tabId = tabs[0]?.id;
       const tabUrl = tabs[0]?.url;
       if (!tabId) {
         console.log("No active tab to register");
+        finishTabRegistration(true);
         return;
       }
       if (!tabUrl) {
         console.log("No URL found");
+        finishTabRegistration(true);
         return;
       }
 
@@ -383,8 +390,13 @@ async function init() {
       resetVCStates();
       navId++;
       saveNavState();
-      sendPrepareVcMsg(tabId, navId);
       sendLocalUrlChangeMsg(tabUrl);
+
+      const success = await sendPrepareVcMsg(tabId, navId);
+      if (!success) {
+        alertRefreshPage();
+        finishTabRegistration(false);
+      }
     });
   }
 
@@ -490,6 +502,10 @@ async function init() {
     } else {
       throw new Error("[Background] No room details found");
     }
+  }
+
+  async function isInActiveRoom(): Promise<boolean> {
+    return checkManagersAlive();
   }
 
   // ===================================================================

@@ -1,7 +1,8 @@
 import { clearRoomDetails } from "../../common/chrome-storage";
 import { requestLeaveRoom } from "../../common/chrome-utils";
+import { PeerReadinessMap } from "../../common/sync-messages-types";
 import { LeaveType } from "../../common/types";
-import { registerCurrentTab } from "./chrome";
+import { registerCurrentTab, waitForRegisterComplete } from "./chrome";
 
 const roomIdContainer = document.getElementById(
   "roomIdContainer",
@@ -57,7 +58,7 @@ export function updateUIForRoom(
   mainView.innerHTML = `
     <div id="roomHeader">
       <p id="roomNameText"><strong>${roomName}</strong></p>
-      <span id="roomParticipants">${participantsCount} (i)</span>
+      <span id="roomParticipants">${participantsCount}👤</span>
       <span id="urlText" class="sub-text" data-url="${url}">${url}</span>
     </div>
 
@@ -76,7 +77,9 @@ export function updateUIForRoom(
       <div id="registerTab">
         <button id="registerTabBtn">Register Current Tab</button>
         ${
-          registeredTabId !== null ? `` : `<p>No registered tab for syncing</p>`
+          registeredTabId !== null
+            ? ``
+            : `<p id="registerTabDetails">No registered tab for syncing</p>`
         }
       </div>
     </div>
@@ -117,8 +120,40 @@ export function updateUIForRoom(
   }
 
   if (registerTabBtn) {
-    registerTabBtn.addEventListener("click", () => {
+    registerTabBtn.addEventListener("click", async () => {
+      if (registerTabBtn.disabled) return;
+
+      registerTabBtn.disabled = true;
+      registerTabBtn.textContent = "Registering...";
+      registerTabBtn.classList.add("disabled");
+
       registerCurrentTab();
+      const isRoomValid = await waitForRegisterComplete();
+
+      const detailsText = document.getElementById("registerTabDetails");
+
+      if (isRoomValid) {
+        detailsText?.remove();
+
+        registerTabBtn.disabled = false;
+        registerTabBtn.textContent = "Register Current Tab";
+        registerTabBtn.classList.remove("disabled");
+      } else {
+        registerTabBtn.textContent = "Unable to register";
+        if (!detailsText) {
+          const registerTabDiv = document.getElementById(
+            "registerTab",
+          ) as HTMLDivElement;
+
+          const p = document.createElement("p");
+          p.id = "registerTabDetails";
+          p.textContent = "Current room is invalid, please leave.";
+
+          registerTabDiv.appendChild(p);
+        } else {
+          detailsText.textContent = "Current room is invalid, please leave.";
+        }
+      }
     });
   }
 
@@ -169,4 +204,14 @@ export function hideLoadingUI() {
   loadingOverlay.classList.add("hidden");
 }
 
-// TODO: function to dynamically update participants count, loading register button and registered tab text
+export function updateParticipantsCount(peerStateMap: PeerReadinessMap) {
+  const participantCount = Object.keys(peerStateMap).length;
+
+  const participantsElem = document.getElementById(
+    "roomParticipants",
+  ) as HTMLSpanElement | null;
+
+  if (!participantsElem) return;
+
+  participantsElem.textContent = `${participantCount}👤`;
+}
