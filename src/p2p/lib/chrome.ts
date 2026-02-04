@@ -152,7 +152,7 @@ export function showVideoStatusNotification(success: boolean) {
     ? "Video ready to watch!"
     : "[Video not found] Ensure video exists and keep the tab active. Please try again.";
 
-  const iconUrl = chrome.runtime.getURL("watchtogather_icon.png");
+  const iconUrl = chrome.runtime.getURL("icons/watchtogather_icon_256.png");
 
   chrome.notifications.create({
     type: "basic",

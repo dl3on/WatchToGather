@@ -20,7 +20,6 @@ function getParticipantsListContainer() {
     container.style.fontFamily = "system-ui, sans-serif";
     container.style.display = "flex";
     container.style.alignItems = "stretch";
-    // container.style.overflow = "visible";
 
     const panel = document.createElement("div");
     panel.style.display = "flex";
