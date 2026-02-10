@@ -195,17 +195,17 @@ button:not(#copyRoomIdBtn):disabled::before {
 #mainView {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
   width: 100%;
 }
 
 #mainView button {
-  align-self: flex-start;
-}
-
-#mainView.landing button:not(#copyRoomIdBtn) {
   width: 65%;
   align-self: center;
+}
+
+#mainView.landing {
+  gap: 12px;
 }
 
 /* Modal */
@@ -239,7 +239,6 @@ button:not(#copyRoomIdBtn):disabled::before {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto;
-  margin-bottom: 8px;
   max-width: 100%;
 }
 
@@ -268,29 +267,8 @@ button:not(#copyRoomIdBtn):disabled::before {
   color: #0066cc;
 }
 
-/* Room Buttons */
-#roomActions {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-#roomActions button {
-  flex: 1 1 0;
-  max-width: 140px;
-  white-space: nowrap;
-}
-
-#registerTab {
+/* Text */
+#registerTabDetails {
   text-align: center;
-}
-
-#registerTab button {
-  width: 140px;
-  margin-bottom: 8px;
-}
-
-#registerTab p {
   margin: 0;
 }
