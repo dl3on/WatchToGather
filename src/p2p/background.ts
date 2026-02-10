@@ -20,6 +20,7 @@ import {
   finishTabRegistration,
   checkManagersAlive,
   alertRefreshPage,
+  showNotification,
 } from "./lib/chrome";
 import {
   clearRoomSessionStorage,
@@ -116,6 +117,7 @@ async function init() {
 
             if (msg.reason === LeaveType.Disband) {
               notifyPopupDisband();
+              showNotification("Room has been disbanded.");
             } else {
               notifyPopupLeftRoom();
             }

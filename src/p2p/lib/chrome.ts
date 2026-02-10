@@ -146,12 +146,8 @@ export function alertRefreshPage() {
   });
 }
 
-export function showVideoStatusNotification(success: boolean) {
+export function showNotification(message: string) {
   const title = "WatchToGather";
-  const message = success
-    ? "Video ready to watch!"
-    : "[Video not found] Ensure video exists and keep the tab active. Please try again.";
-
   const iconUrl = chrome.runtime.getURL("icons/watchtogather_icon_256.png");
 
   chrome.notifications.create({
@@ -162,6 +158,14 @@ export function showVideoStatusNotification(success: boolean) {
     priority: 2,
     requireInteraction: false,
   });
+}
+
+export function showVideoStatusNotification(success: boolean) {
+  const message = success
+    ? "Video ready to watch!"
+    : "[Video not found] Ensure video exists and keep the tab active. Please try again.";
+
+  showNotification(message);
 }
 
 /** Offscreen (MessageManager) -> Background */

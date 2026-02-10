@@ -5,26 +5,37 @@
   </head>
   <body>
     <div id="header">
-      <h2>WatchToGather</h2>
+      <div>
+        <h2 class="header-title">
+        <img
+          src="/icons/watchtogather_icon_256.png"
+          alt="WatchToGather icon"
+          width="24"
+          height="24"
+        />
+        WatchToGather
+      </div>
+      <div class="header-divider"></div>
+      </h2>
+    </div>
 
-      <div id="roomIdContainer" class="hidden">
-        <p id="roomIdText" class="sub-text"></p>
+    <div id="roomIdContainer" class="hidden">
+      <p id="roomIdText" class="sub-text"></p>
 
-        <div id="copyRoomIdArea">
-          <button id="copyRoomIdBtn">
-            <svg width="15" height="15" viewBox="0 0 24 24">
-              <path
-                d="M16 1H4C2.9 1 2 1.9 2 3v12h2V3h12V1zm3 4H8C6.9 5 6 5.9 6 7v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
-              />
-            </svg>
-          </button>
+      <div id="copyRoomIdArea">
+        <button id="copyRoomIdBtn">
+          <svg width="15" height="15" viewBox="0 0 24 24">
+            <path
+              d="M16 1H4C2.9 1 2 1.9 2 3v12h2V3h12V1zm3 4H8C6.9 5 6 5.9 6 7v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"
+            />
+          </svg>
+        </button>
 
-          <span id="copyFeedback" class="hidden">Copied!</span>
-        </div>
+        <span id="copyFeedback" class="hidden">Copied!</span>
       </div>
     </div>
 
-    <div id="mainView">
+    <div id="mainView" class="landing">
       <button id="createRoomBtn">Create Room</button>
       <button id="joinRoomBtn">Join Room</button>
     </div>
