@@ -1,5 +1,43 @@
 import { PeerNextVideoMessage } from "../../../common/sync-messages-types";
 
+(function injectNotifStyles() {
+  if (document.getElementById("watchtogather-notif-styles")) return;
+
+  const style = document.createElement("style");
+  style.id = "watchtogather-notif-styles";
+  style.textContent = `
+    .watchtogather-notif {
+      transition:
+        transform 0.25s ease,
+        opacity 0.2s ease;
+    }
+
+    .watchtogather-notif.enter {
+      transform: translateX(20px);
+      opacity: 0;
+    }
+
+    .watchtogather-notif.enter-active {
+      transform: translateX(0);
+      opacity: 1;
+    }
+
+    .watchtogather-notif.exit {
+      transform: translateX(20px);
+      opacity: 0;
+    }
+
+    .watchtogather-close-btn:hover {
+      text-decoration: underline !important;
+    }
+
+    a.watchtogather-notif-link:hover {
+      text-decoration: underline !important;
+    }
+  `;
+  document.head.appendChild(style);
+})();
+
 function getNotifContainer() {
   let container = document.getElementById(
     "watchtogather-next-video-notif-container",
@@ -14,6 +52,7 @@ function getNotifContainer() {
     container.style.zIndex = "2147483647";
     container.style.display = "flex";
     container.style.flexDirection = "column";
+    container.style.alignItems = "flex-end";
     container.style.gap = "10px";
     document.body.appendChild(container);
   }
@@ -36,46 +75,86 @@ export function showNextVideoNotif(msg: PeerNextVideoMessage) {
   container.querySelector(`[data-peer-id="${fromPeerId}"]`)?.remove();
 
   const notif = document.createElement("div");
+  notif.className = "watchtogather-notif";
+  notif.classList.add("enter");
   notif.dataset.peerId = fromPeerId;
 
+  notif.style.position = "relative";
   notif.style.background = "#a7a7ffff";
-  notif.style.color = "black";
-  notif.style.padding = "12px 16px";
-  notif.style.borderRadius = "12px";
-  notif.style.boxShadow = "0 10px 25px rgba(0,0,0,0.4)";
-  notif.style.fontFamily = "system-ui, sans-serif";
-  notif.style.maxWidth = "300px";
+  notif.style.color = "#000";
+  notif.style.padding = "14px 16px";
+  notif.style.borderRadius = "14px";
+  notif.style.boxShadow = "0 8px 20px rgba(0,0,0,0.25)";
+  notif.style.fontFamily =
+    "system-ui, -apple-system, BlinkMacSystemFont, sans-serif";
+  notif.style.maxWidth = "320px";
 
-  // TODO: improve styling
   notif.innerHTML = `
-    <div style="font-weight:600; margin-bottom:4px;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px;">
+    <div style="font-weight:600; font-size:14px; line-height:1.3;">
       ${
-        fromHost ? "Host updated next video:" : `${username} suggested a video:`
+        fromHost
+          ? "🎬 Host updated the next video"
+          : `👤 ${username} suggested a video`
       }
     </div>
-    <a
-      href="${url}"
-      target="_self"
+
+    <button
+      class="watchtogather-close-btn"
+      aria-label="Dismiss notification"
       style="
-        margin-top:5px;
-        font-size:10px;
-        color: rgb(51, 50, 50);
-        word-break:break-word;
+        position:absolute;
+        top: 8px;
+        right: 8px;
+        width:24px;
+        height:24px;
+        border:none;
+        background:transparent;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        font-size:16px;
+        font-weight:600;
+        cursor:pointer;
+        color:#000;
       "
-      rel="noopener noreferrer"
     >
-      ${url}
-    </a>
-    <div style="display:flex; justify-content:flex-center;">
-      <button class="watchtogather-dismiss-notif-btn">Dismiss</button>
-    </div>
-  `;
+      ×
+    </button>
+  </div>
+
+  <a
+    class="watchtogather-notif-link"
+    href="${url}"
+    target="_self"
+    rel="noopener noreferrer"
+    style="
+      display:block;
+      margin-top:6px;
+      font-size:12px;
+      color:#000;
+      word-break:break-word;
+      text-decoration:none;
+      cursor:pointer;
+    "
+  >
+    ${url}
+  </a>
+`;
 
   notif
-    .querySelector(".watchtogather-dismiss-notif-btn")!
+    .querySelector(".watchtogather-close-btn")!
     .addEventListener("click", () => {
-      notif.remove();
+      notif.classList.add("exit");
+      notif.addEventListener("transitionend", () => notif.remove(), {
+        once: true,
+      });
     });
 
-  container.appendChild(notif);
+  container.prepend(notif);
+
+  requestAnimationFrame(() => {
+    notif.classList.add("enter-active");
+    notif.classList.remove("enter");
+  });
 }
