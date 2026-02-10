@@ -24,6 +24,7 @@ export function renderInitialView() {
 
   roomIdTextElement.textContent = "";
   roomIdContainer.classList.add("hidden");
+  mainView.classList.add("landing");
   mainView.innerHTML = `
     <button id="createRoomBtn">Create Room</button>
     <button id="joinRoomBtn">Join Room</button>
@@ -55,6 +56,7 @@ export function updateUIForRoom(
 ) {
   roomIdTextElement.textContent = `Room ID: ${roomId}`;
   roomIdContainer.classList.remove("hidden");
+  mainView.classList.remove("landing");
   mainView.innerHTML = `
     <div id="roomHeader">
       <p id="roomNameText"><strong>${roomName}</strong></p>
@@ -62,27 +64,13 @@ export function updateUIForRoom(
       <span id="urlText" class="sub-text" data-url="${url}">${url}</span>
     </div>
 
-    <div>
-      <div id="roomActions">
-        ${
-          isHost
-            ? `
-          <button id="leaveRoomBtn">Disband Room</button>
-          `
-            : `
-          <button id="leaveRoomBtn">Leave Room</button>
-        `
-        }
-      </div>
-      <div id="registerTab">
-        <button id="registerTabBtn">Register Current Tab</button>
-        ${
-          registeredTabId !== null
-            ? ``
-            : `<p id="registerTabDetails">No registered tab for syncing</p>`
-        }
-      </div>
-    </div>
+    <button id="leaveRoomBtn">${isHost ? "Disband Room" : "Leave Room"}</button>
+    <button id="registerTabBtn">Register Current Tab</button>
+    ${
+      registeredTabId !== null
+        ? ``
+        : `<p id="registerTabDetails">No registered tab for syncing</p>`
+    }
   `;
 
   const copyRoomIdBtn = document.getElementById(
