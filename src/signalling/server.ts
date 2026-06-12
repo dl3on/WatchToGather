@@ -1,6 +1,6 @@
 import { httpServer, app, connections } from "./socket.js";
 
-const port = 80;
+const port = process.env.PORT || 80;
 app.get("/connections", (req, res) => {
   res.send(connections);
 });
